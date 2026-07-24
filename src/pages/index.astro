@@ -1,0 +1,73 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import StandingsTable from '../components/StandingsTable.astro';
+import TeamLogo from '../components/TeamLogo.astro';
+import { teams } from '../data/teams';
+const slashers=teams[0], reapers=teams[1], suns=teams[7], racers=teams[5];
+---
+<BaseLayout title="The League Gazette | 2025 Season">
+  <section class="breaking"><div class="shell"><strong>League Wire</strong><span>2025 season archive loaded · Sleeper data integration enabled · 2026 team identities coming soon</span></div></section>
+  <div class="shell homepage">
+    <section class="lead-grid">
+      <article class="lead-story card">
+        <div class="lead-art"><img src="/images/home-feature.png" alt="Fantasy football championship editorial artwork" /><div class="issue-tag">2025 Season Review</div></div>
+        <div class="lead-copy"><div class="eyebrow">The Lead</div><h1>A season of chaos leaves one franchise standing</h1><p>The final numbers are in. Revisit the defining matchups, managerial gambles and late-season turns that shaped Far Far Away Football in 2025.</p><div class="meta">By The League Gazette · Archive Edition</div><a class="button green" href="/gazette">Read the season review</a></div>
+      </article>
+      <aside class="sidebar"><h2 class="rule-title">Standings</h2><StandingsTable compact={true}/><a href="/standings" class="text-link">View complete standings →</a></aside>
+    </section>
+
+    <section class="mid-grid">
+      <div><h2 class="rule-title">Featured Matchup</h2><div class="matchup card">
+        <div class="matchup-top"><span>Week 14 · Final</span><strong>Game of the Year nominee</strong></div>
+        <div class="matchup-teams"><div><TeamLogo src={slashers.logo} alt={slashers.name}/><h3>{slashers.name}</h3><small>{slashers.owner}</small><b>132.84</b></div><span class="versus">FINAL</span><div><TeamLogo src={reapers.logo} alt={reapers.name}/><h3>{reapers.name}</h3><small>{reapers.owner}</small><b>129.66</b></div></div>
+        <p>A Monday-night finish decided by fewer than four points. The archive will eventually pull this card directly from Sleeper matchup data.</p>
+      </div>
+      <div><h2 class="rule-title">League Feed</h2><div class="feed card">
+        <div><span class="feed-type">Archive</span><p>The 2025 season data source is connected to Sleeper league <code>1257085409687506944</code>.</p></div>
+        <div><span class="feed-type">Commissioner's Corner</span><p>AJ's recurring column will live here whenever a new edition is published.</p></div>
+        <div><span class="feed-type">Draft Desk</span><p>Draft results, steals and reaches will populate the Draft page.</p></div>
+        <div><span class="feed-type">Stats Lab</span><p>Expected wins, lineup efficiency and schedule luck are reserved for the analytics layer.</p></div>
+      </div></div>
+    </section>
+
+    <section class="bottom-grid">
+      <div><h2 class="rule-title">Power Rankings</h2><div class="rankings card">{[slashers,reapers,suns,racers].map((t,i)=><a href={`/teams/${t.slug}`} style={`--team:${t.primary}`}><span class="number">{i+1}</span><img src={t.logo} alt=""/><span><strong>{t.name}</strong><small>{t.owner}</small></span><b>{i===0?'—':i===1?'▲1':i===2?'▼1':'▲2'}</b></a>)}</div></div>
+      <div><h2 class="rule-title">Latest Awards</h2><div class="awards card"><article><span>🏆</span><div><strong>The Juggernaut</strong><p>Highest weekly score</p></div></article><article><span>🧠</span><div><strong>Resident Belichick</strong><p>Best lineup efficiency</p></div></article><article><span>🚌</span><div><strong>Gus Bus</strong><p>Most points left behind</p></div></article><a href="/awards" class="button">Open awards archive</a></div></div>
+    </section>
+
+    <section class="stories"><h2 class="rule-title">Around the League</h2><div class="story-grid"><article class="card"><div class="story-kicker">Commissioner's Corner</div><h3>The state of the league</h3><p>A reserved editorial space for AJ's official—or unofficial—dispatches.</p></article><article class="card"><div class="story-kicker">Stats Lab</div><h3>Who was actually lucky?</h3><p>Expected records and all-play standings will separate contenders from frauds.</p></article><article class="card"><div class="story-kicker">Draft Central</div><h3>Revisiting the 2025 draft</h3><p>A full pick-by-pick board, team classes and editorial grades.</p></article></div></section>
+  </div>
+
+  <script>
+    const leagueId = '1257085409687506944';
+    Promise.all([
+      fetch(`https://api.sleeper.app/v1/league/${leagueId}/users`).then(r=>r.json()),
+      fetch(`https://api.sleeper.app/v1/league/${leagueId}/rosters`).then(r=>r.json())
+    ]).then(([users,rosters])=>{
+      const userMap = Object.fromEntries(users.map((u:any)=>[u.user_id,u]));
+      const rows = [...document.querySelectorAll('[data-sleeper-standings] .standing-row')];
+      const names:Record<string,string> = {
+        'Matt Bieniek':'Haddonfield Slashers','Nick Lewandowski':'The Reapers','Scott Baker':'Love and Fantasy Football','Julia Kurdys':'Super QB Hut General','Brandon Smith':'Naberhood Watch','AJ Kurdys':'JaMario Kart Racers','Derek King':'Shinra Tensei Pain','Amir Elgeyoushi':'Egyptian Suns','Brennan Kurdys':'Fremennik Exiles','Randy Todd':'Edgeville Nut Eaters'
+      };
+      const normalized = (s:string)=>s.toLowerCase().replace(/[^a-z]/g,'');
+      const standings = rosters.map((r:any)=>{
+        const u=userMap[r.owner_id];
+        const display=u?.display_name||'';
+        const mapped=Object.entries(names).find(([owner])=>normalized(display).includes(normalized(owner.split(' ')[0])))?.[1];
+        return {name:mapped||u?.metadata?.team_name||display, wins:r.settings.wins||0, losses:r.settings.losses||0, fpts:(r.settings.fpts||0)+(r.settings.fpts_decimal||0)/100};
+      }).sort((a:any,b:any)=>b.wins-a.wins||b.fpts-a.fpts);
+      rows.forEach((row:any,index)=>{
+        const team=standings.find((s:any)=>s.name===row.dataset.team);
+        if(!team)return;
+        row.querySelector(':scope > b').textContent=String(standings.indexOf(team)+1);
+        row.querySelector('.record').textContent=`${team.wins}-${team.losses}`;
+        const p=row.querySelector('.points'); if(p)p.textContent=team.fpts.toFixed(1);
+      });
+    }).catch(()=>console.info('Sleeper unavailable; showing polished sample archive data.'));
+  </script>
+</BaseLayout>
+<style>
+.breaking{background:var(--green);color:white;font-size:.76rem}.breaking .shell{display:flex;gap:18px;padding:9px 0;overflow:hidden;white-space:nowrap}.breaking strong{text-transform:uppercase;letter-spacing:.1em}.homepage{padding-top:34px}.lead-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(300px,.8fr);gap:30px}.lead-story{display:grid;grid-template-columns:1.15fr 1fr;overflow:hidden}.lead-art{position:relative;min-height:430px}.lead-art img{width:100%;height:100%;object-fit:cover;filter:saturate(.8) contrast(1.02)}.issue-tag{position:absolute;left:16px;top:16px;background:var(--green);color:#fff;padding:7px 10px;font-size:.67rem;text-transform:uppercase;letter-spacing:.1em}.lead-copy{padding:34px}.lead-copy h1{font:700 clamp(2.1rem,4vw,4rem)/.96 Georgia,serif;margin:12px 0 18px}.lead-copy p{font:1.05rem/1.6 Georgia,serif;color:#444}.meta{color:var(--muted);font-size:.72rem;margin:24px 0 18px}.text-link{display:inline-block;margin-top:12px;color:var(--green);font-weight:800;font-size:.78rem;text-transform:uppercase;letter-spacing:.07em}.mid-grid,.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:44px}.matchup{padding:22px}.matchup-top{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:12px;font-size:.72rem;color:var(--muted)}.matchup-teams{display:grid;grid-template-columns:1fr 60px 1fr;align-items:center;text-align:center;padding:25px 0}.matchup-teams>div{display:flex;flex-direction:column;align-items:center}.matchup-teams h3{font:700 1.2rem Georgia,serif;margin:10px 0 1px}.matchup-teams small{color:var(--muted)}.matchup-teams b{font:700 2rem Georgia,serif;margin-top:10px}.versus{font-size:.62rem;border:1px solid var(--line);padding:8px 5px}.matchup p{margin:0;color:#555;line-height:1.5}.feed>div{padding:15px 18px;border-bottom:1px solid var(--line)}.feed>div:last-child{border:0}.feed-type{font-size:.64rem;font-weight:900;color:var(--green);text-transform:uppercase;letter-spacing:.1em}.feed p{margin:4px 0;font-size:.88rem;line-height:1.45}.rankings a{display:grid;grid-template-columns:36px 46px 1fr 40px;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line)}.rankings a:hover{background:color-mix(in srgb,var(--team) 8%,white)}.rankings a:last-child{border:0}.rankings img{width:40px;height:40px;object-fit:cover;border-radius:50%}.rankings strong,.rankings small{display:block}.rankings small{font-size:.68rem;color:var(--muted)}.number{font:700 1.2rem Georgia,serif}.awards{padding:10px 18px 18px}.awards article{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}.awards article>span{font-size:1.6rem}.awards p{margin:2px 0;color:var(--muted);font-size:.78rem}.awards .button{margin-top:16px}.stories{margin-top:44px}.story-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.story-grid article{padding:24px;min-height:190px}.story-kicker{color:var(--green);text-transform:uppercase;letter-spacing:.1em;font-size:.65rem;font-weight:900}.story-grid h3{font:700 1.55rem/1.05 Georgia,serif;margin:12px 0}.story-grid p{line-height:1.55;color:#555}
+@media(max-width:950px){.lead-grid{grid-template-columns:1fr}.sidebar{order:2}.lead-story{grid-template-columns:1fr 1fr}.mid-grid,.bottom-grid{grid-template-columns:1fr 1fr}.story-grid{grid-template-columns:1fr 1fr}.story-grid article:last-child{grid-column:1/-1}}
+@media(max-width:700px){.homepage{padding-top:18px}.lead-story{grid-template-columns:1fr}.lead-art{min-height:270px}.lead-copy{padding:23px}.lead-copy h1{font-size:2.35rem}.mid-grid,.bottom-grid,.story-grid{grid-template-columns:1fr}.story-grid article:last-child{grid-column:auto}.matchup-teams{grid-template-columns:1fr 45px 1fr}.matchup-teams h3{font-size:.95rem}}
+</style>

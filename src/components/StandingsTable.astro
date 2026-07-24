@@ -1,0 +1,21 @@
+---
+import { teams } from '../data/teams';
+import { sampleStandings } from '../data/sample';
+const compact = Astro.props.compact ?? false;
+const data = sampleStandings.map(([name,record,rank,points]) => ({name,record,rank,points,team:teams.find(t=>t.name===name)}));
+---
+<div class="standings card" data-sleeper-standings>
+  <div class="table-head"><span>RK</span><span>Team</span><span>Record</span>{!compact && <span>PF</span>}</div>
+  <div class="rows">
+    {data.slice(0, compact ? 6 : 10).map((row) => <a href={`/teams/${row.team?.slug}`} class="standing-row" style={`--team:${row.team?.primary}`} data-team={row.name}>
+      <b>{row.rank}</b>
+      <div class="team"><span class="bar"></span><img src={row.team?.logo} alt="" /><span><strong>{row.name}</strong><small>{row.team?.owner}</small></span></div>
+      <span class="record">{row.record}</span>
+      {!compact && <span class="points">{row.points.toFixed(1)}</span>}
+    </a>)}
+  </div>
+</div>
+<style>
+.standings{overflow:hidden}.table-head,.standing-row{display:grid;grid-template-columns:42px minmax(0,1fr) 75px 78px;align-items:center}.table-head{background:var(--ink);color:white;padding:10px 13px;font-size:.65rem;text-transform:uppercase;letter-spacing:.11em}.standing-row{min-height:58px;padding:7px 13px;border-bottom:1px solid var(--line);transition:.18s ease}.standing-row:last-child{border-bottom:0}.standing-row:hover{background:color-mix(in srgb,var(--team) 8%,white);transform:translateX(2px)}.team{display:flex;align-items:center;gap:9px;min-width:0}.bar{width:4px;height:31px;background:var(--team);flex:none}.team img{width:34px;height:34px;object-fit:cover;border-radius:50%;border:1px solid #ccc}.team strong,.team small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.team strong{font-size:.84rem}.team small{font-size:.67rem;color:var(--muted);margin-top:2px}.record,.points{font-variant-numeric:tabular-nums;font-weight:700;font-size:.84rem}.points{color:var(--muted)}
+@media(max-width:480px){.table-head,.standing-row{grid-template-columns:30px minmax(0,1fr) 58px}.table-head span:last-child,.standing-row .points{display:none}.team small{display:none}}
+</style>

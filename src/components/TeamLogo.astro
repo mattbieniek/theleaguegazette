@@ -1,0 +1,5 @@
+---
+const {src, alt, size='md'} = Astro.props;
+---
+<div class={`team-logo ${size}`}><img src={src} alt={alt} /></div>
+<style>.team-logo{border-radius:50%;overflow:hidden;border:1px solid rgba(0,0,0,.2);background:#fff;box-shadow:0 8px 22px rgba(0,0,0,.1)}.team-logo img{width:100%;height:100%;object-fit:cover}.sm{width:44px;height:44px}.md{width:76px;height:76px}.lg{width:132px;height:132px}</style>
