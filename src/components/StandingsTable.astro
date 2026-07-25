@@ -1,21 +1,77 @@
 ---
-import { teams } from '../data/teams';
-import { sampleStandings } from '../data/sample';
-const compact = Astro.props.compact ?? false;
-const data = sampleStandings.map(([name,record,rank,points]) => ({name,record,rank,points,team:teams.find(t=>t.name===name)}));
+import type { SeasonStanding } from "../lib/queries/standings";
+
+interface Props {
+  standings: SeasonStanding[];
+  compact?: boolean;
+}
+
+const {
+  standings,
+  compact = false,
+} = Astro.props;
 ---
-<div class="standings card" data-sleeper-standings>
-  <div class="table-head"><span>RK</span><span>Team</span><span>Record</span>{!compact && <span>PF</span>}</div>
-  <div class="rows">
-    {data.slice(0, compact ? 6 : 10).map((row) => <a href={`/teams/${row.team?.slug}`} class="standing-row" style={`--team:${row.team?.primary}`} data-team={row.name}>
-      <b>{row.rank}</b>
-      <div class="team"><span class="bar"></span><img src={row.team?.logo} alt="" /><span><strong>{row.name}</strong><small>{row.team?.owner}</small></span></div>
-      <span class="record">{row.record}</span>
-      {!compact && <span class="points">{row.points.toFixed(1)}</span>}
-    </a>)}
-  </div>
+
+<div
+  class:list={[
+    "standings-table",
+    compact && "standings-table--compact",
+  ]}
+>
+  <table class="w-full border-collapse text-left">
+    <thead>
+      <tr class="border-b border-slate-300 text-sm uppercase tracking-wide text-slate-500">
+        <th class="px-3 py-3">Rank</th>
+        <th class="px-3 py-3">Team</th>
+        <th class="px-3 py-3 text-center">Record</th>
+        <th class="px-3 py-3 text-right">PF</th>
+        <th class="px-3 py-3 text-right">PA</th>
+        <th class="px-3 py-3 text-right">Diff.</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {
+        standings.map((team) => {
+          const differential = Number(team.point_differential ?? 0);
+
+          return (
+            <tr class="border-b border-slate-200 last:border-0">
+              <td class="px-3 py-4 font-semibold">
+                {team.standings_rank ?? "—"}
+              </td>
+
+              <td class="px-3 py-4 font-semibold">
+                {team.team_name ?? "Unnamed Team"}
+              </td>
+
+              <td class="px-3 py-4 text-center tabular-nums">
+                {team.wins ?? 0}-{team.losses ?? 0}
+                {(team.ties ?? 0) > 0 ? `-${team.ties}` : ""}
+              </td>
+
+              <td class="px-3 py-4 text-right tabular-nums">
+                {Number(team.points_for ?? 0).toFixed(2)}
+              </td>
+
+              <td class="px-3 py-4 text-right tabular-nums">
+                {Number(team.points_against ?? 0).toFixed(2)}
+              </td>
+
+              <td
+                class:list={[
+                  "px-3 py-4 text-right font-semibold tabular-nums",
+                  differential > 0 && "text-emerald-700",
+                  differential < 0 && "text-red-700",
+                ]}
+              >
+                {differential > 0 ? "+" : ""}
+                {differential.toFixed(2)}
+              </td>
+            </tr>
+          );
+        })
+      }
+    </tbody>
+  </table>
 </div>
-<style>
-.standings{overflow:hidden}.table-head,.standing-row{display:grid;grid-template-columns:42px minmax(0,1fr) 75px 78px;align-items:center}.table-head{background:var(--ink);color:white;padding:10px 13px;font-size:.65rem;text-transform:uppercase;letter-spacing:.11em}.standing-row{min-height:58px;padding:7px 13px;border-bottom:1px solid var(--line);transition:.18s ease}.standing-row:last-child{border-bottom:0}.standing-row:hover{background:color-mix(in srgb,var(--team) 8%,white);transform:translateX(2px)}.team{display:flex;align-items:center;gap:9px;min-width:0}.bar{width:4px;height:31px;background:var(--team);flex:none}.team img{width:34px;height:34px;object-fit:cover;border-radius:50%;border:1px solid #ccc}.team strong,.team small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.team strong{font-size:.84rem}.team small{font-size:.67rem;color:var(--muted);margin-top:2px}.record,.points{font-variant-numeric:tabular-nums;font-weight:700;font-size:.84rem}.points{color:var(--muted)}
-@media(max-width:480px){.table-head,.standing-row{grid-template-columns:30px minmax(0,1fr) 58px}.table-head span:last-child,.standing-row .points{display:none}.team small{display:none}}
-</style>

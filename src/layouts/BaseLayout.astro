@@ -1,37 +1,81 @@
 ---
-import '../styles/global.css';
-const { title = 'The League Gazette', description = 'Far Far Away Football' } = Astro.props;
-const nav = [
-  ['Home','/'], ['Teams','/teams'], ['Standings','/standings'], ['Stats','/stats'], ['Draft','/draft'], ['Awards','/awards'], ['Gazette','/gazette']
-];
+import "@fontsource-variable/newsreader";
+import "@fontsource-variable/inter";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/600.css";
+
+import "../styles/global.css";
+
+import Masthead from "../components/site/Masthead.astro";
+import SiteNav from "../components/site/SiteNav.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "The League Gazette",
+  description =
+    "News, analysis and nonsense from the Far Far Away Fantasy Football League.",
+} = Astro.props;
+
+const fullTitle =
+  title === "The League Gazette"
+    ? title
+    : `${title} | The League Gazette`;
 ---
+
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width" />
-  <meta name="description" content={description} />
-  <link rel="icon" type="image/png" href="/logos/league-logo.png" />
-  <title>{title}</title>
-</head>
-<body>
-  <header class="site-header">
-    <div class="topbar"><div class="shell topbar-inner"><span>2025 Season Archive</span><span>Far Far Away Football</span></div></div>
-    <div class="shell masthead">
-      <a href="/" class="brand"><img src="/logos/league-logo.png" alt="Far Far Away Football logo" /><div><strong>THE LEAGUE GAZETTE</strong><span>The official publication of Far Far Away Football</span></div></a>
-    </div>
-    <nav class="nav"><div class="shell nav-inner">{nav.map(([label,href]) => <a class:list={{active: Astro.url.pathname === href}} href={href}>{label}</a>)}</div></nav>
-  </header>
-  <main><slot /></main>
-  <footer>
-    <div class="shell footer-grid"><div><div class="footer-brand">THE LEAGUE GAZETTE</div><p>Covering Far Far Away Football with a completely unreasonable degree of seriousness.</p></div><div><strong>League</strong><a href="/teams">Teams</a><a href="/standings">Standings</a><a href="/stats">Stats</a></div><div><strong>Publication</strong><a href="/gazette">Gazette</a><a href="/awards">Awards</a><a href="/draft">Draft</a></div></div>
-    <div class="shell copyright">© 2026 Far Far Away Football · Prototype build using 2025 data</div>
-  </footer>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+
+    <meta name="description" content={description} />
+
+    <meta name="theme-color" content="#f4f1e9" />
+
+    <title>{fullTitle}</title>
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">
+      Skip to content
+    </a>
+
+    <Masthead />
+    <SiteNav />
+
+    <main id="main-content" class="page-main">
+      <slot />
+    </main>
+  </body>
 </html>
-<style>
-.site-header{background:rgba(247,245,239,.96);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
-.topbar{background:var(--ink);color:#fff;font-size:.67rem;text-transform:uppercase;letter-spacing:.12em}.topbar-inner{display:flex;justify-content:space-between;padding:7px 0}.masthead{padding:15px 0}.brand{display:flex;align-items:center;gap:13px}.brand img{width:62px;height:62px;object-fit:contain}.brand strong{font-family:Georgia,serif;font-size:clamp(1.45rem,4vw,2.3rem);letter-spacing:.015em}.brand span{display:block;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;margin-top:2px}.nav{border-top:1px solid var(--line)}.nav-inner{display:flex;overflow:auto}.nav a{padding:12px 16px 10px;border-bottom:3px solid transparent;font-size:.72rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}.nav a:hover,.nav a.active{border-bottom-color:var(--green);color:var(--green)}
-footer{margin-top:72px;background:var(--ink);color:#eee;padding:44px 0 22px}.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:32px}.footer-brand{font:700 1.5rem Georgia,serif}.footer-grid p{color:#aaa;max-width:520px}.footer-grid strong,.footer-grid a{display:block;margin-bottom:9px}.footer-grid a{color:#aaa;font-size:.88rem}.copyright{border-top:1px solid #3b3b3b;margin-top:30px;padding-top:18px;color:#858585;font-size:.74rem}
-@media(max-width:700px){.brand img{width:50px;height:50px}.brand span{display:none}.footer-grid{grid-template-columns:1fr 1fr}.footer-grid>div:first-child{grid-column:1/-1}.topbar-inner span:first-child{display:none}}
+
+<style is:global>
+  .skip-link {
+    position: fixed;
+    top: var(--space-3);
+    left: var(--space-3);
+    z-index: 100;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-sm);
+    background: var(--color-green);
+    color: white;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    transform: translateY(-160%);
+    transition: transform var(--transition-fast);
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
 </style>

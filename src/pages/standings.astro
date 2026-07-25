@@ -1,4 +1,5 @@
 ---
+import StandingsTable from "../components/StandingsTable.astro";
 import { getSeasonStandings } from "../lib/queries/standings";
 
 const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
@@ -7,17 +8,7 @@ if (!sleeperLeagueId) {
   throw new Error("Missing PUBLIC_SLEEPER_LEAGUE_ID.");
 }
 
-let standings = [];
-let errorMessage = "";
-
-try {
-  standings = await getSeasonStandings(sleeperLeagueId);
-} catch (error) {
-  errorMessage =
-    error instanceof Error
-      ? error.message
-      : "An unknown error occurred.";
-}
+const standings = await getSeasonStandings(sleeperLeagueId);
 ---
 
 <html lang="en">
@@ -27,62 +18,24 @@ try {
       name="viewport"
       content="width=device-width, initial-scale=1"
     />
-    <title>Standings Test | The League Gazette</title>
+    <title>Standings | The League Gazette</title>
   </head>
 
-  <body>
-    <main>
-      <h1>Season Standings Test</h1>
+  <body class="bg-slate-100 text-slate-950">
+    <main class="mx-auto max-w-6xl px-4 py-12">
+      <section class="rounded-xl bg-white p-6 shadow-sm">
+        <div class="mb-6">
+          <p class="text-sm font-semibold uppercase tracking-widest text-slate-500">
+            Far Far Away Football
+          </p>
 
-      {
-        errorMessage ? (
-          <section>
-            <h2>Query failed</h2>
-            <pre>{errorMessage}</pre>
-          </section>
-        ) : standings.length === 0 ? (
-          <p>No standings records were returned.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Team</th>
-                <th>Record</th>
-                <th>Points For</th>
-                <th>Points Against</th>
-                <th>Point Differential</th>
-              </tr>
-            </thead>
+          <h1 class="mt-2 text-4xl font-bold">
+            Season Standings
+          </h1>
+        </div>
 
-            <tbody>
-              {standings.map((team) => (
-                <tr>
-                  <td>{team.standings_rank ?? "—"}</td>
-                  <td>{team.team_name ?? "Unnamed Team"}</td>
-                  <td>
-                    {team.wins ?? 0}-{team.losses ?? 0}
-                    {(team.ties ?? 0) > 0
-                      ? `-${team.ties}`
-                      : ""}
-                  </td>
-                  <td>
-                    {Number(team.points_for ?? 0).toFixed(2)}
-                  </td>
-                  <td>
-                    {Number(team.points_against ?? 0).toFixed(2)}
-                  </td>
-                  <td>
-                    {Number(
-                      team.point_differential ?? 0
-                    ).toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )
-      }
+        <StandingsTable standings={standings} />
+      </section>
     </main>
   </body>
 </html>
