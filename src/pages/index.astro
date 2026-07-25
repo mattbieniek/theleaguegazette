@@ -1,79 +1,163 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import LeadStory from "../components/home/LeadStory.astro";
+import SecondaryStory from "../components/home/SecondaryStory.astro";
+import {
+  leadStory,
+  secondaryStories,
+} from "../data/homepage";
 ---
 
-<BaseLayout>
+<BaseLayout
+  description="The latest stories, analysis, standings and league coverage from Far Far Away Football."
+>
   <div class="site-shell">
-    <section class="homepage-intro">
-      <p class="eyebrow">The 2026 Season</p>
+    <section
+      class="front-page-header"
+      aria-labelledby="front-page-title"
+    >
+      <div>
+        <p class="eyebrow">Latest Edition</p>
 
-      <h1>The front page of Far Far Away Football.</h1>
+        <h2 id="front-page-title">
+          Around the League
+        </h2>
+      </div>
 
-      <p class="homepage-intro__summary">
-        Weekly stories, league analysis, matchup coverage and an
-        unreasonable amount of commentary about fantasy football.
+      <p class="front-page-header__description">
+        Reporting, analysis and deeply unnecessary commentary from Far Far
+        Away Football.
       </p>
     </section>
 
-    <hr class="section-rule" />
+    <LeadStory story={leadStory} />
 
     <section
-      class="homepage-placeholder surface-card"
-      aria-labelledby="next-step-title"
+      class="secondary-section"
+      aria-labelledby="latest-headlines-title"
     >
-      <p class="eyebrow">Homepage vertical slice</p>
+      <div class="secondary-section__heading">
+        <h2 id="latest-headlines-title">
+          Latest Headlines
+        </h2>
 
-      <h2 id="next-step-title">
-        The latest edition is coming next.
-      </h2>
+        <a href="/gazette">
+          View all stories
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
 
-      <p>
-        This space will become the lead story module from the approved
-        editorial homepage design.
-      </p>
+      <div class="secondary-story-grid">
+        {
+          secondaryStories.map((story) => (
+            <SecondaryStory story={story} />
+          ))
+        }
+      </div>
     </section>
   </div>
 </BaseLayout>
 
 <style>
-  .homepage-intro {
+  .front-page-header {
     display: grid;
-    max-width: 62rem;
-    padding-block: clamp(1rem, 3vw, 3rem);
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 32rem);
+    gap: var(--space-6);
+    align-items: end;
+    padding-bottom: var(--space-5);
+    border-bottom: 3px double var(--color-rule-dark);
   }
 
-  .homepage-intro h1 {
-    max-width: 13ch;
-    margin-bottom: var(--space-5);
-    font-size: clamp(3.1rem, 8vw, 7.25rem);
-    letter-spacing: -0.055em;
-    line-height: 0.91;
-  }
-
-  .homepage-intro__summary {
-    max-width: 42rem;
+  .front-page-header h2 {
     margin-bottom: 0;
-    color: var(--color-ink-soft);
-    font-family: var(--font-editorial);
-    font-size: clamp(1.25rem, 2vw, 1.65rem);
-    line-height: 1.35;
-  }
-
-  .homepage-placeholder {
-    max-width: 52rem;
-    padding: clamp(1.5rem, 4vw, 3rem);
-  }
-
-  .homepage-placeholder h2 {
-    max-width: 14ch;
-    margin-bottom: var(--space-4);
-    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-size: clamp(2rem, 4vw, 3.5rem);
     letter-spacing: -0.035em;
   }
 
-  .homepage-placeholder p:last-child {
-    max-width: 35rem;
+  .front-page-header__description {
+    justify-self: end;
+    max-width: 32rem;
     margin-bottom: 0;
     color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: var(--text-lg);
+    line-height: 1.4;
+    text-align: right;
+  }
+
+  .secondary-section {
+    padding-top: var(--space-7);
+    border-top: 3px double var(--color-rule-dark);
+  }
+
+  .secondary-section__heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-5);
+    margin-bottom: var(--space-6);
+  }
+
+  .secondary-section__heading h2 {
+    margin-bottom: 0;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    letter-spacing: -0.035em;
+  }
+
+  .secondary-section__heading a {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .secondary-section__heading a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.25rem;
+  }
+
+  .secondary-story-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(2rem, 5vw, 4.5rem);
+  }
+
+  .secondary-story-grid > :global(article) + :global(article) {
+    padding-left: clamp(2rem, 5vw, 4.5rem);
+    border-left: 1px solid var(--color-rule);
+  }
+
+  @media (max-width: 900px) {
+    .front-page-header {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+
+    .front-page-header__description {
+      justify-self: start;
+      text-align: left;
+    }
+
+    .secondary-story-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .secondary-story-grid > :global(article) + :global(article) {
+      padding-top: var(--space-6);
+      padding-left: 0;
+      border-top: 1px solid var(--color-rule);
+      border-left: 0;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .secondary-section__heading {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
   }
 </style>

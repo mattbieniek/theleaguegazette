@@ -1,0 +1,142 @@
+---
+import type { HomepageStory } from "../../data/homepage";
+import { formatPublicationDate } from "../../lib/formatDate";
+
+interface Props {
+  story: HomepageStory;
+}
+
+const { story } = Astro.props;
+---
+
+<article class="secondary-story">
+  <a
+    class="secondary-story__image-link"
+    href={`/gazette/${story.slug}`}
+    aria-label={`Read ${story.headline}`}
+  >
+    <div class="secondary-story__image-frame">
+      <img
+        class="secondary-story__image"
+        src={story.image}
+        alt={story.imageAlt}
+        width="1000"
+        height="700"
+        loading="lazy"
+      />
+    </div>
+  </a>
+
+  <div class="secondary-story__content">
+    <p class="eyebrow">{story.category}</p>
+
+    <h2 class="secondary-story__headline">
+      <a href={`/gazette/${story.slug}`}>
+        {story.headline}
+      </a>
+    </h2>
+
+    <p class="secondary-story__summary">
+      {story.summary}
+    </p>
+
+    <p class="secondary-story__meta">
+      <span>{story.author}</span>
+      <span aria-hidden="true">·</span>
+      <time datetime={story.publishedAt}>
+        {formatPublicationDate(story.publishedAt)}
+      </time>
+    </p>
+  </div>
+</article>
+
+<style>
+  .secondary-story {
+    display: grid;
+    grid-template-columns: minmax(10rem, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(1.25rem, 3vw, 2rem);
+    align-items: start;
+  }
+
+  .secondary-story__image-link {
+    display: block;
+  }
+
+  .secondary-story__image-frame {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 10 / 7;
+    background: var(--color-surface-muted);
+  }
+
+  .secondary-story__image-frame::after {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgb(23 32 27 / 14%);
+    content: "";
+    pointer-events: none;
+  }
+
+  .secondary-story__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-standard);
+  }
+
+  .secondary-story__image-link:hover .secondary-story__image {
+    transform: scale(1.02);
+  }
+
+  .secondary-story__headline {
+    margin-bottom: var(--space-3);
+    font-size: clamp(1.75rem, 3vw, 2.55rem);
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+
+  .secondary-story__headline a {
+    transition: color var(--transition-fast);
+  }
+
+  .secondary-story__headline a:hover {
+    color: var(--color-green);
+  }
+
+  .secondary-story__summary {
+    margin-bottom: var(--space-4);
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: var(--text-lg);
+    line-height: 1.45;
+  }
+
+  .secondary-story__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.66rem;
+    letter-spacing: 0.03em;
+    line-height: 1.5;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 680px) {
+    .secondary-story {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .secondary-story__image {
+      transition: none;
+    }
+
+    .secondary-story__image-link:hover .secondary-story__image {
+      transform: none;
+    }
+  }
+</style>

@@ -1,0 +1,206 @@
+---
+import type { HomepageStory } from "../../data/homepage";
+import { formatPublicationDate } from "../../lib/formatDate";
+
+interface Props {
+  story: HomepageStory;
+}
+
+const { story } = Astro.props;
+---
+
+<article class="lead-story">
+  <a
+    class="lead-story__image-link"
+    href={`/gazette/${story.slug}`}
+    aria-label={`Read ${story.headline}`}
+  >
+    <div class="lead-story__image-frame">
+      <img
+        class="lead-story__image"
+        src={story.image}
+        alt={story.imageAlt}
+        width="1600"
+        height="1000"
+        loading="eager"
+        fetchpriority="high"
+      />
+    </div>
+  </a>
+
+  <div class="lead-story__content">
+    <p class="eyebrow">{story.category}</p>
+
+    <h1 class="lead-story__headline">
+      <a href={`/gazette/${story.slug}`}>
+        {story.headline}
+      </a>
+    </h1>
+
+    <p class="lead-story__summary">
+      {story.summary}
+    </p>
+
+    <div class="lead-story__footer">
+      <p class="lead-story__byline">
+        By <strong>{story.author}</strong>
+        <span aria-hidden="true">·</span>
+        <time datetime={story.publishedAt}>
+          {formatPublicationDate(story.publishedAt)}
+        </time>
+      </p>
+
+      <a class="story-link" href={`/gazette/${story.slug}`}>
+        Read the story
+        <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  </div>
+</article>
+
+<style>
+  .lead-story {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(19rem, 0.85fr);
+    gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: center;
+    padding-block: clamp(1rem, 3vw, 2rem) var(--space-7);
+  }
+
+  .lead-story__image-link {
+    display: block;
+    min-width: 0;
+  }
+
+  .lead-story__image-frame {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 8 / 5;
+    background: var(--color-surface-muted);
+  }
+
+  .lead-story__image-frame::after {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgb(23 32 27 / 14%);
+    content: "";
+    pointer-events: none;
+  }
+
+  .lead-story__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-standard);
+  }
+
+  .lead-story__image-link:hover .lead-story__image {
+    transform: scale(1.015);
+  }
+
+  .lead-story__content {
+    min-width: 0;
+  }
+
+  .lead-story__headline {
+    margin-bottom: var(--space-5);
+    font-size: clamp(2.8rem, 5.8vw, 5.7rem);
+    letter-spacing: -0.052em;
+    line-height: 0.93;
+  }
+
+  .lead-story__headline a {
+    transition: color var(--transition-fast);
+  }
+
+  .lead-story__headline a:hover {
+    color: var(--color-green);
+  }
+
+  .lead-story__summary {
+    max-width: 38rem;
+    margin-bottom: var(--space-5);
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.15rem, 2vw, 1.45rem);
+    line-height: 1.42;
+  }
+
+  .lead-story__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .lead-story__byline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    line-height: 1.5;
+    text-transform: uppercase;
+  }
+
+  .lead-story__byline strong {
+    color: var(--color-ink-soft);
+    font-weight: 600;
+  }
+
+  .story-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .story-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.25rem;
+  }
+
+  @media (max-width: 900px) {
+    .lead-story {
+      grid-template-columns: 1fr;
+      gap: var(--space-6);
+    }
+
+    .lead-story__content {
+      max-width: 48rem;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .lead-story {
+      padding-top: 0;
+    }
+
+    .lead-story__headline {
+      font-size: clamp(2.55rem, 13vw, 4.2rem);
+    }
+
+    .lead-story__footer {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lead-story__image {
+      transition: none;
+    }
+
+    .lead-story__image-link:hover .lead-story__image {
+      transform: none;
+    }
+  }
+</style>
