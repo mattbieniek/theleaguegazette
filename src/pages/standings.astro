@@ -1,4 +1,88 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';import StandingsTable from '../components/StandingsTable.astro';
+import { getSeasonStandings } from "../lib/queries/standings";
+
+const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+
+if (!sleeperLeagueId) {
+  throw new Error("Missing PUBLIC_SLEEPER_LEAGUE_ID.");
+}
+
+let standings = [];
+let errorMessage = "";
+
+try {
+  standings = await getSeasonStandings(sleeperLeagueId);
+} catch (error) {
+  errorMessage =
+    error instanceof Error
+      ? error.message
+      : "An unknown error occurred.";
+}
 ---
-<BaseLayout title="Standings | The League Gazette"><div class="shell page"><div class="eyebrow">2025 Archive</div><h1>League Standings</h1><p>Wins, losses and points are designed to hydrate from Sleeper. The included values act as an offline visual fallback.</p><StandingsTable/></div></BaseLayout><style>.page{padding-top:48px;max-width:920px}.page h1{font:700 clamp(3rem,7vw,5.5rem)/.95 Georgia,serif;margin:8px 0}.page p{color:var(--muted);margin-bottom:28px}</style>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>Standings Test | The League Gazette</title>
+  </head>
+
+  <body>
+    <main>
+      <h1>Season Standings Test</h1>
+
+      {
+        errorMessage ? (
+          <section>
+            <h2>Query failed</h2>
+            <pre>{errorMessage}</pre>
+          </section>
+        ) : standings.length === 0 ? (
+          <p>No standings records were returned.</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Team</th>
+                <th>Record</th>
+                <th>Points For</th>
+                <th>Points Against</th>
+                <th>Point Differential</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {standings.map((team) => (
+                <tr>
+                  <td>{team.standings_rank ?? "—"}</td>
+                  <td>{team.team_name ?? "Unnamed Team"}</td>
+                  <td>
+                    {team.wins ?? 0}-{team.losses ?? 0}
+                    {(team.ties ?? 0) > 0
+                      ? `-${team.ties}`
+                      : ""}
+                  </td>
+                  <td>
+                    {Number(team.points_for ?? 0).toFixed(2)}
+                  </td>
+                  <td>
+                    {Number(team.points_against ?? 0).toFixed(2)}
+                  </td>
+                  <td>
+                    {Number(
+                      team.point_differential ?? 0
+                    ).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )
+      }
+    </main>
+  </body>
+</html>
