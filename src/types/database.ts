@@ -1,0 +1,1133 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  public: {
+    Tables: {
+      fantasy_teams: {
+        Row: {
+          avatar: string | null
+          created_at: string
+          id: string
+          last_synced_at: string
+          league_id: string
+          losses: number
+          manager_id: string | null
+          metadata: Json
+          points_against: number
+          points_for: number
+          raw_data: Json
+          season_id: string
+          settings: Json
+          sleeper_roster_id: number
+          team_name: string | null
+          ties: number
+          updated_at: string
+          waiver_budget_used: number | null
+          waiver_position: number | null
+          wins: number
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string
+          id?: string
+          last_synced_at?: string
+          league_id: string
+          losses?: number
+          manager_id?: string | null
+          metadata?: Json
+          points_against?: number
+          points_for?: number
+          raw_data?: Json
+          season_id: string
+          settings?: Json
+          sleeper_roster_id: number
+          team_name?: string | null
+          ties?: number
+          updated_at?: string
+          waiver_budget_used?: number | null
+          waiver_position?: number | null
+          wins?: number
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string
+          id?: string
+          last_synced_at?: string
+          league_id?: string
+          losses?: number
+          manager_id?: string | null
+          metadata?: Json
+          points_against?: number
+          points_for?: number
+          raw_data?: Json
+          season_id?: string
+          settings?: Json
+          sleeper_roster_id?: number
+          team_name?: string | null
+          ties?: number
+          updated_at?: string
+          waiver_budget_used?: number | null
+          waiver_position?: number | null
+          wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fantasy_teams_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fantasy_teams_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "managers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fantasy_teams_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      league_members: {
+        Row: {
+          created_at: string
+          id: string
+          is_owner: boolean
+          league_id: string
+          manager_id: string
+          metadata: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_owner?: boolean
+          league_id: string
+          manager_id: string
+          metadata?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_owner?: boolean
+          league_id?: string
+          manager_id?: string
+          metadata?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "league_members_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "league_members_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "managers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leagues: {
+        Row: {
+          avatar: string | null
+          created_at: string
+          current_week: number | null
+          draft_id: string | null
+          id: string
+          last_synced_at: string
+          metadata: Json
+          name: string
+          previous_league_id: string | null
+          raw_data: Json
+          roster_positions: Json
+          scoring_settings: Json
+          season: number
+          settings: Json
+          sleeper_created_at: string | null
+          sleeper_league_id: string
+          sport: string
+          status: string | null
+          total_rosters: number | null
+          updated_at: string
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string
+          current_week?: number | null
+          draft_id?: string | null
+          id?: string
+          last_synced_at?: string
+          metadata?: Json
+          name: string
+          previous_league_id?: string | null
+          raw_data?: Json
+          roster_positions?: Json
+          scoring_settings?: Json
+          season: number
+          settings?: Json
+          sleeper_created_at?: string | null
+          sleeper_league_id: string
+          sport?: string
+          status?: string | null
+          total_rosters?: number | null
+          updated_at?: string
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string
+          current_week?: number | null
+          draft_id?: string | null
+          id?: string
+          last_synced_at?: string
+          metadata?: Json
+          name?: string
+          previous_league_id?: string | null
+          raw_data?: Json
+          roster_positions?: Json
+          scoring_settings?: Json
+          season?: number
+          settings?: Json
+          sleeper_created_at?: string | null
+          sleeper_league_id?: string
+          sport?: string
+          status?: string | null
+          total_rosters?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      managers: {
+        Row: {
+          avatar: string | null
+          created_at: string
+          display_name: string
+          id: string
+          last_synced_at: string
+          metadata: Json
+          raw_data: Json
+          sleeper_user_id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          last_synced_at?: string
+          metadata?: Json
+          raw_data?: Json
+          sleeper_user_id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          last_synced_at?: string
+          metadata?: Json
+          raw_data?: Json
+          sleeper_user_id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      matchup_players: {
+        Row: {
+          created_at: string
+          id: string
+          is_starter: boolean
+          matchup_team_id: string
+          points: number
+          sleeper_player_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_starter?: boolean
+          matchup_team_id: string
+          points?: number
+          sleeper_player_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_starter?: boolean
+          matchup_team_id?: string
+          points?: number
+          sleeper_player_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matchup_players_matchup_team_id_fkey"
+            columns: ["matchup_team_id"]
+            isOneToOne: false
+            referencedRelation: "matchup_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchup_players_matchup_team_id_fkey"
+            columns: ["matchup_team_id"]
+            isOneToOne: false
+            referencedRelation: "team_weekly_results"
+            referencedColumns: ["matchup_team_id"]
+          },
+          {
+            foreignKeyName: "matchup_players_sleeper_player_id_fkey"
+            columns: ["sleeper_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["sleeper_player_id"]
+          },
+        ]
+      }
+      matchup_teams: {
+        Row: {
+          bench_points: number | null
+          created_at: string
+          fantasy_team_id: string
+          id: string
+          is_tie: boolean
+          is_winner: boolean | null
+          matchup_id: string
+          points: number
+          raw_data: Json | null
+          starters_points: number | null
+          updated_at: string
+        }
+        Insert: {
+          bench_points?: number | null
+          created_at?: string
+          fantasy_team_id: string
+          id?: string
+          is_tie?: boolean
+          is_winner?: boolean | null
+          matchup_id: string
+          points?: number
+          raw_data?: Json | null
+          starters_points?: number | null
+          updated_at?: string
+        }
+        Update: {
+          bench_points?: number | null
+          created_at?: string
+          fantasy_team_id?: string
+          id?: string
+          is_tie?: boolean
+          is_winner?: boolean | null
+          matchup_id?: string
+          points?: number
+          raw_data?: Json | null
+          starters_points?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matchup_teams_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "fantasy_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchup_teams_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_standings"
+            referencedColumns: ["fantasy_team_id"]
+          },
+          {
+            foreignKeyName: "matchup_teams_matchup_id_fkey"
+            columns: ["matchup_id"]
+            isOneToOne: false
+            referencedRelation: "matchups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchup_teams_matchup_id_fkey"
+            columns: ["matchup_id"]
+            isOneToOne: false
+            referencedRelation: "team_weekly_results"
+            referencedColumns: ["matchup_id"]
+          },
+        ]
+      }
+      matchups: {
+        Row: {
+          created_at: string
+          id: string
+          league_id: string
+          season_id: string
+          sleeper_matchup_id: number
+          status: string
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          league_id: string
+          season_id: string
+          sleeper_matchup_id: number
+          status?: string
+          updated_at?: string
+          week: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          league_id?: string
+          season_id?: string
+          sleeper_matchup_id?: number
+          status?: string
+          updated_at?: string
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matchups_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchups_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          active: boolean | null
+          age: number | null
+          created_at: string
+          depth_chart_order: number | null
+          depth_chart_position: string | null
+          fantasy_positions: string[]
+          first_name: string | null
+          full_name: string | null
+          injury_status: string | null
+          jersey_number: number | null
+          last_name: string | null
+          last_synced_at: string
+          nfl_team: string | null
+          position: string | null
+          raw_data: Json
+          search_rank: number | null
+          sleeper_player_id: string
+          status: string | null
+          updated_at: string
+          years_experience: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          age?: number | null
+          created_at?: string
+          depth_chart_order?: number | null
+          depth_chart_position?: string | null
+          fantasy_positions?: string[]
+          first_name?: string | null
+          full_name?: string | null
+          injury_status?: string | null
+          jersey_number?: number | null
+          last_name?: string | null
+          last_synced_at?: string
+          nfl_team?: string | null
+          position?: string | null
+          raw_data?: Json
+          search_rank?: number | null
+          sleeper_player_id: string
+          status?: string | null
+          updated_at?: string
+          years_experience?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          age?: number | null
+          created_at?: string
+          depth_chart_order?: number | null
+          depth_chart_position?: string | null
+          fantasy_positions?: string[]
+          first_name?: string | null
+          full_name?: string | null
+          injury_status?: string | null
+          jersey_number?: number | null
+          last_name?: string | null
+          last_synced_at?: string
+          nfl_team?: string | null
+          position?: string | null
+          raw_data?: Json
+          search_rank?: number | null
+          sleeper_player_id?: string
+          status?: string | null
+          updated_at?: string
+          years_experience?: number | null
+        }
+        Relationships: []
+      }
+      roster_players: {
+        Row: {
+          created_at: string
+          fantasy_team_id: string
+          id: string
+          is_reserve: boolean
+          is_starter: boolean
+          is_taxi: boolean
+          sleeper_player_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fantasy_team_id: string
+          id?: string
+          is_reserve?: boolean
+          is_starter?: boolean
+          is_taxi?: boolean
+          sleeper_player_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fantasy_team_id?: string
+          id?: string
+          is_reserve?: boolean
+          is_starter?: boolean
+          is_taxi?: boolean
+          sleeper_player_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_players_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "fantasy_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_players_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_standings"
+            referencedColumns: ["fantasy_team_id"]
+          },
+          {
+            foreignKeyName: "roster_players_sleeper_player_id_fkey"
+            columns: ["sleeper_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["sleeper_player_id"]
+          },
+        ]
+      }
+      roster_snapshot_players: {
+        Row: {
+          created_at: string
+          id: string
+          is_reserve: boolean
+          is_starter: boolean
+          is_taxi: boolean
+          roster_snapshot_id: string
+          sleeper_player_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_reserve?: boolean
+          is_starter?: boolean
+          is_taxi?: boolean
+          roster_snapshot_id: string
+          sleeper_player_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_reserve?: boolean
+          is_starter?: boolean
+          is_taxi?: boolean
+          roster_snapshot_id?: string
+          sleeper_player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_snapshot_players_roster_snapshot_id_fkey"
+            columns: ["roster_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "roster_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_snapshot_players_sleeper_player_id_fkey"
+            columns: ["sleeper_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["sleeper_player_id"]
+          },
+        ]
+      }
+      roster_snapshots: {
+        Row: {
+          created_at: string
+          fantasy_team_id: string
+          id: string
+          losses: number
+          metadata: Json | null
+          points_against: number | null
+          points_for: number | null
+          raw_data: Json | null
+          season_id: string
+          settings: Json | null
+          ties: number
+          waiver_budget_used: number | null
+          waiver_position: number | null
+          week: number
+          wins: number
+        }
+        Insert: {
+          created_at?: string
+          fantasy_team_id: string
+          id?: string
+          losses?: number
+          metadata?: Json | null
+          points_against?: number | null
+          points_for?: number | null
+          raw_data?: Json | null
+          season_id: string
+          settings?: Json | null
+          ties?: number
+          waiver_budget_used?: number | null
+          waiver_position?: number | null
+          week: number
+          wins?: number
+        }
+        Update: {
+          created_at?: string
+          fantasy_team_id?: string
+          id?: string
+          losses?: number
+          metadata?: Json | null
+          points_against?: number | null
+          points_for?: number | null
+          raw_data?: Json | null
+          season_id?: string
+          settings?: Json | null
+          ties?: number
+          waiver_budget_used?: number | null
+          waiver_position?: number | null
+          week?: number
+          wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_snapshots_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "fantasy_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_snapshots_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_standings"
+            referencedColumns: ["fantasy_team_id"]
+          },
+          {
+            foreignKeyName: "roster_snapshots_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seasons: {
+        Row: {
+          created_at: string
+          id: string
+          league_id: string
+          league_name: string | null
+          metadata: Json | null
+          playoff_start_week: number | null
+          playoff_teams: number | null
+          raw_data: Json | null
+          regular_season_weeks: number | null
+          roster_positions: Json | null
+          scoring_settings: Json | null
+          season_type: string
+          sleeper_league_id: string
+          status: string
+          total_rosters: number | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          league_id: string
+          league_name?: string | null
+          metadata?: Json | null
+          playoff_start_week?: number | null
+          playoff_teams?: number | null
+          raw_data?: Json | null
+          regular_season_weeks?: number | null
+          roster_positions?: Json | null
+          scoring_settings?: Json | null
+          season_type?: string
+          sleeper_league_id: string
+          status?: string
+          total_rosters?: number | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          league_id?: string
+          league_name?: string | null
+          metadata?: Json | null
+          playoff_start_week?: number | null
+          playoff_teams?: number | null
+          raw_data?: Json | null
+          regular_season_weeks?: number | null
+          roster_positions?: Json | null
+          scoring_settings?: Json | null
+          season_type?: string
+          sleeper_league_id?: string
+          status?: string
+          total_rosters?: number | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seasons_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_runs: {
+        Row: {
+          completed_at: string | null
+          details: Json
+          error_message: string | null
+          id: string
+          records_processed: number
+          sleeper_league_id: string | null
+          started_at: string
+          status: string
+          sync_type: string
+        }
+        Insert: {
+          completed_at?: string | null
+          details?: Json
+          error_message?: string | null
+          id?: string
+          records_processed?: number
+          sleeper_league_id?: string | null
+          started_at?: string
+          status: string
+          sync_type: string
+        }
+        Update: {
+          completed_at?: string | null
+          details?: Json
+          error_message?: string | null
+          id?: string
+          records_processed?: number
+          sleeper_league_id?: string | null
+          started_at?: string
+          status?: string
+          sync_type?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      all_play_standings: {
+        Row: {
+          all_play_games: number | null
+          all_play_losses: number | null
+          all_play_percentage: number | null
+          all_play_rank: number | null
+          all_play_ties: number | null
+          all_play_wins: number | null
+          average_points: number | null
+          fantasy_team_id: string | null
+          league_id: string | null
+          points_for: number | null
+          season_id: string | null
+          season_year: number | null
+          sleeper_league_id: string | null
+          sleeper_roster_id: number | null
+          team_name: string | null
+          weeks_played: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matchup_teams_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "fantasy_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchup_teams_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_standings"
+            referencedColumns: ["fantasy_team_id"]
+          },
+          {
+            foreignKeyName: "matchups_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchups_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      season_standings: {
+        Row: {
+          average_points: number | null
+          fantasy_team_id: string | null
+          games_played: number | null
+          highest_score: number | null
+          league_id: string | null
+          losses: number | null
+          lowest_score: number | null
+          point_differential: number | null
+          points_against: number | null
+          points_for: number | null
+          season_id: string | null
+          season_year: number | null
+          sleeper_league_id: string | null
+          sleeper_roster_id: number | null
+          standings_rank: number | null
+          team_name: string | null
+          ties: number | null
+          winning_percentage: number | null
+          wins: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fantasy_teams_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seasons_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_weekly_results: {
+        Row: {
+          bench_points: number | null
+          fantasy_team_id: string | null
+          is_tie: boolean | null
+          is_winner: boolean | null
+          league_id: string | null
+          loss: number | null
+          matchup_id: string | null
+          matchup_team_id: string | null
+          opponent_fantasy_team_id: string | null
+          opponent_sleeper_roster_id: number | null
+          opponent_team_name: string | null
+          point_differential: number | null
+          points_against: number | null
+          points_for: number | null
+          result: string | null
+          season_id: string | null
+          season_year: number | null
+          sleeper_league_id: string | null
+          sleeper_matchup_id: number | null
+          sleeper_roster_id: number | null
+          starters_points: number | null
+          team_name: string | null
+          tie: number | null
+          week: number | null
+          win: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matchup_teams_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "fantasy_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchup_teams_fantasy_team_id_fkey"
+            columns: ["opponent_fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "fantasy_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchup_teams_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_standings"
+            referencedColumns: ["fantasy_team_id"]
+          },
+          {
+            foreignKeyName: "matchup_teams_fantasy_team_id_fkey"
+            columns: ["opponent_fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_standings"
+            referencedColumns: ["fantasy_team_id"]
+          },
+          {
+            foreignKeyName: "matchups_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchups_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_standings: {
+        Row: {
+          average_points: number | null
+          fantasy_team_id: string | null
+          games_played: number | null
+          highest_score: number | null
+          league_id: string | null
+          losses: number | null
+          lowest_score: number | null
+          point_differential: number | null
+          points_against: number | null
+          points_for: number | null
+          season_id: string | null
+          season_year: number | null
+          sleeper_league_id: string | null
+          sleeper_roster_id: number | null
+          standings_rank: number | null
+          team_name: string | null
+          ties: number | null
+          week: number | null
+          winning_percentage: number | null
+          wins: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matchup_teams_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "fantasy_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchup_teams_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_standings"
+            referencedColumns: ["fantasy_team_id"]
+          },
+          {
+            foreignKeyName: "matchups_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchups_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
