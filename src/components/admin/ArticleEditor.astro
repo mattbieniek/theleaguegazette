@@ -47,6 +47,14 @@ const editorMode = articleId ? "edit" : "create";
         </button>
 
         <button
+          id="preview-button"
+          class="editor-button editor-button--secondary"
+          type="button"
+        >
+          Preview
+        </button>
+
+        <button
           id="publish-button"
           class="editor-button editor-button--primary"
           type="button"
@@ -289,6 +297,59 @@ Separate paragraphs with a blank line."
       </aside>
     </div>
   </form>
+  <dialog id="preview-dialog" class="preview-dialog">
+  <div class="preview-shell">
+    <header class="preview-toolbar">
+      <div>
+        <p class="eyebrow">Story Preview</p>
+        <p class="preview-toolbar__note">
+          This preview has not been published.
+        </p>
+      </div>
+
+      <button
+        id="close-preview-button"
+        class="preview-close"
+        type="button"
+        aria-label="Close preview"
+      >
+        ×
+      </button>
+    </header>
+
+    <div class="preview-page">
+      <article class="story-preview">
+        <header class="story-preview__header">
+          <p id="preview-category" class="story-preview__category">
+            Uncategorized
+          </p>
+
+          <h1 id="preview-headline">
+            Untitled story
+          </h1>
+
+          <p id="preview-summary" class="story-preview__summary"></p>
+
+          <div class="story-preview__byline">
+            <span id="preview-author">The Gazette Staff</span>
+            <span aria-hidden="true">•</span>
+            <time id="preview-date"></time>
+          </div>
+        </header>
+
+        <figure id="preview-image-wrapper" class="story-preview__image" hidden>
+          <img id="preview-image" src="" alt="" />
+        </figure>
+
+        <div id="preview-body" class="story-preview__body"></div>
+
+        <div id="preview-empty-body" class="story-preview__empty" hidden>
+          <p>The article body will appear here.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</dialog>
 </div>
 
 <script>
@@ -408,10 +469,58 @@ Separate paragraphs with a blank line."
       "#view-published-story"
     );
 
+  const previewButton =
+  document.querySelector<HTMLButtonElement>("#preview-button");
+
+const previewDialog =
+  document.querySelector<HTMLDialogElement>("#preview-dialog");
+
+const closePreviewButton =
+  document.querySelector<HTMLButtonElement>(
+    "#close-preview-button"
+  );
+
+const previewCategory =
+  document.querySelector<HTMLElement>("#preview-category");
+
+const previewHeadline =
+  document.querySelector<HTMLElement>("#preview-headline");
+
+const previewSummary =
+  document.querySelector<HTMLElement>("#preview-summary");
+
+const previewAuthor =
+  document.querySelector<HTMLElement>("#preview-author");
+
+const previewDate =
+  document.querySelector<HTMLTimeElement>("#preview-date");
+
+const previewImageWrapper =
+  document.querySelector<HTMLElement>(
+    "#preview-image-wrapper"
+  );
+
+const previewImage =
+  document.querySelector<HTMLImageElement>("#preview-image");
+
+const previewBody =
+  document.querySelector<HTMLElement>("#preview-body");
+
+const previewEmptyBody =
+  document.querySelector<HTMLElement>("#preview-empty-body");
+
   const mode = editor?.dataset.mode ?? "create";
   let articleId = editor?.dataset.articleId ?? "";
-  let slugWasManuallyEdited = mode === "edit";
-  let currentArticleStatus = "draft";
+let slugWasManuallyEdited = mode === "edit";
+let currentArticleStatus: "draft" | "published" = "draft";
+
+let lastSavedSnapshot = "";
+let autosaveTimer: number | undefined;
+let isSaving = false;
+let isHydrating = false;
+let hasUnsavedChanges = false;
+
+const AUTOSAVE_DELAY = 1400;
 
   function slugify(value: string): string {
     return value
@@ -486,6 +595,84 @@ Separate paragraphs with a blank line."
     return value.charAt(0).toUpperCase() + value.slice(1);
   }
 
+  function getEditorSnapshot(): string {
+  return JSON.stringify({
+    headline: headlineInput?.value ?? "",
+    summary: summaryInput?.value ?? "",
+    body: bodyInput?.value ?? "",
+    category: categoryInput?.value ?? "",
+    authorName: authorInput?.value ?? "",
+    slug: slugInput?.value ?? "",
+    publishedAt: publishedAtInput?.value ?? "",
+    imageUrl: imageUrlInput?.value ?? "",
+    imageAlt: imageAltInput?.value ?? "",
+    isFeatured: isFeaturedInput?.checked ?? false,
+    homepageOrder: homepageOrderInput?.value ?? "",
+  });
+}
+
+function setSaveStatus(text: string): void {
+  if (saveStatus) {
+    saveStatus.textContent = text;
+  }
+}
+
+function markCurrentStateAsSaved(
+  savedAt: string = new Date().toISOString()
+): void {
+  lastSavedSnapshot = getEditorSnapshot();
+  hasUnsavedChanges = false;
+
+  setSaveStatus(
+    `Saved ${formatDisplayDate(savedAt)}`
+  );
+}
+
+function updateDirtyState(): void {
+  if (isHydrating) {
+    return;
+  }
+
+  const currentSnapshot = getEditorSnapshot();
+
+  hasUnsavedChanges =
+    currentSnapshot !== lastSavedSnapshot;
+
+  if (hasUnsavedChanges) {
+    setSaveStatus(
+      articleId
+        ? "Unsaved changes"
+        : "Not yet saved"
+    );
+  }
+}
+
+function clearAutosaveTimer(): void {
+  if (autosaveTimer !== undefined) {
+    window.clearTimeout(autosaveTimer);
+    autosaveTimer = undefined;
+  }
+}
+
+function scheduleAutosave(): void {
+  updateDirtyState();
+  clearAutosaveTimer();
+
+  if (
+    !articleId ||
+    !hasUnsavedChanges ||
+    isSaving
+  ) {
+    return;
+  }
+
+  autosaveTimer = window.setTimeout(() => {
+    void saveArticle(currentArticleStatus, {
+      isAutosave: true,
+    });
+  }, AUTOSAVE_DELAY);
+}
+
   function setMessage(
     text: string,
     type: "error" | "success" | "neutral" = "neutral"
@@ -498,23 +685,38 @@ Separate paragraphs with a blank line."
     message.dataset.type = type;
   }
 
-  function setSavingState(isSaving: boolean): void {
-    if (saveDraftButton) {
-      saveDraftButton.disabled = isSaving;
-      saveDraftButton.textContent = isSaving
-        ? "Saving…"
-        : "Save draft";
-    }
+  function setSavingState(
+  saving: boolean,
+  isAutosave = false
+): void {
+  isSaving = saving;
 
-    if (publishButton) {
-      publishButton.disabled = isSaving;
-      publishButton.textContent = isSaving
-        ? "Publishing…"
-        : currentArticleStatus === "published"
-          ? "Update story"
-          : "Publish";
-    }
+  if (saveDraftButton) {
+    saveDraftButton.disabled = saving;
+    saveDraftButton.textContent = saving
+      ? "Saving…"
+      : "Save draft";
   }
+
+  if (publishButton) {
+    publishButton.disabled = saving;
+    publishButton.textContent = saving
+      ? "Publishing…"
+      : currentArticleStatus === "published"
+        ? "Update story"
+        : "Publish";
+  }
+
+  if (previewButton) {
+    previewButton.disabled = saving;
+  }
+
+  if (saving) {
+    setSaveStatus(
+      isAutosave ? "Autosaving…" : "Saving…"
+    );
+  }
+}
 
   function updateWritingStats(): void {
     const text = bodyInput?.value.trim() ?? "";
@@ -547,7 +749,10 @@ Separate paragraphs with a blank line."
   }
 
   function updateStatusDisplay(article: ArticleRecord): void {
-    currentArticleStatus = article.status;
+    currentArticleStatus =
+  article.status === "published"
+    ? "published"
+    : "draft";
 
     if (statusPanel) {
       statusPanel.hidden = false;
@@ -563,11 +768,6 @@ Separate paragraphs with a blank line."
 
     if (updatedDate) {
       updatedDate.textContent = formatDisplayDate(article.updated_at);
-    }
-
-    if (saveStatus) {
-      saveStatus.textContent =
-        `Last saved ${formatDisplayDate(article.updated_at)}`;
     }
 
     if (publishButton) {
@@ -588,6 +788,8 @@ Separate paragraphs with a blank line."
         viewPublishedStory.href = `/gazette/${article.slug}`;
       }
     }
+
+    markCurrentStateAsSaved(article.updated_at);
   }
 
   async function verifyAdmin(): Promise<boolean> {
@@ -620,58 +822,63 @@ Separate paragraphs with a blank line."
   }
 
   function populateForm(article: ArticleRecord): void {
-    if (headlineInput) {
-      headlineInput.value = article.headline;
-    }
+  isHydrating = true;
 
-    if (summaryInput) {
-      summaryInput.value = article.summary;
-    }
-
-    if (bodyInput) {
-      bodyInput.value = bodyToText(article.body);
-    }
-
-    if (categoryInput) {
-      categoryInput.value = article.category;
-    }
-
-    if (authorInput) {
-      authorInput.value = article.author_name;
-    }
-
-    if (slugInput) {
-      slugInput.value = article.slug;
-    }
-
-    if (publishedAtInput) {
-      publishedAtInput.value =
-        toDatetimeLocal(article.published_at);
-    }
-
-    if (imageUrlInput) {
-      imageUrlInput.value = article.image_url ?? "";
-    }
-
-    if (imageAltInput) {
-      imageAltInput.value = article.image_alt ?? "";
-    }
-
-    if (isFeaturedInput) {
-      isFeaturedInput.checked = article.is_featured;
-    }
-
-    if (homepageOrderInput) {
-      homepageOrderInput.value =
-        article.homepage_order === null
-          ? ""
-          : String(article.homepage_order);
-    }
-
-    updateEditorTitle();
-    updateWritingStats();
-    updateStatusDisplay(article);
+  if (headlineInput) {
+    headlineInput.value = article.headline;
   }
+
+  if (summaryInput) {
+    summaryInput.value = article.summary;
+  }
+
+  if (bodyInput) {
+    bodyInput.value = bodyToText(article.body);
+  }
+
+  if (categoryInput) {
+    categoryInput.value = article.category;
+  }
+
+  if (authorInput) {
+    authorInput.value = article.author_name;
+  }
+
+  if (slugInput) {
+    slugInput.value = article.slug;
+  }
+
+  if (publishedAtInput) {
+    publishedAtInput.value =
+      toDatetimeLocal(article.published_at);
+  }
+
+  if (imageUrlInput) {
+    imageUrlInput.value = article.image_url ?? "";
+  }
+
+  if (imageAltInput) {
+    imageAltInput.value = article.image_alt ?? "";
+  }
+
+  if (isFeaturedInput) {
+    isFeaturedInput.checked = article.is_featured;
+  }
+
+  if (homepageOrderInput) {
+    homepageOrderInput.value =
+      article.homepage_order === null
+        ? ""
+        : String(article.homepage_order);
+  }
+
+  updateEditorTitle();
+  updateWritingStats();
+  updateStatusDisplay(article);
+
+  isHydrating = false;
+  markCurrentStateAsSaved(article.updated_at);
+}
 
   function buildPayload(
     requestedStatus: "draft" | "published"
@@ -792,110 +999,153 @@ Separate paragraphs with a blank line."
   }
 
   async function saveArticle(
-    requestedStatus: "draft" | "published"
-  ): Promise<void> {
-    const payload = buildPayload(requestedStatus);
+  requestedStatus: "draft" | "published",
+  options: {
+    isAutosave?: boolean;
+  } = {}
+): Promise<boolean> {
+  if (isSaving) {
+    return false;
+  }
 
-    if (!payload) {
-      return;
+  const { isAutosave = false } = options;
+  const payload = buildPayload(requestedStatus);
+
+  if (!payload) {
+    if (isAutosave) {
+      setSaveStatus("Autosave paused");
     }
 
+    return false;
+  }
+
+  clearAutosaveTimer();
+
+  if (!isAutosave) {
     setMessage("");
-    setSavingState(true);
+  }
 
-    if (articleId) {
-      const { data, error } = await supabaseBrowser
-        .from("gazette_articles")
-        .update(payload)
-        .eq("id", articleId)
-        .select("*")
-        .single();
+  setSavingState(true, isAutosave);
 
-      setSavingState(false);
+  if (articleId) {
+    const { data, error } = await supabaseBrowser
+      .from("gazette_articles")
+      .update(payload)
+      .eq("id", articleId)
+      .select("*")
+      .single();
 
-      if (error) {
-        if (error.code === "23505") {
-          setMessage(
-            "That story URL is already being used. Choose a different slug.",
-            "error"
-          );
-          return;
-        }
+    setSavingState(false, isAutosave);
 
+    if (error) {
+      hasUnsavedChanges = true;
+
+      if (error.code === "23505") {
+        setMessage(
+          "That story URL is already being used. Choose a different slug.",
+          "error"
+        );
+      } else if (!isAutosave) {
         setMessage(
           `Unable to save the story: ${error.message}`,
           "error"
         );
-        return;
       }
 
-      const article = data as ArticleRecord;
+      setSaveStatus(
+        isAutosave
+          ? "Unable to autosave"
+          : "Save failed"
+      );
 
-      updateStatusDisplay(article);
+      return false;
+    }
 
+    const article = data as ArticleRecord;
+
+    updateStatusDisplay(article);
+    markCurrentStateAsSaved(article.updated_at);
+
+    if (!isAutosave) {
       setMessage(
         requestedStatus === "published"
           ? "Story published successfully."
           : "Draft saved successfully.",
         "success"
       );
-
-      return;
     }
 
-    const { data, error } = await supabaseBrowser
-      .from("gazette_articles")
-      .insert(payload)
-      .select("*")
-      .single();
+    return true;
+  }
 
-    setSavingState(false);
+  const { data, error } = await supabaseBrowser
+    .from("gazette_articles")
+    .insert(payload)
+    .select("*")
+    .single();
 
-    if (error) {
-      if (error.code === "23505") {
-        setMessage(
-          "That story URL is already being used. Choose a different slug.",
-          "error"
-        );
-        return;
-      }
+  setSavingState(false, isAutosave);
 
+  if (error) {
+    hasUnsavedChanges = true;
+
+    if (error.code === "23505") {
+      setMessage(
+        "That story URL is already being used. Choose a different slug.",
+        "error"
+      );
+    } else {
       setMessage(
         `Unable to create the story: ${error.message}`,
         "error"
       );
-      return;
     }
 
-    const article = data as ArticleRecord;
-    articleId = article.id;
-
-    setMessage(
-      requestedStatus === "published"
-        ? "Story published successfully."
-        : "Draft created successfully.",
-      "success"
-    );
-
-    window.history.replaceState(
-      {},
-      "",
-      `/admin/articles/${article.id}`
-    );
-
-    updateStatusDisplay(article);
+    setSaveStatus("Save failed");
+    return false;
   }
+
+  const article = data as ArticleRecord;
+
+  articleId = article.id;
+  currentArticleStatus =
+    article.status === "published"
+      ? "published"
+      : "draft";
+
+  window.history.replaceState(
+    {},
+    "",
+    `/admin/articles/${article.id}`
+  );
+
+  updateStatusDisplay(article);
+  markCurrentStateAsSaved(article.updated_at);
+
+  setMessage(
+    requestedStatus === "published"
+      ? "Story published successfully."
+      : "Draft created successfully.",
+    "success"
+  );
+
+  return true;
+}
 
   async function loadArticle(): Promise<void> {
     if (!articleId) {
-      form?.removeAttribute("hidden");
+  form?.removeAttribute("hidden");
 
-      if (loading) {
-        loading.hidden = true;
-      }
+  if (loading) {
+    loading.hidden = true;
+  }
 
-      return;
-    }
+  lastSavedSnapshot = getEditorSnapshot();
+  hasUnsavedChanges = false;
+  setSaveStatus("Not yet saved");
+
+  return;
+}
 
     const { data, error } = await supabaseBrowser
       .from("gazette_articles")
@@ -923,6 +1173,116 @@ Separate paragraphs with a blank line."
     form?.removeAttribute("hidden");
   }
 
+  function renderPreview(): void {
+  const headline =
+    headlineInput?.value.trim() || "Untitled story";
+
+  const summary =
+    summaryInput?.value.trim() || "";
+
+  const category =
+    categoryInput?.value.trim() || "Uncategorized";
+
+  const author =
+    authorInput?.value.trim() || "The Gazette Staff";
+
+  const publicationDate =
+    publishedAtInput?.value
+      ? new Date(publishedAtInput.value)
+      : new Date();
+
+  const imageUrl =
+    imageUrlInput?.value.trim() || "";
+
+  const imageAlt =
+    imageAltInput?.value.trim() || "";
+
+  const paragraphs =
+    bodyTextToParagraphs(bodyInput?.value ?? "");
+
+  if (previewHeadline) {
+    previewHeadline.textContent = headline;
+  }
+
+  if (previewSummary) {
+    previewSummary.textContent = summary;
+    previewSummary.hidden = !summary;
+  }
+
+  if (previewCategory) {
+    previewCategory.textContent = category;
+  }
+
+  if (previewAuthor) {
+    previewAuthor.textContent = author;
+  }
+
+  if (previewDate) {
+    previewDate.dateTime =
+      publicationDate.toISOString();
+
+    previewDate.textContent =
+      new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }).format(publicationDate);
+  }
+
+  if (
+    previewImageWrapper &&
+    previewImage
+  ) {
+    previewImageWrapper.hidden = !imageUrl;
+
+    if (imageUrl) {
+      previewImage.src = imageUrl;
+      previewImage.alt = imageAlt;
+    } else {
+      previewImage.removeAttribute("src");
+      previewImage.alt = "";
+    }
+  }
+
+  if (previewBody) {
+    previewBody.replaceChildren();
+
+    for (const paragraphText of paragraphs) {
+      const paragraph =
+        document.createElement("p");
+
+      paragraph.textContent = paragraphText;
+      previewBody.append(paragraph);
+    }
+
+    previewBody.hidden = paragraphs.length === 0;
+  }
+
+  if (previewEmptyBody) {
+    previewEmptyBody.hidden =
+      paragraphs.length > 0;
+  }
+}
+
+function openPreview(): void {
+  if (!previewDialog) {
+    return;
+  }
+
+  renderPreview();
+  previewDialog.showModal();
+  document.body.classList.add("preview-open");
+}
+
+function closePreview(): void {
+  if (!previewDialog?.open) {
+    return;
+  }
+
+  previewDialog.close();
+  document.body.classList.remove("preview-open");
+}
+
   async function initializeEditor(): Promise<void> {
     const isAdmin = await verifyAdmin();
 
@@ -934,35 +1294,117 @@ Separate paragraphs with a blank line."
   }
 
   headlineInput?.addEventListener("input", () => {
-    updateEditorTitle();
+  updateEditorTitle();
 
-    if (
-      !slugWasManuallyEdited &&
-      slugInput
-    ) {
-      slugInput.value = slugify(headlineInput.value);
+  if (!slugWasManuallyEdited && slugInput) {
+    slugInput.value = slugify(headlineInput.value);
+  }
+
+  scheduleAutosave();
+});
+
+slugInput?.addEventListener("input", () => {
+  slugWasManuallyEdited = true;
+  scheduleAutosave();
+});
+
+bodyInput?.addEventListener("input", () => {
+  updateWritingStats();
+  scheduleAutosave();
+});
+
+const autosaveInputs = [
+  summaryInput,
+  categoryInput,
+  authorInput,
+  publishedAtInput,
+  imageUrlInput,
+  imageAltInput,
+  homepageOrderInput,
+];
+
+for (const input of autosaveInputs) {
+  input?.addEventListener("input", scheduleAutosave);
+  input?.addEventListener("change", scheduleAutosave);
+}
+
+isFeaturedInput?.addEventListener(
+  "change",
+  scheduleAutosave
+);
+
+saveDraftButton?.addEventListener("click", () => {
+  void saveArticle("draft");
+});
+
+publishButton?.addEventListener("click", () => {
+  void saveArticle("published");
+});
+
+previewButton?.addEventListener(
+  "click",
+  openPreview
+);
+
+closePreviewButton?.addEventListener(
+  "click",
+  closePreview
+);
+
+previewDialog?.addEventListener(
+  "click",
+  (event) => {
+    if (event.target === previewDialog) {
+      closePreview();
     }
-  });
+  }
+);
 
-  slugInput?.addEventListener("input", () => {
-    slugWasManuallyEdited = true;
-  });
+previewDialog?.addEventListener(
+  "close",
+  () => {
+    document.body.classList.remove("preview-open");
+  }
+);
 
-  bodyInput?.addEventListener("input", updateWritingStats);
+form?.addEventListener("submit", (event) => {
+  event.preventDefault();
+});
 
-  saveDraftButton?.addEventListener("click", () => {
-    void saveArticle("draft");
-  });
+window.addEventListener(
+  "beforeunload",
+  (event) => {
+    if (!hasUnsavedChanges || isSaving) {
+      return;
+    }
 
-  publishButton?.addEventListener("click", () => {
-    void saveArticle("published");
-  });
-
-  form?.addEventListener("submit", (event) => {
     event.preventDefault();
-  });
+    event.returnValue = "";
+  }
+);
 
-  initializeEditor();
+document.addEventListener(
+  "keydown",
+  (event) => {
+    const usesSaveShortcut =
+      (event.metaKey || event.ctrlKey) &&
+      event.key.toLowerCase() === "s";
+
+    if (!usesSaveShortcut) {
+      return;
+    }
+
+    event.preventDefault();
+
+    void saveArticle(
+      currentArticleStatus === "published"
+        ? "published"
+        : "draft"
+    );
+  }
+);
+
+initializeEditor();
 </script>
 
 <style>
@@ -1341,4 +1783,173 @@ Separate paragraphs with a blank line."
       flex-direction: column;
     }
   }
+
+  .preview-dialog {
+  width: min(100% - 2rem, 92rem);
+  max-width: none;
+  height: min(94vh, 70rem);
+  max-height: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--color-paper-light);
+  color: var(--color-ink);
+  box-shadow: 0 2rem 6rem rgba(0, 0, 0, 0.28);
+}
+
+.preview-dialog::backdrop {
+  background: rgba(12, 16, 13, 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.preview-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+}
+
+.preview-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-rule-dark);
+  background: var(--color-surface);
+}
+
+.preview-toolbar .eyebrow {
+  margin-bottom: 0.2rem;
+}
+
+.preview-toolbar__note {
+  margin: 0;
+  color: var(--color-ink-soft);
+  font-size: 0.72rem;
+}
+
+.preview-close {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--color-rule-dark);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 1.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.preview-close:hover {
+  border-color: var(--color-green);
+  color: var(--color-green);
+}
+
+.preview-page {
+  overflow-y: auto;
+  padding: clamp(1.5rem, 5vw, 5rem);
+}
+
+.story-preview {
+  width: min(100%, 57rem);
+  margin-inline: auto;
+}
+
+.story-preview__header {
+  padding-bottom: clamp(2rem, 5vw, 4rem);
+  border-bottom: 3px double var(--color-rule-dark);
+}
+
+.story-preview__category {
+  margin: 0 0 var(--space-4);
+  color: var(--color-green);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.story-preview h1 {
+  margin: 0;
+  font-size: clamp(3rem, 8vw, 7rem);
+  letter-spacing: -0.06em;
+  line-height: 0.88;
+}
+
+.story-preview__summary {
+  max-width: 48rem;
+  margin: clamp(1.5rem, 4vw, 2.5rem) 0 0;
+  color: var(--color-ink-soft);
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+  line-height: 1.55;
+}
+
+.story-preview__byline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: var(--space-5);
+  color: var(--color-ink-soft);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.story-preview__image {
+  margin: clamp(2rem, 6vw, 4.5rem) 0;
+}
+
+.story-preview__image img {
+  display: block;
+  width: 100%;
+  max-height: 38rem;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+}
+
+.story-preview__body {
+  display: grid;
+  gap: 1.55rem;
+  width: min(100%, 45rem);
+  margin: clamp(2.5rem, 6vw, 5rem) auto 0;
+}
+
+.story-preview__body p {
+  margin: 0;
+  font-family: var(--font-body, Georgia, serif);
+  font-size: clamp(1.08rem, 1.6vw, 1.25rem);
+  line-height: 1.85;
+}
+
+.story-preview__empty {
+  width: min(100%, 45rem);
+  margin: 4rem auto 0;
+  padding: 3rem;
+  border: 1px dashed var(--color-rule-dark);
+  border-radius: var(--radius-lg);
+  color: var(--color-ink-soft);
+  text-align: center;
+}
+
+:global(body.preview-open) {
+  overflow: hidden;
+}
+
+@media (max-width: 700px) {
+  .preview-dialog {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .preview-page {
+    padding: 2rem 1.25rem 4rem;
+  }
+}
 </style>
