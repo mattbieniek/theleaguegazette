@@ -3,56 +3,167 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
 ---
 
 <AdminLayout title="Editorial Desk | The League Gazette">
-  <div
-    id="admin-loading"
-    class="admin-shell admin-loading"
-  >
-    <p>Loading the editorial desk…</p>
+  <div id="desk-loading" class="admin-shell desk-loading">
+    <p>Opening the editorial desk…</p>
   </div>
 
-  <div
-    id="admin-dashboard"
-    class="admin-shell admin-dashboard"
-    hidden
-  >
-    <header class="dashboard-header">
+  <div id="editorial-desk" class="admin-shell editorial-desk" hidden>
+    <header class="desk-header">
       <div>
         <p class="eyebrow">Editorial Desk</p>
-        <h1>Gazette articles</h1>
+        <h1>Good morning.</h1>
+        <p class="desk-header__description">
+          Here’s what is happening inside The League Gazette.
+        </p>
       </div>
+
+      <p id="desk-date" class="desk-date"></p>
     </header>
 
-    <section class="dashboard-summary" aria-label="Article totals">
-      <article>
-        <span>All articles</span>
+    <section class="desk-overview" aria-label="Publishing overview">
+      <a class="desk-stat" href="/admin/articles">
+        <span>All stories</span>
         <strong id="all-count">0</strong>
-      </article>
+        <small>Open the story archive →</small>
+      </a>
 
-      <article>
-        <span>Published</span>
-        <strong id="published-count">0</strong>
-      </article>
-
-      <article>
+      <a
+        class="desk-stat"
+        href="/admin/articles?status=draft"
+      >
         <span>Drafts</span>
         <strong id="draft-count">0</strong>
+        <small>Stories still in progress →</small>
+      </a>
+
+      <a
+        class="desk-stat"
+        href="/admin/articles?status=published"
+      >
+        <span>Published</span>
+        <strong id="published-count">0</strong>
+        <small>View published work →</small>
+      </a>
+    </section>
+
+    <section class="desk-grid">
+      <article class="desk-panel desk-panel--recent">
+        <div class="desk-panel__heading">
+          <div>
+            <p class="eyebrow">Recent work</p>
+            <h2>Latest stories</h2>
+          </div>
+
+          <a href="/admin/articles">
+            View all
+          </a>
+        </div>
+
+        <div id="recent-stories" class="recent-stories"></div>
+
+        <div
+          id="recent-empty"
+          class="desk-empty"
+          hidden
+        >
+          <h3>No stories yet</h3>
+          <p>
+            Your most recently edited stories will appear here.
+          </p>
+        </div>
       </article>
+
+      <aside class="desk-sidebar">
+        <article class="desk-panel">
+          <div class="desk-panel__heading">
+            <div>
+              <p class="eyebrow">Quick actions</p>
+              <h2>Start here</h2>
+            </div>
+          </div>
+
+          <div class="quick-actions">
+            <a
+              class="quick-action quick-action--primary"
+              href="/admin/articles/new"
+            >
+              <span>
+                <strong>Write a new story</strong>
+                <small>Open a fresh Gazette draft</small>
+              </span>
+
+              <span aria-hidden="true">→</span>
+            </a>
+
+            <a
+              class="quick-action"
+              href="/admin/articles"
+            >
+              <span>
+                <strong>Manage stories</strong>
+                <small>Review drafts and published work</small>
+              </span>
+
+              <span aria-hidden="true">→</span>
+            </a>
+
+            <a
+              class="quick-action"
+              href="/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span>
+                <strong>View live site</strong>
+                <small>Open The League Gazette</small>
+              </span>
+
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </article>
+
+        <article class="desk-panel desk-status">
+          <div class="desk-panel__heading">
+            <div>
+              <p class="eyebrow">League status</p>
+              <h2>Newsroom pulse</h2>
+            </div>
+          </div>
+
+          <dl>
+            <div>
+              <dt>Active season</dt>
+              <dd>2026</dd>
+            </div>
+
+            <div>
+              <dt>Current week</dt>
+              <dd>Preseason</dd>
+            </div>
+
+            <div>
+              <dt>Sleeper data</dt>
+              <dd>
+                <span class="status-dot" aria-hidden="true"></span>
+                Connected
+              </dd>
+            </div>
+          </dl>
+
+          <p class="desk-status__note">
+            Live sync controls will be connected in a later build.
+          </p>
+        </article>
+      </aside>
     </section>
 
     <div
-      id="dashboard-message"
-      class="dashboard-message"
+      id="desk-message"
+      class="desk-message"
       role="status"
       aria-live="polite"
     ></div>
-
-    <section class="article-panel">
-      <div class="article-panel__heading">
-        <h2>All stories</h2>
-      </div>
-
-      <div id="article-list" class="article-list"></div>
-    </section>
   </div>
 
   <script>
@@ -69,35 +180,33 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
     };
 
     const loading =
-      document.querySelector<HTMLElement>("#admin-loading");
+      document.querySelector<HTMLElement>("#desk-loading");
 
-    const dashboard =
-      document.querySelector<HTMLElement>("#admin-dashboard");
-
-    const articleList =
-      document.querySelector<HTMLElement>("#article-list");
+    const desk =
+      document.querySelector<HTMLElement>("#editorial-desk");
 
     const message =
-      document.querySelector<HTMLElement>(
-        "#dashboard-message"
-      );
+      document.querySelector<HTMLElement>("#desk-message");
+
+    const dateElement =
+      document.querySelector<HTMLElement>("#desk-date");
 
     const allCount =
       document.querySelector<HTMLElement>("#all-count");
 
-    const publishedCount =
-      document.querySelector<HTMLElement>(
-        "#published-count"
-      );
-
     const draftCount =
       document.querySelector<HTMLElement>("#draft-count");
 
-    function formatDate(value: string | null): string {
-      if (!value) {
-        return "Not published";
-      }
+    const publishedCount =
+      document.querySelector<HTMLElement>("#published-count");
 
+    const recentStories =
+      document.querySelector<HTMLElement>("#recent-stories");
+
+    const recentEmpty =
+      document.querySelector<HTMLElement>("#recent-empty");
+
+    function formatDate(value: string): string {
       return new Intl.DateTimeFormat("en-US", {
         month: "short",
         day: "numeric",
@@ -105,46 +214,43 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
       }).format(new Date(value));
     }
 
-    function createArticleCard(
+    function createRecentStory(
       article: ArticleSummary
     ): HTMLElement {
-      const card = document.createElement("article");
-      card.className = "admin-article-card";
+      const story = document.createElement("article");
+      story.className = "recent-story";
 
       const content = document.createElement("div");
 
-      const eyebrow = document.createElement("p");
-      eyebrow.className = "admin-article-card__eyebrow";
-      eyebrow.textContent = article.category;
+      const category = document.createElement("p");
+      category.className = "recent-story__category";
+      category.textContent = article.category || "Uncategorized";
 
       const headline = document.createElement("h3");
 
-      const editLink = document.createElement("a");
-      editLink.href = `/admin/articles/${article.id}`;
-      editLink.textContent = article.headline;
+      const link = document.createElement("a");
+      link.href = `/admin/articles/${article.id}`;
+      link.textContent = article.headline;
 
-      headline.append(editLink);
+      headline.append(link);
 
       const meta = document.createElement("p");
-      meta.className = "admin-article-card__meta";
-      meta.textContent =
-        article.status === "published"
-          ? `Published ${formatDate(article.published_at)}`
-          : `Updated ${formatDate(article.updated_at)}`;
+      meta.className = "recent-story__meta";
+      meta.textContent = `Updated ${formatDate(article.updated_at)}`;
 
-      content.append(eyebrow, headline, meta);
+      content.append(category, headline, meta);
 
       const status = document.createElement("span");
       status.className =
         `status-badge status-badge--${article.status}`;
       status.textContent = article.status;
 
-      card.append(content, status);
+      story.append(content, status);
 
-      return card;
+      return story;
     }
 
-    async function initializeDashboard() {
+    async function verifyAdmin(): Promise<boolean> {
       const {
         data: { user },
         error: userError,
@@ -152,7 +258,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
 
       if (userError || !user) {
         window.location.replace("/admin/login");
-        return;
+        return false;
       }
 
       const {
@@ -167,6 +273,25 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
       if (adminError || !adminRecord) {
         await supabaseBrowser.auth.signOut();
         window.location.replace("/admin/login");
+        return false;
+      }
+
+      return true;
+    }
+
+    async function initializeDesk(): Promise<void> {
+      if (dateElement) {
+        dateElement.textContent =
+          new Intl.DateTimeFormat("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+          }).format(new Date());
+      }
+
+      const isAdmin = await verifyAdmin();
+
+      if (!isAdmin) {
         return;
       }
 
@@ -183,14 +308,14 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
         loading.hidden = true;
       }
 
-      if (dashboard) {
-        dashboard.hidden = false;
+      if (desk) {
+        desk.hidden = false;
       }
 
       if (error) {
         if (message) {
           message.textContent =
-            `Unable to load articles: ${error.message}`;
+            `Unable to load the editorial desk: ${error.message}`;
         }
 
         return;
@@ -203,14 +328,6 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
         allCount.textContent = String(articles.length);
       }
 
-      if (publishedCount) {
-        publishedCount.textContent = String(
-          articles.filter(
-            (article) => article.status === "published"
-          ).length
-        );
-      }
-
       if (draftCount) {
         draftCount.textContent = String(
           articles.filter(
@@ -219,199 +336,414 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
         );
       }
 
-      if (!articleList) {
-        return;
+      if (publishedCount) {
+        publishedCount.textContent = String(
+          articles.filter(
+            (article) => article.status === "published"
+          ).length
+        );
       }
 
-      articleList.replaceChildren();
+      const recent = articles.slice(0, 5);
 
-      if (articles.length === 0) {
-        const empty = document.createElement("p");
-        empty.className = "article-list__empty";
-        empty.textContent =
-          "No Gazette articles have been created yet.";
+      if (recentStories) {
+        recentStories.replaceChildren();
 
-        articleList.append(empty);
-        return;
+        for (const article of recent) {
+          recentStories.append(
+            createRecentStory(article)
+          );
+        }
+
+        recentStories.hidden = recent.length === 0;
       }
 
-      articles.forEach((article) => {
-        articleList.append(createArticleCard(article));
-      });
+      if (recentEmpty) {
+        recentEmpty.hidden = recent.length > 0;
+      }
     }
 
-    initializeDashboard();
+    initializeDesk();
   </script>
 </AdminLayout>
 
 <style>
-  .admin-loading {
-    padding-block: var(--space-8);
-    color: var(--color-ink-muted);
+  .desk-loading {
+    min-height: 20rem;
+    display: grid;
+    place-items: center;
+    color: var(--color-ink-soft);
   }
 
-  .admin-dashboard {
-    padding-block: clamp(2rem, 6vw, 5rem) var(--space-9);
+  .editorial-desk {
+    display: grid;
+    gap: var(--space-7);
   }
 
-  .dashboard-header {
+  .desk-header {
     display: flex;
     align-items: end;
     justify-content: space-between;
     gap: var(--space-5);
-    margin-bottom: var(--space-6);
-    padding-bottom: var(--space-5);
+    padding-bottom: var(--space-6);
     border-bottom: 3px double var(--color-rule-dark);
   }
 
-  .dashboard-header h1 {
-    margin-bottom: 0;
-    font-size: clamp(3rem, 7vw, 5.5rem);
-    letter-spacing: -0.055em;
-    line-height: 0.95;
+  .desk-header h1 {
+    margin: 0;
+    font-size: clamp(3.6rem, 8vw, 7.5rem);
+    letter-spacing: -0.06em;
+    line-height: 0.86;
   }
 
-  .dashboard-summary {
+  .desk-header__description {
+    margin: var(--space-4) 0 0;
+    color: var(--color-ink-soft);
+    font-size: clamp(1rem, 1.5vw, 1.15rem);
+  }
+
+  .desk-date {
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .desk-overview {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--space-4);
-    margin-bottom: var(--space-7);
   }
 
-  .dashboard-summary article {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    padding: var(--space-5);
+  .desk-stat {
+    display: grid;
+    min-height: 11rem;
+    gap: var(--space-3);
+    padding: clamp(1.2rem, 3vw, 1.8rem);
     border: 1px solid var(--color-rule);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     background: var(--color-surface);
+    color: inherit;
+    text-decoration: none;
+    box-shadow: var(--shadow-card);
+    transition:
+      transform 150ms ease,
+      border-color 150ms ease;
   }
 
-  .dashboard-summary span {
-    color: var(--color-ink-muted);
-    font-family: var(--font-data);
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
+  .desk-stat:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-green);
   }
 
-  .dashboard-summary strong {
-    font-family: var(--font-editorial);
-    font-size: 2.5rem;
-    line-height: 1;
+  .desk-stat > span {
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+    font-weight: 750;
   }
 
-  .dashboard-message {
-    color: #9a2f2f;
+  .desk-stat strong {
+    align-self: end;
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    letter-spacing: -0.055em;
+    line-height: 0.8;
   }
 
-  .article-panel {
+  .desk-stat small {
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 750;
+  }
+
+  .desk-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(18rem, 0.75fr);
+    align-items: start;
+    gap: var(--space-5);
+  }
+
+  .desk-sidebar {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .desk-panel {
     overflow: hidden;
     border: 1px solid var(--color-rule);
     border-radius: var(--radius-lg);
     background: var(--color-surface);
+    box-shadow: var(--shadow-card);
   }
 
-  .article-panel__heading {
-    padding: var(--space-5);
+  .desk-panel__heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: clamp(1.25rem, 3vw, 1.8rem);
     border-bottom: 1px solid var(--color-rule);
   }
 
-  .article-panel__heading h2 {
-    margin-bottom: 0;
-    font-size: 1.8rem;
+  .desk-panel__heading h2 {
+    margin: 0;
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    letter-spacing: -0.04em;
+    line-height: 1;
   }
 
-  .article-list {
+  .desk-panel__heading .eyebrow {
+    margin-bottom: var(--space-2);
+  }
+
+  .desk-panel__heading > a {
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 750;
+    text-decoration: none;
+  }
+
+  .desk-panel__heading > a:hover {
+    text-decoration: underline;
+  }
+
+  .recent-stories {
     display: grid;
   }
 
-  :global(.admin-article-card) {
-    display: flex;
+  .recent-story {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--space-5);
-    padding: var(--space-5);
+    gap: var(--space-4);
+    padding: clamp(1.15rem, 3vw, 1.6rem)
+      clamp(1.25rem, 3vw, 1.8rem);
     border-bottom: 1px solid var(--color-rule);
   }
 
-  :global(.admin-article-card:last-child) {
+  .recent-story:last-child {
     border-bottom: 0;
   }
 
-  :global(.admin-article-card__eyebrow) {
-    margin-bottom: var(--space-2);
+  .recent-story__category {
+    margin: 0 0 var(--space-2);
     color: var(--color-green);
-    font-family: var(--font-data);
     font-size: 0.65rem;
-    font-weight: 650;
-    letter-spacing: 0.07em;
+    font-weight: 850;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
   }
 
-  :global(.admin-article-card h3) {
-    margin-bottom: var(--space-2);
-    font-size: clamp(1.35rem, 3vw, 2rem);
-    line-height: 1.05;
+  .recent-story h3 {
+    margin: 0;
+    font-size: clamp(1.2rem, 2vw, 1.55rem);
+    letter-spacing: -0.025em;
   }
 
-  :global(.admin-article-card h3 a:hover) {
+  .recent-story h3 a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .recent-story h3 a:hover {
     color: var(--color-green);
   }
 
-  :global(.admin-article-card__meta) {
-    margin-bottom: 0;
-    color: var(--color-ink-muted);
+  .recent-story__meta {
+    margin: var(--space-2) 0 0;
+    color: var(--color-ink-soft);
     font-size: var(--text-sm);
   }
 
-  :global(.status-badge) {
-    flex-shrink: 0;
-    padding: 0.35rem 0.55rem;
+  .status-badge {
+    display: inline-flex;
+    padding: 0.4rem 0.65rem;
     border-radius: 999px;
-    font-family: var(--font-data);
-    font-size: 0.62rem;
-    font-weight: 700;
+    font-size: 0.66rem;
+    font-weight: 850;
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
 
-  :global(.status-badge--published) {
-    background: rgb(33 93 69 / 12%);
+  .status-badge--published {
+    background: color-mix(
+      in srgb,
+      var(--color-green) 13%,
+      transparent
+    );
     color: var(--color-green);
   }
 
-  :global(.status-badge--draft) {
-    background: rgb(164 113 31 / 14%);
-    color: #78500e;
+  .status-badge--draft {
+    background: #eee7d7;
+    color: #6b592d;
   }
 
-  :global(.status-badge--archived) {
-    background: rgb(70 70 70 / 10%);
-    color: var(--color-ink-muted);
+  .status-badge--archived {
+    background: #ececeb;
+    color: #666a66;
   }
 
-  :global(.article-list__empty) {
-    margin-bottom: 0;
-    padding: var(--space-6);
-    color: var(--color-ink-muted);
+  .quick-actions {
+    display: grid;
+    padding: var(--space-3);
   }
 
-  @media (max-width: 650px) {
-    .dashboard-header {
-      align-items: flex-start;
-      flex-direction: column;
-    }
+  .quick-action {
+    display: flex;
+    min-height: 4.7rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: 0.9rem 1rem;
+    border-radius: var(--radius-sm);
+    color: inherit;
+    text-decoration: none;
+  }
 
-    .dashboard-summary {
+  .quick-action:hover {
+    background:
+      color-mix(
+        in srgb,
+        var(--color-green) 5%,
+        transparent
+      );
+  }
+
+  .quick-action--primary {
+    background: var(--color-green);
+    color: #fff;
+  }
+
+  .quick-action--primary:hover {
+    background: var(--color-green);
+    filter: brightness(1.08);
+  }
+
+  .quick-action span:first-child {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .quick-action strong {
+    font-size: 0.92rem;
+  }
+
+  .quick-action small {
+    color: var(--color-ink-soft);
+    font-size: 0.72rem;
+  }
+
+  .quick-action--primary small {
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .desk-status dl {
+    display: grid;
+    margin: 0;
+    padding: var(--space-3) clamp(1.25rem, 3vw, 1.8rem);
+  }
+
+  .desk-status dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-block: 0.85rem;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .desk-status dl > div:last-child {
+    border-bottom: 0;
+  }
+
+  .desk-status dt {
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+  }
+
+  .desk-status dd {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: 750;
+  }
+
+  .status-dot {
+    width: 0.48rem;
+    height: 0.48rem;
+    border-radius: 50%;
+    background: var(--color-green);
+    box-shadow: 0 0 0 0.2rem
+      color-mix(
+        in srgb,
+        var(--color-green) 15%,
+        transparent
+      );
+  }
+
+  .desk-status__note {
+    margin: 0;
+    padding: 0 var(--space-5) var(--space-5);
+    color: var(--color-ink-soft);
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+
+  .desk-empty {
+    padding: 4rem 2rem;
+    text-align: center;
+  }
+
+  .desk-empty h3 {
+    margin: 0;
+    font-size: 2rem;
+  }
+
+  .desk-empty p {
+    margin: var(--space-2) 0 0;
+    color: var(--color-ink-soft);
+  }
+
+  .desk-message {
+    min-height: 1.25rem;
+    color: #9a2f2f;
+    font-size: var(--text-sm);
+  }
+
+  .desk-message:empty {
+    display: none;
+  }
+
+  @media (max-width: 1000px) {
+    .desk-grid {
       grid-template-columns: 1fr;
     }
 
-    :global(.admin-article-card) {
-      align-items: flex-start;
+    .desk-sidebar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 700px) {
+    .desk-header {
+      align-items: start;
       flex-direction: column;
+    }
+
+    .desk-overview,
+    .desk-sidebar {
+      grid-template-columns: 1fr;
+    }
+
+    .recent-story {
+      grid-template-columns: 1fr;
+    }
+
+    .status-badge {
+      width: fit-content;
     }
   }
 </style>

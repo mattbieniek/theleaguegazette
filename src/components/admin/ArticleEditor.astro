@@ -1,0 +1,1344 @@
+---
+interface Props {
+  articleId?: string;
+}
+
+const { articleId } = Astro.props;
+const editorMode = articleId ? "edit" : "create";
+---
+
+<div
+  id="article-editor"
+  class="article-editor"
+  data-mode={editorMode}
+  data-article-id={articleId ?? ""}
+>
+  <div id="editor-loading" class="editor-loading" hidden={editorMode === "create"}>
+    <p>Opening story…</p>
+  </div>
+
+  <form id="article-form" class="editor-form" hidden={editorMode === "edit"}>
+    <header class="editor-header">
+      <div>
+        <p class="eyebrow">
+          {editorMode === "create" ? "New Story" : "Editorial Desk"}
+        </p>
+
+        <h1 id="editor-page-title">
+          {editorMode === "create" ? "Untitled story" : "Edit story"}
+        </h1>
+
+        <p id="editor-save-status" class="editor-save-status">
+          Not yet saved
+        </p>
+      </div>
+
+      <div class="editor-header__actions">
+        <a class="editor-button editor-button--secondary" href="/admin/articles">
+          Cancel
+        </a>
+
+        <button
+          id="save-draft-button"
+          class="editor-button editor-button--secondary"
+          type="button"
+        >
+          Save draft
+        </button>
+
+        <button
+          id="publish-button"
+          class="editor-button editor-button--primary"
+          type="button"
+        >
+          Publish
+        </button>
+      </div>
+    </header>
+
+    <div
+      id="editor-message"
+      class="editor-message"
+      role="status"
+      aria-live="polite"
+    ></div>
+
+    <div class="editor-layout">
+      <main class="editor-canvas">
+        <section class="editor-section editor-section--headline">
+          <label for="headline">Headline</label>
+
+          <textarea
+            id="headline"
+            name="headline"
+            rows="2"
+            placeholder="Give the story a headline"
+            required
+          ></textarea>
+
+          <label for="summary">Summary</label>
+
+          <textarea
+            id="summary"
+            name="summary"
+            rows="3"
+            placeholder="Write a brief introduction or homepage summary"
+          ></textarea>
+        </section>
+
+        <section class="editor-section editor-section--body">
+          <div class="editor-section__heading">
+            <div>
+              <p class="eyebrow">Story</p>
+              <h2>Article body</h2>
+            </div>
+
+            <div class="editor-writing-stats">
+              <span id="word-count">0 words</span>
+              <span id="reading-time">0 min read</span>
+            </div>
+          </div>
+
+          <label class="sr-only" for="body">
+            Article body
+          </label>
+
+          <textarea
+            id="body"
+            name="body"
+            rows="22"
+            placeholder="Begin writing your story…
+
+Separate paragraphs with a blank line."
+          ></textarea>
+
+          <p class="editor-field-help">
+            Separate paragraphs with a blank line. Formatting tools will be
+            added after the core publishing workflow is stable.
+          </p>
+        </section>
+      </main>
+
+      <aside class="editor-sidebar">
+        <section class="editor-panel">
+          <div class="editor-panel__heading">
+            <p class="eyebrow">Publishing</p>
+            <h2>Story details</h2>
+          </div>
+
+          <div class="editor-fields">
+            <label>
+              <span>Category</span>
+
+              <input
+                id="category"
+                name="category"
+                type="text"
+                placeholder="Weekly Gazette"
+              />
+            </label>
+
+            <label>
+              <span>Author</span>
+
+              <input
+                id="author-name"
+                name="author_name"
+                type="text"
+                value="The Gazette Staff"
+              />
+            </label>
+
+            <label>
+              <span>Slug</span>
+
+              <input
+                id="slug"
+                name="slug"
+                type="text"
+                placeholder="story-url"
+              />
+
+              <small>
+                Used in the public story URL.
+              </small>
+            </label>
+
+            <label>
+              <span>Publication date</span>
+
+              <input
+                id="published-at"
+                name="published_at"
+                type="datetime-local"
+              />
+            </label>
+          </div>
+        </section>
+
+        <section class="editor-panel">
+          <div class="editor-panel__heading">
+            <p class="eyebrow">Artwork</p>
+            <h2>Featured image</h2>
+          </div>
+
+          <div class="editor-fields">
+            <label>
+              <span>Image URL</span>
+
+              <input
+                id="image-url"
+                name="image_url"
+                type="url"
+                placeholder="https://…"
+              />
+            </label>
+
+            <label>
+              <span>Alternative text</span>
+
+              <textarea
+                id="image-alt"
+                name="image_alt"
+                rows="3"
+                placeholder="Describe the image for readers using screen readers"
+              ></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="editor-panel">
+          <div class="editor-panel__heading">
+            <p class="eyebrow">Homepage</p>
+            <h2>Placement</h2>
+          </div>
+
+          <div class="editor-fields">
+            <label class="editor-checkbox">
+              <input
+                id="is-featured"
+                name="is_featured"
+                type="checkbox"
+              />
+
+              <span>
+                <strong>Feature this story</strong>
+                <small>
+                  Allow the story to receive prominent homepage placement.
+                </small>
+              </span>
+            </label>
+
+            <label>
+              <span>Homepage order</span>
+
+              <input
+                id="homepage-order"
+                name="homepage_order"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="1"
+              />
+
+              <small>
+                Lower numbers appear first.
+              </small>
+            </label>
+          </div>
+        </section>
+
+        <section
+          id="story-status-panel"
+          class="editor-panel editor-status-panel"
+          hidden
+        >
+          <div class="editor-panel__heading">
+            <p class="eyebrow">Status</p>
+            <h2>Current state</h2>
+          </div>
+
+          <dl>
+            <div>
+              <dt>Status</dt>
+              <dd id="current-status">Draft</dd>
+            </div>
+
+            <div>
+              <dt>Created</dt>
+              <dd id="created-date">—</dd>
+            </div>
+
+            <div>
+              <dt>Last updated</dt>
+              <dd id="updated-date">—</dd>
+            </div>
+          </dl>
+
+          <a
+            id="view-published-story"
+            class="view-published-story"
+            href="#"
+            target="_blank"
+            rel="noreferrer"
+            hidden
+          >
+            View published story ↗
+          </a>
+        </section>
+      </aside>
+    </div>
+  </form>
+</div>
+
+<script>
+  import { supabaseBrowser } from "../../lib/supabase-browser";
+
+  type ArticleRecord = {
+    id: string;
+    slug: string;
+    category: string;
+    headline: string;
+    summary: string;
+    author_name: string;
+    published_at: string | null;
+    image_url: string | null;
+    image_alt: string | null;
+    body: unknown;
+    status: string;
+    is_featured: boolean;
+    homepage_order: number | null;
+    created_at: string;
+    updated_at: string;
+  };
+
+  type ArticlePayload = {
+    slug: string;
+    category: string;
+    headline: string;
+    summary: string;
+    author_name: string;
+    published_at: string | null;
+    image_url: string | null;
+    image_alt: string | null;
+    body: string[];
+    status: "draft" | "published";
+    is_featured: boolean;
+    homepage_order: number | null;
+    updated_at: string;
+  };
+
+  const editor =
+    document.querySelector<HTMLElement>("#article-editor");
+
+  const form =
+    document.querySelector<HTMLFormElement>("#article-form");
+
+  const loading =
+    document.querySelector<HTMLElement>("#editor-loading");
+
+  const message =
+    document.querySelector<HTMLElement>("#editor-message");
+
+  const saveStatus =
+    document.querySelector<HTMLElement>("#editor-save-status");
+
+  const pageTitle =
+    document.querySelector<HTMLElement>("#editor-page-title");
+
+  const headlineInput =
+    document.querySelector<HTMLTextAreaElement>("#headline");
+
+  const summaryInput =
+    document.querySelector<HTMLTextAreaElement>("#summary");
+
+  const bodyInput =
+    document.querySelector<HTMLTextAreaElement>("#body");
+
+  const categoryInput =
+    document.querySelector<HTMLInputElement>("#category");
+
+  const authorInput =
+    document.querySelector<HTMLInputElement>("#author-name");
+
+  const slugInput =
+    document.querySelector<HTMLInputElement>("#slug");
+
+  const publishedAtInput =
+    document.querySelector<HTMLInputElement>("#published-at");
+
+  const imageUrlInput =
+    document.querySelector<HTMLInputElement>("#image-url");
+
+  const imageAltInput =
+    document.querySelector<HTMLTextAreaElement>("#image-alt");
+
+  const isFeaturedInput =
+    document.querySelector<HTMLInputElement>("#is-featured");
+
+  const homepageOrderInput =
+    document.querySelector<HTMLInputElement>("#homepage-order");
+
+  const saveDraftButton =
+    document.querySelector<HTMLButtonElement>("#save-draft-button");
+
+  const publishButton =
+    document.querySelector<HTMLButtonElement>("#publish-button");
+
+  const wordCount =
+    document.querySelector<HTMLElement>("#word-count");
+
+  const readingTime =
+    document.querySelector<HTMLElement>("#reading-time");
+
+  const statusPanel =
+    document.querySelector<HTMLElement>("#story-status-panel");
+
+  const currentStatus =
+    document.querySelector<HTMLElement>("#current-status");
+
+  const createdDate =
+    document.querySelector<HTMLElement>("#created-date");
+
+  const updatedDate =
+    document.querySelector<HTMLElement>("#updated-date");
+
+  const viewPublishedStory =
+    document.querySelector<HTMLAnchorElement>(
+      "#view-published-story"
+    );
+
+  const mode = editor?.dataset.mode ?? "create";
+  let articleId = editor?.dataset.articleId ?? "";
+  let slugWasManuallyEdited = mode === "edit";
+  let currentArticleStatus = "draft";
+
+  function slugify(value: string): string {
+    return value
+      .toLowerCase()
+      .trim()
+      .replace(/['’]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function bodyTextToParagraphs(value: string): string[] {
+    return value
+      .split(/\n\s*\n/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean);
+  }
+
+  function bodyToText(value: unknown): string {
+    if (!Array.isArray(value)) {
+      return "";
+    }
+
+    return value
+      .filter(
+        (paragraph): paragraph is string =>
+          typeof paragraph === "string"
+      )
+      .join("\n\n");
+  }
+
+  function formatDisplayDate(value: string | null): string {
+    if (!value) {
+      return "—";
+    }
+
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(value));
+  }
+
+  function toDatetimeLocal(value: string | null): string {
+    if (!value) {
+      return "";
+    }
+
+    const date = new Date(value);
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - offset * 60_000);
+
+    return localDate.toISOString().slice(0, 16);
+  }
+
+  function toIsoDate(value: string): string | null {
+    if (!value) {
+      return null;
+    }
+
+    const parsed = new Date(value);
+
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+
+    return parsed.toISOString();
+  }
+
+  function capitalize(value: string): string {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+
+  function setMessage(
+    text: string,
+    type: "error" | "success" | "neutral" = "neutral"
+  ): void {
+    if (!message) {
+      return;
+    }
+
+    message.textContent = text;
+    message.dataset.type = type;
+  }
+
+  function setSavingState(isSaving: boolean): void {
+    if (saveDraftButton) {
+      saveDraftButton.disabled = isSaving;
+      saveDraftButton.textContent = isSaving
+        ? "Saving…"
+        : "Save draft";
+    }
+
+    if (publishButton) {
+      publishButton.disabled = isSaving;
+      publishButton.textContent = isSaving
+        ? "Publishing…"
+        : currentArticleStatus === "published"
+          ? "Update story"
+          : "Publish";
+    }
+  }
+
+  function updateWritingStats(): void {
+    const text = bodyInput?.value.trim() ?? "";
+
+    const words = text
+      ? text.split(/\s+/).filter(Boolean).length
+      : 0;
+
+    const minutes = words === 0 ? 0 : Math.max(1, Math.ceil(words / 225));
+
+    if (wordCount) {
+      wordCount.textContent = `${words} ${
+        words === 1 ? "word" : "words"
+      }`;
+    }
+
+    if (readingTime) {
+      readingTime.textContent = `${minutes} min read`;
+    }
+  }
+
+  function updateEditorTitle(): void {
+    if (!pageTitle) {
+      return;
+    }
+
+    const headline = headlineInput?.value.trim();
+
+    pageTitle.textContent = headline || "Untitled story";
+  }
+
+  function updateStatusDisplay(article: ArticleRecord): void {
+    currentArticleStatus = article.status;
+
+    if (statusPanel) {
+      statusPanel.hidden = false;
+    }
+
+    if (currentStatus) {
+      currentStatus.textContent = capitalize(article.status);
+    }
+
+    if (createdDate) {
+      createdDate.textContent = formatDisplayDate(article.created_at);
+    }
+
+    if (updatedDate) {
+      updatedDate.textContent = formatDisplayDate(article.updated_at);
+    }
+
+    if (saveStatus) {
+      saveStatus.textContent =
+        `Last saved ${formatDisplayDate(article.updated_at)}`;
+    }
+
+    if (publishButton) {
+      publishButton.textContent =
+        article.status === "published"
+          ? "Update story"
+          : "Publish";
+    }
+
+    if (viewPublishedStory) {
+      const canView =
+        article.status === "published" &&
+        Boolean(article.slug);
+
+      viewPublishedStory.hidden = !canView;
+
+      if (canView) {
+        viewPublishedStory.href = `/gazette/${article.slug}`;
+      }
+    }
+  }
+
+  async function verifyAdmin(): Promise<boolean> {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseBrowser.auth.getUser();
+
+    if (userError || !user) {
+      window.location.replace("/admin/login");
+      return false;
+    }
+
+    const {
+      data: adminRecord,
+      error: adminError,
+    } = await supabaseBrowser
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (adminError || !adminRecord) {
+      await supabaseBrowser.auth.signOut();
+      window.location.replace("/admin/login");
+      return false;
+    }
+
+    return true;
+  }
+
+  function populateForm(article: ArticleRecord): void {
+    if (headlineInput) {
+      headlineInput.value = article.headline;
+    }
+
+    if (summaryInput) {
+      summaryInput.value = article.summary;
+    }
+
+    if (bodyInput) {
+      bodyInput.value = bodyToText(article.body);
+    }
+
+    if (categoryInput) {
+      categoryInput.value = article.category;
+    }
+
+    if (authorInput) {
+      authorInput.value = article.author_name;
+    }
+
+    if (slugInput) {
+      slugInput.value = article.slug;
+    }
+
+    if (publishedAtInput) {
+      publishedAtInput.value =
+        toDatetimeLocal(article.published_at);
+    }
+
+    if (imageUrlInput) {
+      imageUrlInput.value = article.image_url ?? "";
+    }
+
+    if (imageAltInput) {
+      imageAltInput.value = article.image_alt ?? "";
+    }
+
+    if (isFeaturedInput) {
+      isFeaturedInput.checked = article.is_featured;
+    }
+
+    if (homepageOrderInput) {
+      homepageOrderInput.value =
+        article.homepage_order === null
+          ? ""
+          : String(article.homepage_order);
+    }
+
+    updateEditorTitle();
+    updateWritingStats();
+    updateStatusDisplay(article);
+  }
+
+  function buildPayload(
+    requestedStatus: "draft" | "published"
+  ): ArticlePayload | null {
+    const headline = headlineInput?.value.trim() ?? "";
+    const summary = summaryInput?.value.trim() ?? "";
+    const category = categoryInput?.value.trim() ?? "";
+    const authorName =
+      authorInput?.value.trim() || "The Gazette Staff";
+
+    const body = bodyTextToParagraphs(bodyInput?.value ?? "");
+
+    let slug = slugInput?.value.trim() ?? "";
+
+    if (!slug) {
+      slug = slugify(headline);
+    } else {
+      slug = slugify(slug);
+    }
+
+    if (!headline) {
+      setMessage("Add a headline before saving.", "error");
+      headlineInput?.focus();
+      return null;
+    }
+
+    if (!slug) {
+      setMessage(
+        "The headline must contain enough text to create a valid URL.",
+        "error"
+      );
+      slugInput?.focus();
+      return null;
+    }
+
+    if (requestedStatus === "published") {
+      if (!category) {
+        setMessage(
+          "Choose a category before publishing.",
+          "error"
+        );
+        categoryInput?.focus();
+        return null;
+      }
+
+      if (!summary) {
+        setMessage(
+          "Add a story summary before publishing.",
+          "error"
+        );
+        summaryInput?.focus();
+        return null;
+      }
+
+      if (body.length === 0) {
+        setMessage(
+          "Write the article body before publishing.",
+          "error"
+        );
+        bodyInput?.focus();
+        return null;
+      }
+
+      if (
+        imageUrlInput?.value.trim() &&
+        !imageAltInput?.value.trim()
+      ) {
+        setMessage(
+          "Add alternative text for the featured image.",
+          "error"
+        );
+        imageAltInput?.focus();
+        return null;
+      }
+    }
+
+    if (slugInput) {
+      slugInput.value = slug;
+    }
+
+    let publishedAt =
+      toIsoDate(publishedAtInput?.value ?? "");
+
+    if (requestedStatus === "published" && !publishedAt) {
+      publishedAt = new Date().toISOString();
+
+      if (publishedAtInput) {
+        publishedAtInput.value =
+          toDatetimeLocal(publishedAt);
+      }
+    }
+
+    const homepageOrderValue =
+      homepageOrderInput?.value.trim() ?? "";
+
+    return {
+      slug,
+      category,
+      headline,
+      summary,
+      author_name: authorName,
+      published_at:
+        requestedStatus === "published"
+          ? publishedAt
+          : currentArticleStatus === "published"
+            ? publishedAt
+            : null,
+      image_url: imageUrlInput?.value.trim() || null,
+      image_alt: imageAltInput?.value.trim() || null,
+      body,
+      status: requestedStatus,
+      is_featured: isFeaturedInput?.checked ?? false,
+      homepage_order: homepageOrderValue
+        ? Number(homepageOrderValue)
+        : null,
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  async function saveArticle(
+    requestedStatus: "draft" | "published"
+  ): Promise<void> {
+    const payload = buildPayload(requestedStatus);
+
+    if (!payload) {
+      return;
+    }
+
+    setMessage("");
+    setSavingState(true);
+
+    if (articleId) {
+      const { data, error } = await supabaseBrowser
+        .from("gazette_articles")
+        .update(payload)
+        .eq("id", articleId)
+        .select("*")
+        .single();
+
+      setSavingState(false);
+
+      if (error) {
+        if (error.code === "23505") {
+          setMessage(
+            "That story URL is already being used. Choose a different slug.",
+            "error"
+          );
+          return;
+        }
+
+        setMessage(
+          `Unable to save the story: ${error.message}`,
+          "error"
+        );
+        return;
+      }
+
+      const article = data as ArticleRecord;
+
+      updateStatusDisplay(article);
+
+      setMessage(
+        requestedStatus === "published"
+          ? "Story published successfully."
+          : "Draft saved successfully.",
+        "success"
+      );
+
+      return;
+    }
+
+    const { data, error } = await supabaseBrowser
+      .from("gazette_articles")
+      .insert(payload)
+      .select("*")
+      .single();
+
+    setSavingState(false);
+
+    if (error) {
+      if (error.code === "23505") {
+        setMessage(
+          "That story URL is already being used. Choose a different slug.",
+          "error"
+        );
+        return;
+      }
+
+      setMessage(
+        `Unable to create the story: ${error.message}`,
+        "error"
+      );
+      return;
+    }
+
+    const article = data as ArticleRecord;
+    articleId = article.id;
+
+    setMessage(
+      requestedStatus === "published"
+        ? "Story published successfully."
+        : "Draft created successfully.",
+      "success"
+    );
+
+    window.history.replaceState(
+      {},
+      "",
+      `/admin/articles/${article.id}`
+    );
+
+    updateStatusDisplay(article);
+  }
+
+  async function loadArticle(): Promise<void> {
+    if (!articleId) {
+      form?.removeAttribute("hidden");
+
+      if (loading) {
+        loading.hidden = true;
+      }
+
+      return;
+    }
+
+    const { data, error } = await supabaseBrowser
+      .from("gazette_articles")
+      .select("*")
+      .eq("id", articleId)
+      .maybeSingle();
+
+    if (loading) {
+      loading.hidden = true;
+    }
+
+    if (error || !data) {
+      setMessage(
+        error
+          ? `Unable to load the story: ${error.message}`
+          : "This story could not be found.",
+        "error"
+      );
+
+      form?.removeAttribute("hidden");
+      return;
+    }
+
+    populateForm(data as ArticleRecord);
+    form?.removeAttribute("hidden");
+  }
+
+  async function initializeEditor(): Promise<void> {
+    const isAdmin = await verifyAdmin();
+
+    if (!isAdmin) {
+      return;
+    }
+
+    await loadArticle();
+  }
+
+  headlineInput?.addEventListener("input", () => {
+    updateEditorTitle();
+
+    if (
+      !slugWasManuallyEdited &&
+      slugInput
+    ) {
+      slugInput.value = slugify(headlineInput.value);
+    }
+  });
+
+  slugInput?.addEventListener("input", () => {
+    slugWasManuallyEdited = true;
+  });
+
+  bodyInput?.addEventListener("input", updateWritingStats);
+
+  saveDraftButton?.addEventListener("click", () => {
+    void saveArticle("draft");
+  });
+
+  publishButton?.addEventListener("click", () => {
+    void saveArticle("published");
+  });
+
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+  });
+
+  initializeEditor();
+</script>
+
+<style>
+  .editor-loading {
+    display: grid;
+    min-height: 24rem;
+    place-items: center;
+    color: var(--color-ink-soft);
+  }
+
+  .editor-form {
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  .editor-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-5);
+    padding-bottom: var(--space-5);
+    border-bottom: 3px double var(--color-rule-dark);
+  }
+
+  .editor-header h1 {
+    max-width: 60rem;
+    margin: 0;
+    font-size: clamp(3rem, 7vw, 6.5rem);
+    letter-spacing: -0.055em;
+    line-height: 0.9;
+  }
+
+  .editor-save-status {
+    margin: var(--space-3) 0 0;
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+  }
+
+  .editor-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: end;
+    gap: var(--space-2);
+  }
+
+  .editor-button {
+    display: inline-flex;
+    min-height: 2.9rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0.7rem 1rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 750;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .editor-button--secondary {
+    border-color: var(--color-rule-dark);
+    background: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  .editor-button--primary {
+    background: var(--color-green);
+    color: #fff;
+  }
+
+  .editor-button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+  }
+
+  .editor-message {
+    min-height: 1.25rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+  }
+
+  .editor-message:empty {
+    display: none;
+  }
+
+  .editor-message[data-type="error"] {
+    border: 1px solid #d7b0aa;
+    background: #f9ece9;
+    color: #8c3028;
+  }
+
+  .editor-message[data-type="success"] {
+    border: 1px solid
+      color-mix(in srgb, var(--color-green) 30%, transparent);
+    background:
+      color-mix(in srgb, var(--color-green) 8%, white);
+    color: var(--color-green);
+  }
+
+  .editor-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
+    align-items: start;
+    gap: var(--space-5);
+  }
+
+  .editor-canvas,
+  .editor-sidebar {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .editor-section,
+  .editor-panel {
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .editor-section {
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+  }
+
+  .editor-section--headline {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .editor-section--headline > label {
+    color: var(--color-ink-soft);
+    font-size: 0.7rem;
+    font-weight: 850;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .editor-section textarea,
+  .editor-fields input,
+  .editor-fields textarea {
+    width: 100%;
+    border: 1px solid var(--color-rule-dark);
+    border-radius: var(--radius-sm);
+    background: var(--color-paper-light);
+    color: var(--color-ink);
+    font: inherit;
+    resize: vertical;
+  }
+
+  #headline {
+    min-height: 8rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 6vw, 5.2rem);
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    line-height: 0.92;
+  }
+
+  #summary {
+    min-height: 7rem;
+    padding: 1rem;
+    font-size: clamp(1rem, 1.5vw, 1.15rem);
+    line-height: 1.6;
+  }
+
+  .editor-section textarea:focus,
+  .editor-fields input:focus,
+  .editor-fields textarea:focus {
+    border-color: var(--color-green);
+    outline: 3px solid
+      color-mix(in srgb, var(--color-green) 16%, transparent);
+  }
+
+  #headline:focus {
+    outline: 0;
+  }
+
+  .editor-section__heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+
+  .editor-section__heading h2,
+  .editor-panel__heading h2 {
+    margin: 0;
+    font-size: clamp(1.7rem, 3vw, 2.5rem);
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .editor-section__heading .eyebrow,
+  .editor-panel__heading .eyebrow {
+    margin-bottom: var(--space-2);
+  }
+
+  .editor-writing-stats {
+    display: flex;
+    gap: var(--space-3);
+    color: var(--color-ink-soft);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  #body {
+    min-height: 38rem;
+    padding: clamp(1rem, 3vw, 1.5rem);
+    font-family: var(--font-body, Georgia, serif);
+    font-size: clamp(1.05rem, 1.5vw, 1.2rem);
+    line-height: 1.8;
+  }
+
+  .editor-field-help {
+    margin: var(--space-3) 0 0;
+    color: var(--color-ink-soft);
+    font-size: 0.72rem;
+  }
+
+  .editor-panel {
+    overflow: hidden;
+  }
+
+  .editor-panel__heading {
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .editor-fields {
+    display: grid;
+    gap: var(--space-4);
+    padding: 1.25rem;
+  }
+
+  .editor-fields label {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .editor-fields label > span {
+    color: var(--color-ink-soft);
+    font-size: 0.72rem;
+    font-weight: 750;
+  }
+
+  .editor-fields input,
+  .editor-fields textarea {
+    min-height: 2.8rem;
+    padding: 0.7rem 0.8rem;
+  }
+
+  .editor-fields label > small {
+    color: var(--color-ink-soft);
+    font-size: 0.68rem;
+    line-height: 1.45;
+  }
+
+  .editor-checkbox {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0.75rem !important;
+  }
+
+  .editor-checkbox input {
+    width: 1.1rem;
+    min-height: auto;
+    height: 1.1rem;
+    margin-top: 0.15rem;
+    accent-color: var(--color-green);
+  }
+
+  .editor-checkbox > span {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .editor-checkbox strong {
+    color: var(--color-ink);
+    font-size: 0.85rem;
+  }
+
+  .editor-checkbox small {
+    color: var(--color-ink-soft);
+    font-size: 0.68rem;
+    font-weight: 400;
+    line-height: 1.45;
+  }
+
+  .editor-status-panel dl {
+    display: grid;
+    margin: 0;
+    padding: 0 1.25rem;
+  }
+
+  .editor-status-panel dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.85rem;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .editor-status-panel dt {
+    color: var(--color-ink-soft);
+    font-size: 0.72rem;
+  }
+
+  .editor-status-panel dd {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 750;
+    text-align: right;
+  }
+
+  .view-published-story {
+    display: block;
+    margin: 1.25rem;
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 750;
+    text-decoration: none;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 1050px) {
+    .editor-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .editor-sidebar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .editor-status-panel {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .editor-header {
+      align-items: start;
+      flex-direction: column;
+    }
+
+    .editor-header__actions {
+      width: 100%;
+      justify-content: start;
+    }
+
+    .editor-sidebar {
+      grid-template-columns: 1fr;
+    }
+
+    .editor-status-panel {
+      grid-column: auto;
+    }
+
+    .editor-section__heading {
+      align-items: start;
+      flex-direction: column;
+    }
+  }
+</style>

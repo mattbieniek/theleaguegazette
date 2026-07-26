@@ -1,28 +1,8 @@
 ---
 import AdminLayout from "../../../layouts/AdminLayout.astro";
+import ArticleEditor from "../../../components/admin/ArticleEditor.astro";
 ---
 
-<AdminLayout title="New Article | The League Gazette">
-  <div class="admin-shell placeholder-page">
-    <p class="eyebrow">Editorial Desk</p>
-    <h1>New article</h1>
-    <p>The article editor will be added in the next step.</p>
-
-    <a href="/admin">← Return to dashboard</a>
-  </div>
+<AdminLayout title="New Story | The League Gazette">
+  <ArticleEditor />
 </AdminLayout>
-
-<style>
-  .placeholder-page {
-    padding-block: var(--space-8);
-  }
-
-  .placeholder-page h1 {
-    font-size: clamp(3rem, 8vw, 6rem);
-  }
-
-  .placeholder-page a {
-    color: var(--color-green);
-    font-weight: 700;
-  }
-</style>

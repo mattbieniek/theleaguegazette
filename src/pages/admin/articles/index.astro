@@ -1,0 +1,707 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Stories | The League Gazette">
+  <div id="stories-loading" class="admin-shell stories-loading">
+    <p>Loading the story archive…</p>
+  </div>
+
+  <div id="stories-page" class="admin-shell stories-page" hidden>
+    <header class="stories-header">
+      <div>
+        <p class="eyebrow">Editorial</p>
+        <h1>Stories</h1>
+        <p class="stories-header__description">
+          Manage Gazette drafts, published stories and archived work.
+        </p>
+      </div>
+    </header>
+
+    <section class="stories-summary" aria-label="Story totals">
+      <article class="stories-summary__card">
+        <span>All stories</span>
+        <strong id="all-count">0</strong>
+      </article>
+
+      <article class="stories-summary__card">
+        <span>Published</span>
+        <strong id="published-count">0</strong>
+      </article>
+
+      <article class="stories-summary__card">
+        <span>Drafts</span>
+        <strong id="draft-count">0</strong>
+      </article>
+
+      <article class="stories-summary__card">
+        <span>Archived</span>
+        <strong id="archived-count">0</strong>
+      </article>
+    </section>
+
+    <section class="stories-toolbar" aria-label="Story controls">
+      <label class="stories-search">
+        <span class="sr-only">Search stories</span>
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="6"></circle>
+          <path d="m16 16 4 4"></path>
+        </svg>
+
+        <input
+          id="story-search"
+          type="search"
+          placeholder="Search stories"
+          autocomplete="off"
+        />
+      </label>
+
+      <label class="stories-filter">
+        <span class="sr-only">Filter by status</span>
+
+        <select id="status-filter">
+          <option value="all">All statuses</option>
+          <option value="draft">Drafts</option>
+          <option value="published">Published</option>
+          <option value="archived">Archived</option>
+        </select>
+      </label>
+    </section>
+
+    <div
+      id="stories-message"
+      class="stories-message"
+      role="status"
+      aria-live="polite"
+    ></div>
+
+    <section class="stories-panel">
+      <div class="stories-panel__heading">
+        <div>
+          <p class="eyebrow">Archive</p>
+          <h2>All stories</h2>
+        </div>
+
+        <span id="visible-count" class="stories-panel__count">
+          0 stories
+        </span>
+      </div>
+
+      <div id="story-list" class="story-list"></div>
+
+      <div id="stories-empty" class="stories-empty" hidden>
+        <p class="eyebrow">No results</p>
+        <h3>No stories found</h3>
+        <p>
+          Try changing your search or status filter.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    import { supabaseBrowser } from "../../../lib/supabase-browser";
+
+    type ArticleSummary = {
+      id: string;
+      slug: string;
+      category: string;
+      headline: string;
+      status: string;
+      published_at: string | null;
+      updated_at: string;
+    };
+
+    const loading =
+      document.querySelector<HTMLElement>("#stories-loading");
+
+    const page =
+      document.querySelector<HTMLElement>("#stories-page");
+
+    const storyList =
+      document.querySelector<HTMLElement>("#story-list");
+
+    const message =
+      document.querySelector<HTMLElement>("#stories-message");
+
+    const emptyState =
+      document.querySelector<HTMLElement>("#stories-empty");
+
+    const searchInput =
+      document.querySelector<HTMLInputElement>("#story-search");
+
+    const statusFilter =
+      document.querySelector<HTMLSelectElement>("#status-filter");
+
+    const allCount =
+      document.querySelector<HTMLElement>("#all-count");
+
+    const publishedCount =
+      document.querySelector<HTMLElement>("#published-count");
+
+    const draftCount =
+      document.querySelector<HTMLElement>("#draft-count");
+
+    const archivedCount =
+      document.querySelector<HTMLElement>("#archived-count");
+
+    const visibleCount =
+      document.querySelector<HTMLElement>("#visible-count");
+
+    let articles: ArticleSummary[] = [];
+
+    function formatDate(value: string | null): string {
+      if (!value) {
+        return "Not published";
+      }
+
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }).format(new Date(value));
+    }
+
+    function capitalize(value: string): string {
+      return value.charAt(0).toUpperCase() + value.slice(1);
+    }
+
+    function createStoryRow(article: ArticleSummary): HTMLElement {
+      const row = document.createElement("article");
+      row.className = "story-row";
+
+      const main = document.createElement("div");
+      main.className = "story-row__main";
+
+      const category = document.createElement("p");
+      category.className = "story-row__category";
+      category.textContent = article.category || "Uncategorized";
+
+      const headline = document.createElement("h3");
+
+      const editLink = document.createElement("a");
+      editLink.href = `/admin/articles/${article.id}`;
+      editLink.textContent = article.headline;
+
+      headline.append(editLink);
+
+      const meta = document.createElement("p");
+      meta.className = "story-row__meta";
+
+      const displayDate =
+        article.status === "published"
+          ? article.published_at
+          : article.updated_at;
+
+      meta.textContent =
+        article.status === "published"
+          ? `Published ${formatDate(displayDate)}`
+          : `Updated ${formatDate(displayDate)}`;
+
+      main.append(category, headline, meta);
+
+      const status = document.createElement("span");
+      status.className = `status-badge status-badge--${article.status}`;
+      status.textContent = capitalize(article.status);
+
+      const actions = document.createElement("div");
+      actions.className = "story-row__actions";
+
+      const editAction = document.createElement("a");
+      editAction.href = `/admin/articles/${article.id}`;
+      editAction.textContent = "Edit";
+
+      if (article.status === "published" && article.slug) {
+        const viewAction = document.createElement("a");
+        viewAction.href = `/gazette/${article.slug}`;
+        viewAction.target = "_blank";
+        viewAction.rel = "noreferrer";
+        viewAction.textContent = "View";
+
+        actions.append(viewAction);
+      }
+
+      actions.append(editAction);
+
+      row.append(main, status, actions);
+
+      return row;
+    }
+
+    function renderStories(): void {
+      if (!storyList || !emptyState) {
+        return;
+      }
+
+      const query = searchInput?.value.trim().toLowerCase() ?? "";
+      const selectedStatus = statusFilter?.value ?? "all";
+
+      const filteredArticles = articles.filter((article) => {
+        const matchesSearch =
+          !query ||
+          article.headline.toLowerCase().includes(query) ||
+          article.category.toLowerCase().includes(query);
+
+        const matchesStatus =
+          selectedStatus === "all" ||
+          article.status === selectedStatus;
+
+        return matchesSearch && matchesStatus;
+      });
+
+      storyList.replaceChildren();
+
+      for (const article of filteredArticles) {
+        storyList.append(createStoryRow(article));
+      }
+
+      const hasResults = filteredArticles.length > 0;
+
+      storyList.hidden = !hasResults;
+      emptyState.hidden = hasResults;
+
+      if (visibleCount) {
+        visibleCount.textContent =
+          `${filteredArticles.length} ${
+            filteredArticles.length === 1 ? "story" : "stories"
+          }`;
+      }
+    }
+
+    async function verifyAdmin(): Promise<boolean> {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabaseBrowser.auth.getUser();
+
+      if (userError || !user) {
+        window.location.replace("/admin/login");
+        return false;
+      }
+
+      const {
+        data: adminRecord,
+        error: adminError,
+      } = await supabaseBrowser
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (adminError || !adminRecord) {
+        await supabaseBrowser.auth.signOut();
+        window.location.replace("/admin/login");
+        return false;
+      }
+
+      return true;
+    }
+
+    async function initializeStories(): Promise<void> {
+      const isAdmin = await verifyAdmin();
+
+      if (!isAdmin) {
+        return;
+      }
+
+      const { data, error } = await supabaseBrowser
+        .from("gazette_articles")
+        .select(
+          "id, slug, category, headline, status, published_at, updated_at"
+        )
+        .order("updated_at", {
+          ascending: false,
+        });
+
+      if (loading) {
+        loading.hidden = true;
+      }
+
+      if (page) {
+        page.hidden = false;
+      }
+
+      if (error) {
+        if (message) {
+          message.textContent =
+            `Unable to load stories: ${error.message}`;
+        }
+
+        return;
+      }
+
+      articles = (data ?? []) as ArticleSummary[];
+
+      if (allCount) {
+        allCount.textContent = String(articles.length);
+      }
+
+      if (publishedCount) {
+        publishedCount.textContent = String(
+          articles.filter(
+            (article) => article.status === "published"
+          ).length
+        );
+      }
+
+      if (draftCount) {
+        draftCount.textContent = String(
+          articles.filter(
+            (article) => article.status === "draft"
+          ).length
+        );
+      }
+
+      if (archivedCount) {
+        archivedCount.textContent = String(
+          articles.filter(
+            (article) => article.status === "archived"
+          ).length
+        );
+      }
+
+      renderStories();
+    }
+
+    searchInput?.addEventListener("input", renderStories);
+    statusFilter?.addEventListener("change", renderStories);
+
+    initializeStories();
+  </script>
+</AdminLayout>
+
+<style>
+  .stories-loading {
+    min-height: 20rem;
+    display: grid;
+    place-items: center;
+    color: var(--color-ink-soft);
+  }
+
+  .stories-page {
+    display: grid;
+    gap: var(--space-7);
+  }
+
+  .stories-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-5);
+    padding-bottom: var(--space-6);
+    border-bottom: 3px double var(--color-rule-dark);
+  }
+
+  .stories-header h1 {
+    margin: 0;
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    letter-spacing: -0.055em;
+    line-height: 0.9;
+  }
+
+  .stories-header__description {
+    max-width: 42rem;
+    margin: var(--space-4) 0 0;
+    color: var(--color-ink-soft);
+    font-size: clamp(1rem, 1.4vw, 1.15rem);
+  }
+
+  .stories-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+
+  .stories-summary__card {
+    display: grid;
+    gap: var(--space-3);
+    min-height: 9rem;
+    padding: clamp(1.1rem, 2.5vw, 1.6rem);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .stories-summary__card span {
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+    font-weight: 750;
+  }
+
+  .stories-summary__card strong {
+    align-self: end;
+    font-family: var(--font-display);
+    font-size: clamp(2.6rem, 5vw, 4.3rem);
+    letter-spacing: -0.045em;
+    line-height: 0.85;
+  }
+
+  .stories-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .stories-search {
+    position: relative;
+    flex: 1;
+  }
+
+  .stories-search svg {
+    position: absolute;
+    top: 50%;
+    left: 1rem;
+    width: 1.1rem;
+    transform: translateY(-50%);
+    fill: none;
+    stroke: var(--color-ink-soft);
+    stroke-linecap: round;
+    stroke-width: 1.8;
+    pointer-events: none;
+  }
+
+  .stories-search input,
+  .stories-filter select {
+    min-height: 3.1rem;
+    border: 1px solid var(--color-rule-dark);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+  }
+
+  .stories-search input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.8rem;
+  }
+
+  .stories-filter select {
+    min-width: 11rem;
+    padding: 0.75rem 2.5rem 0.75rem 0.9rem;
+  }
+
+  .stories-search input:focus,
+  .stories-filter select:focus {
+    border-color: var(--color-green);
+    outline: 3px solid
+      color-mix(in srgb, var(--color-green) 18%, transparent);
+  }
+
+  .stories-message {
+    min-height: 1.25rem;
+    color: #9a2f2f;
+    font-size: var(--text-sm);
+  }
+
+  .stories-message:empty {
+    display: none;
+  }
+
+  .stories-panel {
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .stories-panel__heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .stories-panel__heading h2 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .stories-panel__heading .eyebrow {
+    margin-bottom: var(--space-2);
+  }
+
+  .stories-panel__count {
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .story-list {
+    display: grid;
+  }
+
+  .story-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--space-5);
+    padding: clamp(1.2rem, 3vw, 1.75rem)
+      clamp(1.25rem, 3vw, 2rem);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .story-row:last-child {
+    border-bottom: 0;
+  }
+
+  .story-row:hover {
+    background:
+      color-mix(
+        in srgb,
+        var(--color-green) 4%,
+        var(--color-surface)
+      );
+  }
+
+  .story-row__main {
+    min-width: 0;
+  }
+
+  .story-row__category {
+    margin: 0 0 var(--space-2);
+    color: var(--color-green);
+    font-size: 0.68rem;
+    font-weight: 850;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .story-row h3 {
+    margin: 0;
+    font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+
+  .story-row h3 a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .story-row h3 a:hover {
+    color: var(--color-green);
+  }
+
+  .story-row__meta {
+    margin: var(--space-2) 0 0;
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+  }
+
+  .story-row__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .story-row__actions a {
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 750;
+    text-decoration: none;
+  }
+
+  .story-row__actions a:hover {
+    text-decoration: underline;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    min-width: 5.5rem;
+    justify-content: center;
+    padding: 0.4rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 850;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .status-badge--published {
+    background: color-mix(
+      in srgb,
+      var(--color-green) 13%,
+      transparent
+    );
+    color: var(--color-green);
+  }
+
+  .status-badge--draft {
+    background: #eee7d7;
+    color: #6b592d;
+  }
+
+  .status-badge--archived {
+    background: #ececeb;
+    color: #666a66;
+  }
+
+  .stories-empty {
+    padding: clamp(3rem, 8vw, 6rem) 2rem;
+    text-align: center;
+  }
+
+  .stories-empty h3 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3rem);
+  }
+
+  .stories-empty > p:last-child {
+    margin: var(--space-3) 0 0;
+    color: var(--color-ink-soft);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 850px) {
+    .stories-summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .story-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .story-row__actions {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .stories-summary {
+      grid-template-columns: 1fr;
+    }
+
+    .stories-toolbar {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .stories-filter select {
+      width: 100%;
+    }
+
+    .story-row {
+      grid-template-columns: 1fr;
+      gap: var(--space-3);
+    }
+
+    .status-badge {
+      width: fit-content;
+    }
+  }
+</style>
