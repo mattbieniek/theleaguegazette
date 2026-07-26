@@ -1,0 +1,152 @@
+---
+import { generateHTML } from "@tiptap/html/server";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import type {
+  RichTextDocument,
+} from "../../lib/gazette/articleBody";
+
+interface Props {
+  body: RichTextDocument;
+}
+
+const { body } = Astro.props;
+
+const html = generateHTML(body, [
+  StarterKit.configure({
+    heading: {
+      levels: [2, 3],
+    },
+  }),
+
+  Link.configure({
+    openOnClick: false,
+    HTMLAttributes: {
+      rel: "noopener noreferrer",
+    },
+  }),
+]);
+---
+
+<div class="article-rich-text" set:html={html} />
+
+<style>
+  .article-rich-text {
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.15rem, 2vw, 1.35rem);
+    line-height: 1.7;
+  }
+
+  .article-rich-text :global(p) {
+    margin: 0 0 1.5em;
+  }
+
+  .article-rich-text :global(h2),
+  .article-rich-text :global(h3) {
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    letter-spacing: -0.035em;
+  }
+
+  .article-rich-text :global(h2) {
+    margin: 2em 0 0.65em;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.05;
+  }
+
+  .article-rich-text :global(h3) {
+    margin: 1.8em 0 0.65em;
+    font-size: clamp(1.5rem, 3vw, 2.15rem);
+    line-height: 1.15;
+  }
+
+  .article-rich-text :global(ul),
+  .article-rich-text :global(ol) {
+    margin: 0 0 1.5em;
+    padding-left: 1.5em;
+  }
+
+  .article-rich-text :global(li) {
+    margin-bottom: 0.5em;
+    padding-left: 0.3em;
+  }
+
+  .article-rich-text :global(li p) {
+    margin-bottom: 0.5em;
+  }
+
+  .article-rich-text :global(blockquote) {
+    margin: 2em 0;
+    padding: 0.25em 0 0.25em 1.25em;
+    border-left: 4px solid var(--color-green);
+    color: var(--color-ink);
+    font-size: clamp(1.3rem, 2.4vw, 1.7rem);
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  .article-rich-text :global(blockquote p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .article-rich-text :global(a) {
+    color: var(--color-green);
+    font-weight: 650;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.15em;
+  }
+
+  .article-rich-text :global(strong) {
+    color: var(--color-ink);
+    font-weight: 750;
+  }
+
+  .article-rich-text :global(code) {
+    padding: 0.1em 0.3em;
+    border-radius: 0.25rem;
+    background: var(--color-surface);
+    font-family: var(--font-data);
+    font-size: 0.88em;
+  }
+
+  .article-rich-text :global(pre) {
+    overflow-x: auto;
+    margin: 2em 0;
+    padding: 1.25rem;
+    border-radius: var(--radius-md);
+    background: var(--color-ink);
+    color: var(--color-paper-light);
+  }
+
+  .article-rich-text :global(pre code) {
+    padding: 0;
+    background: transparent;
+    color: inherit;
+  }
+
+  .article-rich-text :global(hr) {
+    width: min(10rem, 40%);
+    margin: 3.5rem auto;
+    border: 0;
+    border-top: 3px double var(--color-rule-dark);
+  }
+
+  .article-rich-text
+    :global(> p:first-child::first-letter) {
+    float: left;
+    margin-right: 0.12em;
+    color: var(--color-green);
+    font-family: var(--font-editorial);
+    font-size: 4.8rem;
+    font-weight: 700;
+    line-height: 0.78;
+  }
+
+  @media (max-width: 600px) {
+    .article-rich-text
+      :global(> p:first-child::first-letter) {
+      font-size: 4rem;
+    }
+  }
+</style>

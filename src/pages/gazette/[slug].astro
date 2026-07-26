@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import ArticleBody from "../../components/gazette/ArticleBody.astro";
 import {
   getPublishedArticleBySlug,
   getPublishedArticles,
@@ -64,6 +65,8 @@ if (!story) {
       </div>
     </header>
 
+    {
+  story.image_url && (
     <figure class="article-image site-shell">
       <img
         src={story.image_url}
@@ -72,16 +75,14 @@ if (!story) {
         height="1000"
       />
     </figure>
+  )
+}
 
     <div class="article-body site-shell">
-      <div class="article-body__content">
-        {
-          story.body.map((paragraph) => (
-            <p>{paragraph}</p>
-          ))
-        }
-      </div>
-    </div>
+  <div class="article-body__content">
+    <ArticleBody body={story.body} />
+  </div>
+</div>
   </article>
 </BaseLayout>
 
@@ -161,31 +162,9 @@ if (!story) {
     margin-inline: auto;
   }
 
-  .article-body__content p {
-    margin-bottom: 1.5em;
-    color: var(--color-ink-soft);
-    font-family: var(--font-editorial);
-    font-size: clamp(1.15rem, 2vw, 1.35rem);
-    line-height: 1.7;
-  }
-
-  .article-body__content p:first-child::first-letter {
-    float: left;
-    margin-right: 0.12em;
-    color: var(--color-green);
-    font-family: var(--font-editorial);
-    font-size: 4.8rem;
-    font-weight: 700;
-    line-height: 0.78;
-  }
-
   @media (max-width: 600px) {
     .article-header h1 {
       font-size: clamp(2.7rem, 13vw, 4.5rem);
-    }
-
-    .article-body__content p:first-child::first-letter {
-      font-size: 4rem;
     }
   }
 </style>

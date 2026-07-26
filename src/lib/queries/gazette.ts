@@ -1,27 +1,25 @@
 import { supabase } from "../supabase";
 import type { Database } from "../../types/database";
 
+import {
+  normalizeArticleBody,
+  type RichTextDocument,
+} from "../gazette/articleBody";
+
 export type GazetteArticleRow =
   Database["public"]["Tables"]["gazette_articles"]["Row"];
 
 export interface GazetteArticle
   extends Omit<GazetteArticleRow, "body"> {
-  body: string[];
+  body: RichTextDocument;
 }
 
 function normalizeArticle(
   article: GazetteArticleRow
 ): GazetteArticle {
-  const body = Array.isArray(article.body)
-    ? article.body.filter(
-        (paragraph): paragraph is string =>
-          typeof paragraph === "string"
-      )
-    : [];
-
   return {
     ...article,
-    body,
+    body: normalizeArticleBody(article.body),
   };
 }
 
