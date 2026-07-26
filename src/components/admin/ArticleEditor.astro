@@ -185,35 +185,91 @@ Separate paragraphs with a blank line."
         </section>
 
         <section class="editor-panel">
-          <div class="editor-panel__heading">
-            <p class="eyebrow">Artwork</p>
-            <h2>Featured image</h2>
-          </div>
+  <div class="editor-panel__heading">
+    <p class="eyebrow">Artwork</p>
+    <h2>Featured image</h2>
+  </div>
 
-          <div class="editor-fields">
-            <label>
-              <span>Image URL</span>
+  <div class="editor-fields">
+    <div
+      id="featured-image-preview"
+      class="featured-image-preview"
+      hidden
+    >
+      <img
+        id="featured-image-preview-image"
+        src=""
+        alt=""
+      />
+    </div>
 
-              <input
-                id="image-url"
-                name="image_url"
-                type="url"
-                placeholder="https://…"
-              />
-            </label>
+    <div
+      id="featured-image-empty"
+      class="featured-image-empty"
+    >
+      <span aria-hidden="true">◇</span>
+      <p>No featured image selected</p>
+    </div>
 
-            <label>
-              <span>Alternative text</span>
+    <input
+      id="image-url"
+      name="image_url"
+      type="hidden"
+    />
 
-              <textarea
-                id="image-alt"
-                name="image_alt"
-                rows="3"
-                placeholder="Describe the image for readers using screen readers"
-              ></textarea>
-            </label>
-          </div>
-        </section>
+    <input
+      id="image-file"
+      class="sr-only"
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+    />
+
+    <div class="featured-image-actions">
+      <button
+        id="upload-image-button"
+        class="editor-button editor-button--secondary"
+        type="button"
+      >
+        Upload image
+      </button>
+
+      <button
+        id="remove-image-button"
+        class="editor-button editor-button--text"
+        type="button"
+        hidden
+      >
+        Remove
+      </button>
+    </div>
+
+    <p
+      id="image-upload-status"
+      class="image-upload-status"
+      role="status"
+      aria-live="polite"
+    ></p>
+
+    <label>
+      <span>Alternative text</span>
+
+      <textarea
+        id="image-alt"
+        name="image_alt"
+        rows="3"
+        placeholder="Describe the image for readers using screen readers"
+      ></textarea>
+
+      <small>
+        Required before publishing a story with an image.
+      </small>
+    </label>
+
+    <small class="featured-image-requirements">
+      JPEG, PNG, or WebP. Maximum file size: 6 MB.
+    </small>
+  </div>
+</section>
 
         <section class="editor-panel">
           <div class="editor-panel__heading">
@@ -434,6 +490,39 @@ Separate paragraphs with a blank line."
   const imageAltInput =
     document.querySelector<HTMLTextAreaElement>("#image-alt");
 
+  const imageFileInput =
+  document.querySelector<HTMLInputElement>("#image-file");
+
+const uploadImageButton =
+  document.querySelector<HTMLButtonElement>(
+    "#upload-image-button"
+  );
+
+const removeImageButton =
+  document.querySelector<HTMLButtonElement>(
+    "#remove-image-button"
+  );
+
+const imageUploadStatus =
+  document.querySelector<HTMLElement>(
+    "#image-upload-status"
+  );
+
+const featuredImagePreview =
+  document.querySelector<HTMLElement>(
+    "#featured-image-preview"
+  );
+
+const featuredImagePreviewImage =
+  document.querySelector<HTMLImageElement>(
+    "#featured-image-preview-image"
+  );
+
+const featuredImageEmpty =
+  document.querySelector<HTMLElement>(
+    "#featured-image-empty"
+  );
+
   const isFeaturedInput =
     document.querySelector<HTMLInputElement>("#is-featured");
 
@@ -521,6 +610,17 @@ let isHydrating = false;
 let hasUnsavedChanges = false;
 
 const AUTOSAVE_DELAY = 1400;
+
+const IMAGE_BUCKET = "gazette-images";
+const MAX_IMAGE_SIZE = 6 * 1024 * 1024;
+
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+let isUploadingImage = false;
 
   function slugify(value: string): string {
     return value
@@ -651,6 +751,145 @@ function clearAutosaveTimer(): void {
   if (autosaveTimer !== undefined) {
     window.clearTimeout(autosaveTimer);
     autosaveTimer = undefined;
+  }
+}
+
+function setImageUploadStatus(
+  text: string,
+  type: "error" | "success" | "neutral" = "neutral"
+): void {
+  if (!imageUploadStatus) {
+    return;
+  }
+
+  imageUploadStatus.textContent = text;
+  imageUploadStatus.dataset.type = type;
+}
+
+function setImageUploadState(uploading: boolean): void {
+  isUploadingImage = uploading;
+
+  if (uploadImageButton) {
+    uploadImageButton.disabled = uploading;
+    uploadImageButton.textContent = uploading
+      ? "Uploading…"
+      : imageUrlInput?.value
+        ? "Replace image"
+        : "Upload image";
+  }
+
+  if (removeImageButton) {
+    removeImageButton.disabled = uploading;
+  }
+}
+
+function updateFeaturedImagePreview(
+  imageUrl: string,
+  imageAlt = ""
+): void {
+  const hasImage = Boolean(imageUrl);
+
+  if (featuredImagePreview) {
+    featuredImagePreview.hidden = !hasImage;
+  }
+
+  if (featuredImageEmpty) {
+    featuredImageEmpty.hidden = hasImage;
+  }
+
+  if (removeImageButton) {
+    removeImageButton.hidden = !hasImage;
+  }
+
+  if (uploadImageButton) {
+    uploadImageButton.textContent = hasImage
+      ? "Replace image"
+      : "Upload image";
+  }
+
+  if (!featuredImagePreviewImage) {
+    return;
+  }
+
+  if (hasImage) {
+    featuredImagePreviewImage.src = imageUrl;
+    featuredImagePreviewImage.alt = imageAlt;
+  } else {
+    featuredImagePreviewImage.removeAttribute("src");
+    featuredImagePreviewImage.alt = "";
+  }
+}
+
+function getFileExtension(file: File): string {
+  const extensionByType: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+  };
+
+  return extensionByType[file.type] ?? "jpg";
+}
+
+function validateImageFile(file: File): string | null {
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+    return "Choose a JPEG, PNG, or WebP image.";
+  }
+
+  if (file.size > MAX_IMAGE_SIZE) {
+    return "The selected image is larger than 6 MB.";
+  }
+
+  return null;
+}
+
+function getStoragePathFromPublicUrl(
+  imageUrl: string
+): string | null {
+  if (!imageUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(imageUrl);
+
+    const marker =
+      `/storage/v1/object/public/${IMAGE_BUCKET}/`;
+
+    const markerIndex = url.pathname.indexOf(marker);
+
+    if (markerIndex === -1) {
+      return null;
+    }
+
+    const encodedPath = url.pathname.slice(
+      markerIndex + marker.length
+    );
+
+    return decodeURIComponent(encodedPath);
+  } catch {
+    return null;
+  }
+}
+
+async function deleteStoredImage(
+  imageUrl: string
+): Promise<void> {
+  const storagePath =
+    getStoragePathFromPublicUrl(imageUrl);
+
+  if (!storagePath) {
+    return;
+  }
+
+  const { error } = await supabaseBrowser.storage
+    .from(IMAGE_BUCKET)
+    .remove([storagePath]);
+
+  if (error) {
+    console.error(
+      "Unable to remove previous Gazette image:",
+      error
+    );
   }
 }
 
@@ -854,12 +1093,17 @@ function scheduleAutosave(): void {
   }
 
   if (imageUrlInput) {
-    imageUrlInput.value = article.image_url ?? "";
-  }
+  imageUrlInput.value = article.image_url ?? "";
+}
 
-  if (imageAltInput) {
-    imageAltInput.value = article.image_alt ?? "";
-  }
+if (imageAltInput) {
+  imageAltInput.value = article.image_alt ?? "";
+}
+
+updateFeaturedImagePreview(
+  article.image_url ?? "",
+  article.image_alt ?? ""
+);
 
   if (isFeaturedInput) {
     isFeaturedInput.checked = article.is_featured;
@@ -1173,6 +1417,250 @@ function scheduleAutosave(): void {
     form?.removeAttribute("hidden");
   }
 
+  async function uploadFeaturedImage(
+  file: File
+): Promise<void> {
+  if (isUploadingImage || isSaving) {
+    return;
+  }
+
+  const validationError = validateImageFile(file);
+
+  if (validationError) {
+    setImageUploadStatus(validationError, "error");
+
+    if (imageFileInput) {
+      imageFileInput.value = "";
+    }
+
+    return;
+  }
+
+  if (
+    currentArticleStatus === "published" &&
+    !imageAltInput?.value.trim()
+  ) {
+    setImageUploadStatus(
+      "Add alternative text before replacing an image on a published story.",
+      "error"
+    );
+
+    imageAltInput?.focus();
+
+    if (imageFileInput) {
+      imageFileInput.value = "";
+    }
+
+    return;
+  }
+
+  setImageUploadStatus("");
+  setImageUploadState(true);
+
+  if (!articleId) {
+    const createdDraft = await saveArticle("draft");
+
+    if (!createdDraft || !articleId) {
+      setImageUploadState(false);
+
+      setImageUploadStatus(
+        "Save the story before uploading an image. A headline is required.",
+        "error"
+      );
+
+      if (imageFileInput) {
+        imageFileInput.value = "";
+      }
+
+      return;
+    }
+  }
+
+  const previousImageUrl =
+    imageUrlInput?.value.trim() ?? "";
+
+  const extension = getFileExtension(file);
+
+  const storagePath =
+    `articles/${articleId}/featured-${Date.now()}.${extension}`;
+
+  const { error: uploadError } =
+    await supabaseBrowser.storage
+      .from(IMAGE_BUCKET)
+      .upload(storagePath, file, {
+        cacheControl: "3600",
+        contentType: file.type,
+        upsert: false,
+      });
+
+  if (uploadError) {
+    setImageUploadState(false);
+
+    setImageUploadStatus(
+      `Unable to upload image: ${uploadError.message}`,
+      "error"
+    );
+
+    if (imageFileInput) {
+      imageFileInput.value = "";
+    }
+
+    return;
+  }
+
+  const { data: publicUrlData } =
+    supabaseBrowser.storage
+      .from(IMAGE_BUCKET)
+      .getPublicUrl(storagePath);
+
+  const newImageUrl = publicUrlData.publicUrl;
+
+  if (!newImageUrl) {
+    await supabaseBrowser.storage
+      .from(IMAGE_BUCKET)
+      .remove([storagePath]);
+
+    setImageUploadState(false);
+
+    setImageUploadStatus(
+      "The image uploaded, but its public URL could not be created.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (imageUrlInput) {
+    imageUrlInput.value = newImageUrl;
+  }
+
+  updateFeaturedImagePreview(
+    newImageUrl,
+    imageAltInput?.value.trim() ?? ""
+  );
+
+  updateDirtyState();
+
+  const saved = await saveArticle(
+    currentArticleStatus
+  );
+
+  if (!saved) {
+    await supabaseBrowser.storage
+      .from(IMAGE_BUCKET)
+      .remove([storagePath]);
+
+    if (imageUrlInput) {
+      imageUrlInput.value = previousImageUrl;
+    }
+
+    updateFeaturedImagePreview(
+      previousImageUrl,
+      imageAltInput?.value.trim() ?? ""
+    );
+
+    setImageUploadState(false);
+
+    setImageUploadStatus(
+      "The upload was reversed because the story could not be saved.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (
+    previousImageUrl &&
+    previousImageUrl !== newImageUrl
+  ) {
+    await deleteStoredImage(previousImageUrl);
+  }
+
+  setImageUploadState(false);
+
+  setImageUploadStatus(
+    previousImageUrl
+      ? "Featured image replaced."
+      : "Featured image uploaded.",
+    "success"
+  );
+
+  if (imageFileInput) {
+    imageFileInput.value = "";
+  }
+}
+
+async function removeFeaturedImage(): Promise<void> {
+  if (
+    isUploadingImage ||
+    isSaving ||
+    !imageUrlInput?.value
+  ) {
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Remove this featured image from the story?"
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const previousImageUrl =
+    imageUrlInput.value.trim();
+
+  const previousImageAlt =
+    imageAltInput?.value ?? "";
+
+  setImageUploadState(true);
+  setImageUploadStatus("Removing image…");
+
+  imageUrlInput.value = "";
+
+  if (imageAltInput) {
+    imageAltInput.value = "";
+  }
+
+  updateFeaturedImagePreview("", "");
+  updateDirtyState();
+
+  const saved = await saveArticle(
+    currentArticleStatus
+  );
+
+  if (!saved) {
+    imageUrlInput.value = previousImageUrl;
+
+    if (imageAltInput) {
+      imageAltInput.value = previousImageAlt;
+    }
+
+    updateFeaturedImagePreview(
+      previousImageUrl,
+      previousImageAlt
+    );
+
+    setImageUploadState(false);
+
+    setImageUploadStatus(
+      "The image could not be removed because the story did not save.",
+      "error"
+    );
+
+    return;
+  }
+
+  await deleteStoredImage(previousImageUrl);
+
+  setImageUploadState(false);
+
+  setImageUploadStatus(
+    "Featured image removed.",
+    "success"
+  );
+}
+
   function renderPreview(): void {
   const headline =
     headlineInput?.value.trim() || "Untitled story";
@@ -1328,10 +1816,38 @@ for (const input of autosaveInputs) {
   input?.addEventListener("change", scheduleAutosave);
 }
 
+imageAltInput?.addEventListener("input", () => {
+  if (
+    featuredImagePreviewImage &&
+    imageUrlInput?.value
+  ) {
+    featuredImagePreviewImage.alt =
+      imageAltInput.value.trim();
+  }
+});
+
 isFeaturedInput?.addEventListener(
   "change",
   scheduleAutosave
 );
+
+uploadImageButton?.addEventListener("click", () => {
+  imageFileInput?.click();
+});
+
+imageFileInput?.addEventListener("change", () => {
+  const file = imageFileInput.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  void uploadFeaturedImage(file);
+});
+
+removeImageButton?.addEventListener("click", () => {
+  void removeFeaturedImage();
+});
 
 saveDraftButton?.addEventListener("click", () => {
   void saveArticle("draft");
@@ -1374,7 +1890,11 @@ form?.addEventListener("submit", (event) => {
 window.addEventListener(
   "beforeunload",
   (event) => {
-    if (!hasUnsavedChanges || isSaving) {
+    const shouldWarn =
+      isUploadingImage ||
+      (hasUnsavedChanges && !isSaving);
+
+    if (!shouldWarn) {
       return;
     }
 
@@ -1951,5 +2471,89 @@ initializeEditor();
   .preview-page {
     padding: 2rem 1.25rem 4rem;
   }
+}
+
+.featured-image-preview {
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-light);
+}
+
+.featured-image-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.featured-image-empty {
+  display: grid;
+  min-height: 10rem;
+  place-items: center;
+  align-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  border: 1px dashed var(--color-rule-dark);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-light);
+  color: var(--color-ink-soft);
+  text-align: center;
+}
+
+.featured-image-empty span {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.featured-image-empty p {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.featured-image-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.editor-button--text {
+  min-height: auto;
+  padding-inline: 0.4rem;
+  border-color: transparent;
+  background: transparent;
+  color: #9b352d;
+}
+
+.editor-button--text:hover {
+  text-decoration: underline;
+}
+
+.image-upload-status {
+  min-height: 1rem;
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.image-upload-status:empty {
+  display: none;
+}
+
+.image-upload-status[data-type="error"] {
+  color: #9b352d;
+}
+
+.image-upload-status[data-type="success"] {
+  color: var(--color-green);
+}
+
+.featured-image-requirements {
+  color: var(--color-ink-soft);
+  font-size: 0.68rem;
+  line-height: 1.45;
 }
 </style>
