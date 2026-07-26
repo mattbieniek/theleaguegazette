@@ -1,0 +1,417 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Editorial Desk | The League Gazette">
+  <div
+    id="admin-loading"
+    class="admin-shell admin-loading"
+  >
+    <p>Loading the editorial desk…</p>
+  </div>
+
+  <div
+    id="admin-dashboard"
+    class="admin-shell admin-dashboard"
+    hidden
+  >
+    <header class="dashboard-header">
+      <div>
+        <p class="eyebrow">Editorial Desk</p>
+        <h1>Gazette articles</h1>
+      </div>
+    </header>
+
+    <section class="dashboard-summary" aria-label="Article totals">
+      <article>
+        <span>All articles</span>
+        <strong id="all-count">0</strong>
+      </article>
+
+      <article>
+        <span>Published</span>
+        <strong id="published-count">0</strong>
+      </article>
+
+      <article>
+        <span>Drafts</span>
+        <strong id="draft-count">0</strong>
+      </article>
+    </section>
+
+    <div
+      id="dashboard-message"
+      class="dashboard-message"
+      role="status"
+      aria-live="polite"
+    ></div>
+
+    <section class="article-panel">
+      <div class="article-panel__heading">
+        <h2>All stories</h2>
+      </div>
+
+      <div id="article-list" class="article-list"></div>
+    </section>
+  </div>
+
+  <script>
+    import { supabaseBrowser } from "../../lib/supabase-browser";
+
+    type ArticleSummary = {
+      id: string;
+      slug: string;
+      category: string;
+      headline: string;
+      status: string;
+      published_at: string | null;
+      updated_at: string;
+    };
+
+    const loading =
+      document.querySelector<HTMLElement>("#admin-loading");
+
+    const dashboard =
+      document.querySelector<HTMLElement>("#admin-dashboard");
+
+    const articleList =
+      document.querySelector<HTMLElement>("#article-list");
+
+    const message =
+      document.querySelector<HTMLElement>(
+        "#dashboard-message"
+      );
+
+    const allCount =
+      document.querySelector<HTMLElement>("#all-count");
+
+    const publishedCount =
+      document.querySelector<HTMLElement>(
+        "#published-count"
+      );
+
+    const draftCount =
+      document.querySelector<HTMLElement>("#draft-count");
+
+    function formatDate(value: string | null): string {
+      if (!value) {
+        return "Not published";
+      }
+
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }).format(new Date(value));
+    }
+
+    function createArticleCard(
+      article: ArticleSummary
+    ): HTMLElement {
+      const card = document.createElement("article");
+      card.className = "admin-article-card";
+
+      const content = document.createElement("div");
+
+      const eyebrow = document.createElement("p");
+      eyebrow.className = "admin-article-card__eyebrow";
+      eyebrow.textContent = article.category;
+
+      const headline = document.createElement("h3");
+
+      const editLink = document.createElement("a");
+      editLink.href = `/admin/articles/${article.id}`;
+      editLink.textContent = article.headline;
+
+      headline.append(editLink);
+
+      const meta = document.createElement("p");
+      meta.className = "admin-article-card__meta";
+      meta.textContent =
+        article.status === "published"
+          ? `Published ${formatDate(article.published_at)}`
+          : `Updated ${formatDate(article.updated_at)}`;
+
+      content.append(eyebrow, headline, meta);
+
+      const status = document.createElement("span");
+      status.className =
+        `status-badge status-badge--${article.status}`;
+      status.textContent = article.status;
+
+      card.append(content, status);
+
+      return card;
+    }
+
+    async function initializeDashboard() {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabaseBrowser.auth.getUser();
+
+      if (userError || !user) {
+        window.location.replace("/admin/login");
+        return;
+      }
+
+      const {
+        data: adminRecord,
+        error: adminError,
+      } = await supabaseBrowser
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (adminError || !adminRecord) {
+        await supabaseBrowser.auth.signOut();
+        window.location.replace("/admin/login");
+        return;
+      }
+
+      const { data, error } = await supabaseBrowser
+        .from("gazette_articles")
+        .select(
+          "id, slug, category, headline, status, published_at, updated_at"
+        )
+        .order("updated_at", {
+          ascending: false,
+        });
+
+      if (loading) {
+        loading.hidden = true;
+      }
+
+      if (dashboard) {
+        dashboard.hidden = false;
+      }
+
+      if (error) {
+        if (message) {
+          message.textContent =
+            `Unable to load articles: ${error.message}`;
+        }
+
+        return;
+      }
+
+      const articles =
+        (data ?? []) as ArticleSummary[];
+
+      if (allCount) {
+        allCount.textContent = String(articles.length);
+      }
+
+      if (publishedCount) {
+        publishedCount.textContent = String(
+          articles.filter(
+            (article) => article.status === "published"
+          ).length
+        );
+      }
+
+      if (draftCount) {
+        draftCount.textContent = String(
+          articles.filter(
+            (article) => article.status === "draft"
+          ).length
+        );
+      }
+
+      if (!articleList) {
+        return;
+      }
+
+      articleList.replaceChildren();
+
+      if (articles.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "article-list__empty";
+        empty.textContent =
+          "No Gazette articles have been created yet.";
+
+        articleList.append(empty);
+        return;
+      }
+
+      articles.forEach((article) => {
+        articleList.append(createArticleCard(article));
+      });
+    }
+
+    initializeDashboard();
+  </script>
+</AdminLayout>
+
+<style>
+  .admin-loading {
+    padding-block: var(--space-8);
+    color: var(--color-ink-muted);
+  }
+
+  .admin-dashboard {
+    padding-block: clamp(2rem, 6vw, 5rem) var(--space-9);
+  }
+
+  .dashboard-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-5);
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-5);
+    border-bottom: 3px double var(--color-rule-dark);
+  }
+
+  .dashboard-header h1 {
+    margin-bottom: 0;
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    letter-spacing: -0.055em;
+    line-height: 0.95;
+  }
+
+  .dashboard-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-7);
+  }
+
+  .dashboard-summary article {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-5);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .dashboard-summary span {
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .dashboard-summary strong {
+    font-family: var(--font-editorial);
+    font-size: 2.5rem;
+    line-height: 1;
+  }
+
+  .dashboard-message {
+    color: #9a2f2f;
+  }
+
+  .article-panel {
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .article-panel__heading {
+    padding: var(--space-5);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .article-panel__heading h2 {
+    margin-bottom: 0;
+    font-size: 1.8rem;
+  }
+
+  .article-list {
+    display: grid;
+  }
+
+  :global(.admin-article-card) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+    padding: var(--space-5);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  :global(.admin-article-card:last-child) {
+    border-bottom: 0;
+  }
+
+  :global(.admin-article-card__eyebrow) {
+    margin-bottom: var(--space-2);
+    color: var(--color-green);
+    font-family: var(--font-data);
+    font-size: 0.65rem;
+    font-weight: 650;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  :global(.admin-article-card h3) {
+    margin-bottom: var(--space-2);
+    font-size: clamp(1.35rem, 3vw, 2rem);
+    line-height: 1.05;
+  }
+
+  :global(.admin-article-card h3 a:hover) {
+    color: var(--color-green);
+  }
+
+  :global(.admin-article-card__meta) {
+    margin-bottom: 0;
+    color: var(--color-ink-muted);
+    font-size: var(--text-sm);
+  }
+
+  :global(.status-badge) {
+    flex-shrink: 0;
+    padding: 0.35rem 0.55rem;
+    border-radius: 999px;
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  :global(.status-badge--published) {
+    background: rgb(33 93 69 / 12%);
+    color: var(--color-green);
+  }
+
+  :global(.status-badge--draft) {
+    background: rgb(164 113 31 / 14%);
+    color: #78500e;
+  }
+
+  :global(.status-badge--archived) {
+    background: rgb(70 70 70 / 10%);
+    color: var(--color-ink-muted);
+  }
+
+  :global(.article-list__empty) {
+    margin-bottom: 0;
+    padding: var(--space-6);
+    color: var(--color-ink-muted);
+  }
+
+  @media (max-width: 650px) {
+    .dashboard-header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .dashboard-summary {
+      grid-template-columns: 1fr;
+    }
+
+    :global(.admin-article-card) {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+</style>
