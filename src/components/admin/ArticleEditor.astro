@@ -1021,7 +1021,7 @@ const STATUS_HELP: Record<ArticleStatus, string> = {
   ready_for_review:
     "The story is complete and awaiting final approval.",
   scheduled:
-    "The story will become public at its publication date.",
+    "The story becomes public automatically when its publication date is reached.",
   published:
     "The story is currently available on the public website.",
   archived:
@@ -1034,6 +1034,46 @@ function isArticleStatus(value: string): value is ArticleStatus {
 
 function getStatusLabel(status: ArticleStatus): string {
   return STATUS_LABELS[status];
+}
+
+function isArticlePubliclyAvailable(
+  status: ArticleStatus,
+  publishedAt: string | null
+): boolean {
+  if (
+    status !== "published" &&
+    status !== "scheduled"
+  ) {
+    return false;
+  }
+
+  if (!publishedAt) {
+    return false;
+  }
+
+  const publicationDate = new Date(publishedAt);
+
+  return (
+    !Number.isNaN(publicationDate.getTime()) &&
+    publicationDate.getTime() <= Date.now()
+  );
+}
+
+function getArticleStatusLabel(
+  status: ArticleStatus,
+  publishedAt: string | null
+): string {
+  if (
+    status === "scheduled" &&
+    isArticlePubliclyAvailable(
+      status,
+      publishedAt
+    )
+  ) {
+    return "Live — scheduled";
+  }
+
+  return getStatusLabel(status);
 }
 
 function updateStatusHelp(status: ArticleStatus): void {
@@ -2139,7 +2179,10 @@ if (publishButton) {
 
   if (currentStatus) {
     currentStatus.textContent =
-      getStatusLabel(article.status);
+      getArticleStatusLabel(
+        article.status,
+        article.published_at
+      );
   }
 
   if (createdDate) {
@@ -2156,8 +2199,11 @@ if (publishButton) {
 
   if (viewPublishedStory) {
     const canView =
-      article.status === "published" &&
-      Boolean(article.slug);
+      Boolean(article.slug) &&
+      isArticlePubliclyAvailable(
+        article.status,
+        article.published_at
+      );
 
     viewPublishedStory.hidden = !canView;
 
@@ -2570,12 +2616,15 @@ updatePrimaryAction();
   }
 
   if (
-    currentArticleStatus === "published" &&
-    !imageAltInput?.value.trim()
-  ) {
+  isArticlePubliclyAvailable(
+    currentArticleStatus,
+    toIsoDate(publishedAtInput?.value ?? "")
+  ) &&
+  !imageAltInput?.value.trim()
+) {
     setImageUploadStatus(
-      "Add alternative text before replacing an image on a published story.",
-      "error"
+      "Add alternative text before replacing an image on a live story.",
+  "error"
     );
 
     imageAltInput?.focus();
@@ -3660,6 +3709,10 @@ initializeEditor();
     font-size: var(--text-sm);
     font-weight: 750;
     text-decoration: none;
+  }
+
+  .view-published-story[hidden] {
+    display: none;
   }
 
   .sr-only {
