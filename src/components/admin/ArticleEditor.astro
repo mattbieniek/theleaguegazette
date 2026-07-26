@@ -907,6 +907,7 @@ let slugWasManuallyEdited = mode === "edit";
 
 let currentArticleStatus: ArticleStatus = "draft";
 let selectedArticleStatus: ArticleStatus = "draft";
+let currentArticlePublishedAt: string | null = null;
 
 let lastSavedSnapshot = "";
 let autosaveTimer: number | undefined;
@@ -2162,6 +2163,7 @@ if (publishButton) {
   const { syncSelectedStatus = true } = options;
 
   currentArticleStatus = article.status;
+  currentArticlePublishedAt = article.published_at;
 
   if (syncSelectedStatus) {
     selectedArticleStatus = article.status;
@@ -2374,17 +2376,37 @@ if (
       slugInput.value = slug;
     }
 
-    let publishedAt =
-      toIsoDate(publishedAtInput?.value ?? "");
+    const selectedPublicationDate =
+  toIsoDate(publishedAtInput?.value ?? "");
 
-    if (requestedStatus === "published" && !publishedAt) {
-      publishedAt = new Date().toISOString();
+let publishedAt: string | null;
 
-      if (publishedAtInput) {
-        publishedAtInput.value =
-          toDatetimeLocal(publishedAt);
-      }
-    }
+switch (requestedStatus) {
+  case "draft":
+  case "ready_for_review":
+    publishedAt = null;
+    break;
+
+  case "scheduled":
+    publishedAt = selectedPublicationDate;
+    break;
+
+  case "published":
+    publishedAt =
+      currentArticleStatus === "published"
+        ? currentArticlePublishedAt
+        : new Date().toISOString();
+    break;
+
+  case "archived":
+    publishedAt = currentArticlePublishedAt;
+    break;
+}
+
+if (publishedAtInput) {
+  publishedAtInput.value =
+    toDatetimeLocal(publishedAt);
+}
 
     const homepageOrderValue =
       homepageOrderInput?.value.trim() ?? "";
@@ -2395,13 +2417,7 @@ if (
       headline,
       summary,
       author_name: authorName,
-      published_at:
-  requestedStatus === "published" ||
-  requestedStatus === "scheduled"
-    ? publishedAt
-    : currentArticleStatus === "published"
-      ? publishedAt
-      : null,
+      published_at: publishedAt,
       image_url: imageUrlInput?.value.trim() || null,
       image_alt: imageAltInput?.value.trim() || null,
       body: body as unknown as Json,
@@ -2488,12 +2504,18 @@ markCurrentStateAsSaved(article.updated_at);
 if (isAutosave) {
   setMessage("");
 } else {
-  setMessage(
-    requestedStatus === "published"
-      ? "Story published successfully."
-      : "Story saved successfully.",
-    "success"
-  );
+  const successMessages: Record<ArticleStatus, string> = {
+  draft: "Story moved to draft.",
+  ready_for_review: "Story submitted for review.",
+  scheduled: "Story scheduled successfully.",
+  published: "Story published successfully.",
+  archived: "Story archived successfully.",
+};
+
+setMessage(
+  successMessages[requestedStatus],
+  "success"
+);
 }
 
 return true;
@@ -2540,12 +2562,19 @@ return true;
   updateStatusDisplay(article);
   markCurrentStateAsSaved(article.updated_at);
 
-  setMessage(
-    requestedStatus === "published"
-      ? "Story published successfully."
-      : "Draft created successfully.",
-    "success"
-  );
+  const creationMessages: Record<ArticleStatus, string> = {
+  draft: "Draft created successfully.",
+  ready_for_review:
+    "Story created and submitted for review.",
+  scheduled: "Story created and scheduled.",
+  published: "Story published successfully.",
+  archived: "Archived story created.",
+};
+
+setMessage(
+  creationMessages[requestedStatus],
+  "success"
+);
 
   return true;
 }
@@ -2564,6 +2593,7 @@ return true;
 
   currentArticleStatus = "draft";
 selectedArticleStatus = "draft";
+currentArticlePublishedAt = null;
 updatePrimaryAction();
 
   renderPublishingReadiness();

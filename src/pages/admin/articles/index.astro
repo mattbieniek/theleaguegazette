@@ -137,6 +137,8 @@ type ArticleSummary = {
   editorial_sort_at: string;
   can_publish: boolean;
   needs_image_alt: boolean;
+  is_due_for_publishing: boolean;
+  is_publicly_available: boolean;
 };
 
     const loading =
@@ -198,6 +200,16 @@ const scheduledCount =
     function getArticleDateLabel(
   article: ArticleSummary
 ): string {
+  if (
+    article.status === "scheduled" &&
+    article.is_due_for_publishing &&
+    article.published_at
+  ) {
+    return `Published automatically ${formatDate(
+      article.published_at
+    )}`;
+  }
+
   if (
     article.status === "scheduled" &&
     article.published_at
@@ -268,9 +280,17 @@ const scheduledCount =
   main.append(categoryRow, headline, meta);
 
   const status = document.createElement("span");
-  status.className =
-    `status-badge status-badge--${article.status}`;
-  status.textContent = article.status_label;
+
+const statusModifier =
+  article.status === "scheduled" &&
+  article.is_due_for_publishing
+    ? "live-scheduled"
+    : article.status;
+
+status.className =
+  `status-badge status-badge--${statusModifier}`;
+
+status.textContent = article.status_label;
 
   const actions = document.createElement("div");
   actions.className = "story-row__actions";
@@ -279,7 +299,10 @@ const scheduledCount =
   editAction.href = `/admin/articles/${article.id}`;
   editAction.textContent = "Edit";
 
-  if (article.status === "published" && article.slug) {
+  if (
+  article.is_publicly_available &&
+  article.slug
+) {
     const viewAction = document.createElement("a");
     viewAction.href = `/gazette/${article.slug}`;
     viewAction.target = "_blank";
@@ -413,7 +436,9 @@ const scheduledCount =
       editorial_date,
       editorial_sort_at,
       can_publish,
-      needs_image_alt
+      needs_image_alt,
+      is_due_for_publishing,
+      is_publicly_available
     `
   )
   .order("editorial_sort_at", {
@@ -788,6 +813,15 @@ if (archivedCount) {
 .status-badge--scheduled {
   background: #eee7f6;
   color: #67468a;
+}
+
+.status-badge--live-scheduled {
+  background: color-mix(
+    in srgb,
+    var(--color-green) 13%,
+    transparent
+  );
+  color: var(--color-green);
 }
 
   .status-badge--archived {
