@@ -2326,8 +2326,12 @@ updateFeaturedImagePreview(
 }
 
   function buildPayload(
-    requestedStatus: ArticleStatus
-  ): ArticlePayload | null {
+  requestedStatus: ArticleStatus,
+  options: {
+    applyWorkflowRules?: boolean;
+  } = {}
+): ArticlePayload | null {
+  const { applyWorkflowRules = false } = options;
     
     const headline = headlineInput?.value.trim() ?? "";
     const summary = summaryInput?.value.trim() ?? "";
@@ -2379,31 +2383,43 @@ if (
     const selectedPublicationDate =
   toIsoDate(publishedAtInput?.value ?? "");
 
-let publishedAt: string | null;
+const isStatusTransition =
+  requestedStatus !== currentArticleStatus;
 
-switch (requestedStatus) {
-  case "draft":
-  case "ready_for_review":
-    publishedAt = null;
-    break;
+let publishedAt: string | null =
+  selectedPublicationDate;
 
-  case "scheduled":
-    publishedAt = selectedPublicationDate;
-    break;
+if (applyWorkflowRules) {
+  switch (requestedStatus) {
+    case "draft":
+    case "ready_for_review":
+      publishedAt = isStatusTransition
+        ? null
+        : selectedPublicationDate;
+      break;
 
-  case "published":
-    publishedAt =
-      currentArticleStatus === "published"
+    case "scheduled":
+      publishedAt = selectedPublicationDate;
+      break;
+
+    case "published":
+      publishedAt = isStatusTransition
+        ? new Date().toISOString()
+        : currentArticlePublishedAt;
+      break;
+
+    case "archived":
+      publishedAt = isStatusTransition
         ? currentArticlePublishedAt
-        : new Date().toISOString();
-    break;
-
-  case "archived":
-    publishedAt = currentArticlePublishedAt;
-    break;
+        : currentArticlePublishedAt;
+      break;
+  }
 }
 
-if (publishedAtInput) {
+if (
+  applyWorkflowRules &&
+  publishedAtInput
+) {
   publishedAtInput.value =
     toDatetimeLocal(publishedAt);
 }
@@ -2434,14 +2450,26 @@ if (publishedAtInput) {
   requestedStatus: ArticleStatus,
   options: {
     isAutosave?: boolean;
+    applyWorkflowRules?: boolean;
   } = {}
 ): Promise<boolean> {
   if (isSaving) {
     return false;
   }
 
-  const { isAutosave = false } = options;
-  const payload = buildPayload(requestedStatus);
+  const {
+  isAutosave = false,
+  applyWorkflowRules = false,
+} = options;
+
+const statusBeforeSave = currentArticleStatus;
+
+const payload = buildPayload(
+  requestedStatus,
+  {
+    applyWorkflowRules,
+  }
+);
 
   if (!payload) {
     if (isAutosave) {
@@ -2504,18 +2532,35 @@ markCurrentStateAsSaved(article.updated_at);
 if (isAutosave) {
   setMessage("");
 } else {
-  const successMessages: Record<ArticleStatus, string> = {
-  draft: "Story moved to draft.",
-  ready_for_review: "Story submitted for review.",
-  scheduled: "Story scheduled successfully.",
-  published: "Story published successfully.",
-  archived: "Story archived successfully.",
-};
+  const statusChanged =
+  statusBeforeSave !== requestedStatus;
 
-setMessage(
-  successMessages[requestedStatus],
-  "success"
-);
+if (!statusChanged) {
+  setMessage(
+    "Story saved successfully.",
+    "success"
+  );
+} else {
+  const transitionMessages: Record<
+    ArticleStatus,
+    string
+  > = {
+    draft: "Story moved to draft.",
+    ready_for_review:
+      "Story submitted for review.",
+    scheduled:
+      "Story scheduled successfully.",
+    published:
+      "Story published successfully.",
+    archived:
+      "Story archived successfully.",
+  };
+
+  setMessage(
+    transitionMessages[requestedStatus],
+    "success"
+  );
+}
 }
 
 return true;
@@ -3108,7 +3153,9 @@ publishButton?.addEventListener(
       }
     }
 
-    await saveArticle(targetStatus);
+    await saveArticle(targetStatus, {
+  applyWorkflowRules: true,
+});
   }
 );
 
