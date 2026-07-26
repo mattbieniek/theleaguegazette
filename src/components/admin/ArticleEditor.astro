@@ -525,6 +525,47 @@ const editorMode = articleId ? "edit" : "create";
       </aside>
     </div>
   </form>
+  <dialog
+  id="status-confirmation-dialog"
+  class="status-confirmation"
+  aria-labelledby="status-confirmation-title"
+  aria-describedby="status-confirmation-description"
+>
+  <div class="status-confirmation__panel">
+    <div class="status-confirmation__heading">
+      <p class="eyebrow">Confirm action</p>
+
+      <h2 id="status-confirmation-title">
+        Confirm status change
+      </h2>
+    </div>
+
+    <p
+      id="status-confirmation-description"
+      class="status-confirmation__description"
+    >
+      Confirm this editorial workflow change.
+    </p>
+
+    <div class="status-confirmation__actions">
+      <button
+        id="cancel-status-change"
+        class="editor-button editor-button--secondary"
+        type="button"
+      >
+        Cancel
+      </button>
+
+      <button
+        id="confirm-status-change"
+        class="editor-button editor-button--primary"
+        type="button"
+      >
+        Confirm
+      </button>
+    </div>
+  </div>
+</dialog>
   <dialog id="preview-dialog" class="preview-dialog">
   <div class="preview-shell">
     <header class="preview-toolbar">
@@ -647,6 +688,13 @@ type ReadinessRequirement = {
   key: ReadinessRequirementKey;
   label: string;
   isComplete: boolean;
+};
+
+type StatusConfirmationConfig = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  tone: "standard" | "danger";
 };
 
   const editor =
@@ -828,6 +876,31 @@ const previewBody =
 const previewEmptyBody =
   document.querySelector<HTMLElement>("#preview-empty-body");
 
+const statusConfirmationDialog =
+  document.querySelector<HTMLDialogElement>(
+    "#status-confirmation-dialog"
+  );
+
+const statusConfirmationTitle =
+  document.querySelector<HTMLElement>(
+    "#status-confirmation-title"
+  );
+
+const statusConfirmationDescription =
+  document.querySelector<HTMLElement>(
+    "#status-confirmation-description"
+  );
+
+const confirmStatusChangeButton =
+  document.querySelector<HTMLButtonElement>(
+    "#confirm-status-change"
+  );
+
+const cancelStatusChangeButton =
+  document.querySelector<HTMLButtonElement>(
+    "#cancel-status-change"
+  );
+
   const mode = editor?.dataset.mode ?? "create";
   let articleId = editor?.dataset.articleId ?? "";
 let slugWasManuallyEdited = mode === "edit";
@@ -888,6 +961,25 @@ function getCurrentBodyText(): string {
       minute: "2-digit",
     }).format(new Date(value));
   }
+
+  function formatScheduledPublicationDate(
+  value: string
+): string {
+  if (!value) {
+    return "the selected publication time";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "the selected publication time";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(date);
+}
 
   function toDatetimeLocal(value: string | null): string {
     if (!value) {
@@ -984,6 +1076,209 @@ function updatePrimaryAction(): void {
 
   publishButton.textContent =
     labels[selectedArticleStatus];
+}
+
+function getStatusConfirmationConfig(
+  currentStatus: ArticleStatus,
+  targetStatus: ArticleStatus
+): StatusConfirmationConfig | null {
+  if (currentStatus === targetStatus) {
+    return null;
+  }
+
+  if (targetStatus === "published") {
+    return {
+      title: "Publish this story?",
+      description:
+        "This story will become visible on the public website immediately.",
+      confirmLabel: "Publish now",
+      tone: "standard",
+    };
+  }
+
+  if (targetStatus === "scheduled") {
+    const publicationDate =
+      formatScheduledPublicationDate(
+        publishedAtInput?.value ?? ""
+      );
+
+    if (currentStatus === "published") {
+      return {
+        title: "Replace live publication with a schedule?",
+        description:
+          `This story will be removed from the public website now and will become public again on ${publicationDate}.`,
+        confirmLabel: "Schedule story",
+        tone: "danger",
+      };
+    }
+
+    return {
+      title: "Schedule this story?",
+      description:
+        `This story will become publicly available on ${publicationDate}.`,
+      confirmLabel: "Schedule story",
+      tone: "standard",
+    };
+  }
+
+  if (targetStatus === "archived") {
+    return {
+      title: "Archive this story?",
+      description:
+        currentStatus === "published"
+          ? "This story will be removed from the public website and retained in the editorial archive."
+          : "This story will be moved into the editorial archive.",
+      confirmLabel: "Archive story",
+      tone: "danger",
+    };
+  }
+
+  if (
+    currentStatus === "published" &&
+    targetStatus === "draft"
+  ) {
+    return {
+      title: "Move this story back to draft?",
+      description:
+        "This story will be removed from the public website and returned to draft status.",
+      confirmLabel: "Move to draft",
+      tone: "danger",
+    };
+  }
+
+  if (
+    currentStatus === "published" &&
+    targetStatus === "ready_for_review"
+  ) {
+    return {
+      title: "Return this story to review?",
+      description:
+        "This story will be removed from the public website and returned to the editorial review queue.",
+      confirmLabel: "Return to review",
+      tone: "danger",
+    };
+  }
+
+  return null;
+}
+
+function requestStatusConfirmation(
+  config: StatusConfirmationConfig
+): Promise<boolean> {
+  if (
+    !statusConfirmationDialog ||
+    !statusConfirmationTitle ||
+    !statusConfirmationDescription ||
+    !confirmStatusChangeButton ||
+    !cancelStatusChangeButton
+  ) {
+    return Promise.resolve(
+      window.confirm(config.description)
+    );
+  }
+
+  statusConfirmationTitle.textContent =
+    config.title;
+
+  statusConfirmationDescription.textContent =
+    config.description;
+
+  confirmStatusChangeButton.textContent =
+    config.confirmLabel;
+
+  confirmStatusChangeButton.dataset.tone =
+    config.tone;
+
+  return new Promise((resolve) => {
+    let hasResolved = false;
+
+    const finish = (confirmed: boolean): void => {
+      if (hasResolved) {
+        return;
+      }
+
+      hasResolved = true;
+
+      confirmStatusChangeButton.removeEventListener(
+        "click",
+        handleConfirm
+      );
+
+      cancelStatusChangeButton.removeEventListener(
+        "click",
+        handleCancel
+      );
+
+      statusConfirmationDialog.removeEventListener(
+        "cancel",
+        handleDialogCancel
+      );
+
+      statusConfirmationDialog.removeEventListener(
+        "close",
+        handleDialogClose
+      );
+
+      if (statusConfirmationDialog.open) {
+        statusConfirmationDialog.close();
+      }
+
+      resolve(confirmed);
+    };
+
+    const handleConfirm = (): void => {
+      finish(true);
+    };
+
+    const handleCancel = (): void => {
+      finish(false);
+    };
+
+    const handleDialogCancel = (
+      event: Event
+    ): void => {
+      event.preventDefault();
+      finish(false);
+    };
+
+    const handleDialogClose = (): void => {
+      finish(false);
+    };
+
+    confirmStatusChangeButton.addEventListener(
+      "click",
+      handleConfirm
+    );
+
+    cancelStatusChangeButton.addEventListener(
+      "click",
+      handleCancel
+    );
+
+    statusConfirmationDialog.addEventListener(
+      "cancel",
+      handleDialogCancel
+    );
+
+    statusConfirmationDialog.addEventListener(
+      "close",
+      handleDialogClose
+    );
+
+    statusConfirmationDialog.showModal();
+
+    cancelStatusChangeButton.focus();
+  });
+}
+
+function statusRequiresPublishingReadiness(
+  status: ArticleStatus
+): boolean {
+  return (
+    status === "ready_for_review" ||
+    status === "scheduled" ||
+    status === "published"
+  );
 }
 
 function getSelectedArticleStatus(): ArticleStatus {
@@ -2703,9 +2998,40 @@ saveDraftButton?.addEventListener("click", () => {
   void saveArticle(currentArticleStatus);
 });
 
-publishButton?.addEventListener("click", () => {
-  void saveArticle(selectedArticleStatus);
-});
+publishButton?.addEventListener(
+  "click",
+  async () => {
+    const targetStatus = selectedArticleStatus;
+
+    if (
+      statusRequiresPublishingReadiness(
+        targetStatus
+      ) &&
+      !validatePublishingReadiness(targetStatus)
+    ) {
+      return;
+    }
+
+    const confirmationConfig =
+      getStatusConfirmationConfig(
+        currentArticleStatus,
+        targetStatus
+      );
+
+    if (confirmationConfig) {
+      const confirmed =
+        await requestStatusConfirmation(
+          confirmationConfig
+        );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    await saveArticle(targetStatus);
+  }
+);
 
 previewButton?.addEventListener(
   "click",
@@ -2793,6 +3119,10 @@ initializeEditor();
     place-items: center;
     color: var(--color-ink-soft);
   }
+
+  .editor-loading[hidden] {
+  display: none;
+}
 
   .editor-form {
     display: grid;
@@ -3396,6 +3726,78 @@ initializeEditor();
 .preview-dialog::backdrop {
   background: rgba(12, 16, 13, 0.72);
   backdrop-filter: blur(5px);
+}
+
+.status-confirmation {
+  width: min(calc(100% - 2rem), 34rem);
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-ink);
+}
+
+.status-confirmation::backdrop {
+  background: rgb(12 18 15 / 58%);
+  backdrop-filter: blur(4px);
+}
+
+.status-confirmation__panel {
+  overflow: hidden;
+  border: 1px solid var(--color-rule-dark);
+  border-radius: var(--radius-lg);
+  background: var(--color-paper);
+  box-shadow:
+    0 1.5rem 4rem rgb(12 18 15 / 24%);
+}
+
+.status-confirmation__heading {
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.status-confirmation__heading h2 {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.6rem, 4vw, 2.25rem);
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.status-confirmation__description {
+  margin: 0;
+  padding: 1.5rem;
+  color: var(--color-ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.status-confirmation__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem 1.5rem;
+}
+
+#confirm-status-change[data-tone="danger"] {
+  border-color: #8f2f2f;
+  background: #8f2f2f;
+}
+
+#confirm-status-change[data-tone="danger"]:hover {
+  border-color: #702323;
+  background: #702323;
+}
+
+@media (max-width: 36rem) {
+  .status-confirmation__actions {
+    display: grid;
+  }
+
+  .status-confirmation__actions
+    .editor-button {
+    width: 100%;
+  }
 }
 
 .preview-shell {
