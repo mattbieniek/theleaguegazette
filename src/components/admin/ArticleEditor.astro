@@ -307,6 +307,22 @@ const editorMode = articleId ? "edit" : "create";
             </label>
 
             <label>
+  <span>Editorial status</span>
+
+  <select id="article-status" name="status">
+    <option value="draft">Draft</option>
+    <option value="ready_for_review">Ready for review</option>
+    <option value="scheduled">Scheduled</option>
+    <option value="published">Published</option>
+    <option value="archived">Archived</option>
+  </select>
+
+  <small id="article-status-help">
+    Drafts are visible only inside the editorial desk.
+  </small>
+</label>
+
+            <label>
               <span>Publication date</span>
 
               <input
@@ -555,6 +571,13 @@ import {
 } from "../../lib/gazette/articleBody";
 import type { Json } from "../../types/database";
 
+type ArticleStatus =
+  | "draft"
+  | "ready_for_review"
+  | "scheduled"
+  | "published"
+  | "archived";
+
   type ArticleRecord = {
     id: string;
     slug: string;
@@ -566,7 +589,7 @@ import type { Json } from "../../types/database";
     image_url: string | null;
     image_alt: string | null;
     body: unknown;
-    status: string;
+    status: ArticleStatus;
     is_featured: boolean;
     homepage_order: number | null;
     created_at: string;
@@ -583,7 +606,7 @@ import type { Json } from "../../types/database";
     image_url: string | null;
     image_alt: string | null;
     body: Json;
-    status: "draft" | "published";
+    status: ArticleStatus;
     is_featured: boolean;
     homepage_order: number | null;
     updated_at: string;
@@ -634,6 +657,12 @@ const editorToolbarButtons =
 
   const slugInput =
     document.querySelector<HTMLInputElement>("#slug");
+
+  const articleStatusInput =
+  document.querySelector<HTMLSelectElement>("#article-status");
+
+const articleStatusHelp =
+  document.querySelector<HTMLElement>("#article-status-help");
 
   const publishedAtInput =
     document.querySelector<HTMLInputElement>("#published-at");
@@ -755,7 +784,7 @@ const previewEmptyBody =
   const mode = editor?.dataset.mode ?? "create";
   let articleId = editor?.dataset.articleId ?? "";
 let slugWasManuallyEdited = mode === "edit";
-let currentArticleStatus: "draft" | "published" = "draft";
+let currentArticleStatus: ArticleStatus = "draft";
 
 let lastSavedSnapshot = "";
 let autosaveTimer: number | undefined;
@@ -837,9 +866,40 @@ function getCurrentBodyText(): string {
     return parsed.toISOString();
   }
 
-  function capitalize(value: string): string {
-    return value.charAt(0).toUpperCase() + value.slice(1);
+  const STATUS_LABELS: Record<ArticleStatus, string> = {
+  draft: "Draft",
+  ready_for_review: "Ready for review",
+  scheduled: "Scheduled",
+  published: "Published",
+  archived: "Archived",
+};
+
+const STATUS_HELP: Record<ArticleStatus, string> = {
+  draft:
+    "Drafts are visible only inside the editorial desk.",
+  ready_for_review:
+    "The story is complete and awaiting final approval.",
+  scheduled:
+    "The story will become public at its publication date.",
+  published:
+    "The story is currently available on the public website.",
+  archived:
+    "The story is retained but removed from normal public listings.",
+};
+
+function isArticleStatus(value: string): value is ArticleStatus {
+  return value in STATUS_LABELS;
+}
+
+function getStatusLabel(status: ArticleStatus): string {
+  return STATUS_LABELS[status];
+}
+
+function updateStatusHelp(status: ArticleStatus): void {
+  if (articleStatusHelp) {
+    articleStatusHelp.textContent = STATUS_HELP[status];
   }
+}
 
   function updateToolbarState(): void {
   if (!richTextEditor) {
@@ -1141,6 +1201,7 @@ function initializeRichTextEditor(): void {
     category: categoryInput?.value ?? "",
     authorName: authorInput?.value ?? "",
     slug: slugInput?.value ?? "",
+    status: articleStatusInput?.value ?? "draft",
     publishedAt: publishedAtInput?.value ?? "",
     imageUrl: imageUrlInput?.value ?? "",
     imageAlt: imageAltInput?.value ?? "",
@@ -1344,7 +1405,14 @@ function scheduleAutosave(): void {
   }
 
   autosaveTimer = window.setTimeout(() => {
-    void saveArticle(currentArticleStatus, {
+    const selectedStatus =
+      articleStatusInput?.value ?? currentArticleStatus;
+
+    const statusToSave = isArticleStatus(selectedStatus)
+      ? selectedStatus
+      : currentArticleStatus;
+
+    void saveArticle(statusToSave, {
       isAutosave: true,
     });
   }, AUTOSAVE_DELAY);
@@ -1430,48 +1498,55 @@ function scheduleAutosave(): void {
   }
 
   function updateStatusDisplay(article: ArticleRecord): void {
-    currentArticleStatus =
-  article.status === "published"
-    ? "published"
-    : "draft";
+  currentArticleStatus = article.status;
 
-    if (statusPanel) {
-      statusPanel.hidden = false;
-    }
-
-    if (currentStatus) {
-      currentStatus.textContent = capitalize(article.status);
-    }
-
-    if (createdDate) {
-      createdDate.textContent = formatDisplayDate(article.created_at);
-    }
-
-    if (updatedDate) {
-      updatedDate.textContent = formatDisplayDate(article.updated_at);
-    }
-
-    if (publishButton) {
-      publishButton.textContent =
-        article.status === "published"
-          ? "Update story"
-          : "Publish";
-    }
-
-    if (viewPublishedStory) {
-      const canView =
-        article.status === "published" &&
-        Boolean(article.slug);
-
-      viewPublishedStory.hidden = !canView;
-
-      if (canView) {
-        viewPublishedStory.href = `/gazette/${article.slug}`;
-      }
-    }
-
-    markCurrentStateAsSaved(article.updated_at);
+  if (articleStatusInput) {
+    articleStatusInput.value = article.status;
   }
+
+  updateStatusHelp(article.status);
+
+  if (statusPanel) {
+    statusPanel.hidden = false;
+  }
+
+  if (currentStatus) {
+    currentStatus.textContent =
+      getStatusLabel(article.status);
+  }
+
+  if (createdDate) {
+    createdDate.textContent =
+      formatDisplayDate(article.created_at);
+  }
+
+  if (updatedDate) {
+    updatedDate.textContent =
+      formatDisplayDate(article.updated_at);
+  }
+
+  if (publishButton) {
+    publishButton.textContent =
+      article.status === "published"
+        ? "Update story"
+        : "Publish";
+  }
+
+  if (viewPublishedStory) {
+    const canView =
+      article.status === "published" &&
+      Boolean(article.slug);
+
+    viewPublishedStory.hidden = !canView;
+
+    if (canView) {
+      viewPublishedStory.href =
+        `/gazette/${article.slug}`;
+    }
+  }
+
+  markCurrentStateAsSaved(article.updated_at);
+}
 
   async function verifyAdmin(): Promise<boolean> {
     const {
@@ -1532,6 +1607,12 @@ function scheduleAutosave(): void {
     slugInput.value = article.slug;
   }
 
+  if (articleStatusInput) {
+  articleStatusInput.value = article.status;
+}
+
+updateStatusHelp(article.status);
+
   if (publishedAtInput) {
     publishedAtInput.value =
       toDatetimeLocal(article.published_at);
@@ -1570,8 +1651,19 @@ updateFeaturedImagePreview(
 }
 
   function buildPayload(
-    requestedStatus: "draft" | "published"
+    requestedStatus: ArticleStatus
   ): ArticlePayload | null {
+    if (
+  requestedStatus === "scheduled" &&
+  !publishedAtInput?.value
+) {
+  setMessage(
+    "Choose a future publication date before scheduling.",
+    "error"
+  );
+  publishedAtInput?.focus();
+  return null;
+}
     const headline = headlineInput?.value.trim() ?? "";
     const summary = summaryInput?.value.trim() ?? "";
     const category = categoryInput?.value.trim() ?? "";
@@ -1603,7 +1695,11 @@ updateFeaturedImagePreview(
       return null;
     }
 
-    if (requestedStatus === "published") {
+    if (
+  requestedStatus === "published" ||
+  requestedStatus === "scheduled" ||
+  requestedStatus === "ready_for_review"
+) {
       if (!category) {
         setMessage(
           "Choose a category before publishing.",
@@ -1672,11 +1768,12 @@ updateFeaturedImagePreview(
       summary,
       author_name: authorName,
       published_at:
-        requestedStatus === "published"
-          ? publishedAt
-          : currentArticleStatus === "published"
-            ? publishedAt
-            : null,
+  requestedStatus === "published" ||
+  requestedStatus === "scheduled"
+    ? publishedAt
+    : currentArticleStatus === "published"
+      ? publishedAt
+      : null,
       image_url: imageUrlInput?.value.trim() || null,
       image_alt: imageAltInput?.value.trim() || null,
       body: body as unknown as Json,
@@ -1690,7 +1787,7 @@ updateFeaturedImagePreview(
   }
 
   async function saveArticle(
-  requestedStatus: "draft" | "published",
+  requestedStatus: ArticleStatus,
   options: {
     isAutosave?: boolean;
   } = {}
@@ -1754,19 +1851,25 @@ updateFeaturedImagePreview(
 
     const article = data as ArticleRecord;
 
-    updateStatusDisplay(article);
-    markCurrentStateAsSaved(article.updated_at);
+updateStatusDisplay(article);
+markCurrentStateAsSaved(article.updated_at);
 
-    if (!isAutosave) {
-      setMessage(
-        requestedStatus === "published"
-          ? "Story published successfully."
-          : "Draft saved successfully.",
-        "success"
-      );
-    }
+if (isAutosave) {
+  setMessage("");
+} else {
+  if (isAutosave) {
+  setMessage("");
+} else {
+  setMessage(
+    requestedStatus === "published"
+      ? "Story published successfully."
+      : "Story created successfully.",
+    "success"
+  );
+}
+}
 
-    return true;
+return true;
   }
 
   const { data, error } = await supabaseBrowser
@@ -1799,10 +1902,7 @@ updateFeaturedImagePreview(
   const article = data as ArticleRecord;
 
   articleId = article.id;
-  currentArticleStatus =
-    article.status === "published"
-      ? "published"
-      : "draft";
+  currentArticleStatus = article.status;
 
   window.history.replaceState(
     {},
@@ -2309,7 +2409,14 @@ editorToolbar?.addEventListener(
 );
 
 saveDraftButton?.addEventListener("click", () => {
-  void saveArticle("draft");
+  const selectedStatus =
+    articleStatusInput?.value ?? "draft";
+
+  void saveArticle(
+    isArticleStatus(selectedStatus)
+      ? selectedStatus
+      : "draft"
+  );
 });
 
 publishButton?.addEventListener("click", () => {
@@ -2346,6 +2453,17 @@ form?.addEventListener("submit", (event) => {
   event.preventDefault();
 });
 
+articleStatusInput?.addEventListener("change", () => {
+  const selectedStatus = articleStatusInput.value;
+
+  if (!isArticleStatus(selectedStatus)) {
+    return;
+  }
+
+  updateStatusHelp(selectedStatus);
+  scheduleAutosave();
+});
+
 window.addEventListener(
   "beforeunload",
   (event) => {
@@ -2374,11 +2492,14 @@ document.addEventListener(
 
     event.preventDefault();
 
-    void saveArticle(
-      currentArticleStatus === "published"
-        ? "published"
-        : "draft"
-    );
+    const selectedStatus =
+  articleStatusInput?.value ?? currentArticleStatus;
+
+void saveArticle(
+  isArticleStatus(selectedStatus)
+    ? selectedStatus
+    : currentArticleStatus
+);
   }
 );
 
