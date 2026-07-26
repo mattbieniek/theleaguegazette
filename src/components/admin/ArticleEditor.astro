@@ -107,23 +107,157 @@ const editorMode = articleId ? "edit" : "create";
             </div>
           </div>
 
-          <label class="sr-only" for="body">
-            Article body
-          </label>
+          <div class="rich-text-editor">
+  <div
+    id="editor-toolbar"
+    class="editor-toolbar"
+    role="toolbar"
+    aria-label="Article formatting"
+  >
+    <div class="editor-toolbar__group">
+      <button
+        type="button"
+        class="editor-toolbar__button"
+        data-editor-command="bold"
+        aria-label="Bold"
+        aria-pressed="false"
+        title="Bold"
+      >
+        <strong>B</strong>
+      </button>
 
-          <textarea
-            id="body"
-            name="body"
-            rows="22"
-            placeholder="Begin writing your story…
+      <button
+        type="button"
+        class="editor-toolbar__button"
+        data-editor-command="italic"
+        aria-label="Italic"
+        aria-pressed="false"
+        title="Italic"
+      >
+        <em>I</em>
+      </button>
 
-Separate paragraphs with a blank line."
-          ></textarea>
+      <button
+        type="button"
+        class="editor-toolbar__button"
+        data-editor-command="link"
+        aria-label="Add or edit link"
+        aria-pressed="false"
+        title="Add or edit link"
+      >
+        Link
+      </button>
+    </div>
 
-          <p class="editor-field-help">
-            Separate paragraphs with a blank line. Formatting tools will be
-            added after the core publishing workflow is stable.
-          </p>
+    <div class="editor-toolbar__divider" aria-hidden="true"></div>
+
+    <div class="editor-toolbar__group">
+      <button
+        type="button"
+        class="editor-toolbar__button"
+        data-editor-command="heading-2"
+        aria-label="Heading level 2"
+        aria-pressed="false"
+        title="Heading level 2"
+      >
+        H2
+      </button>
+
+      <button
+        type="button"
+        class="editor-toolbar__button"
+        data-editor-command="heading-3"
+        aria-label="Heading level 3"
+        aria-pressed="false"
+        title="Heading level 3"
+      >
+        H3
+      </button>
+    </div>
+
+    <div class="editor-toolbar__divider" aria-hidden="true"></div>
+
+    <div class="editor-toolbar__group">
+      <button
+        type="button"
+        class="editor-toolbar__button"
+        data-editor-command="bullet-list"
+        aria-label="Bulleted list"
+        aria-pressed="false"
+        title="Bulleted list"
+      >
+        • List
+      </button>
+
+      <button
+        type="button"
+        class="editor-toolbar__button"
+        data-editor-command="ordered-list"
+        aria-label="Numbered list"
+        aria-pressed="false"
+        title="Numbered list"
+      >
+        1. List
+      </button>
+
+      <button
+        type="button"
+        class="editor-toolbar__button"
+        data-editor-command="blockquote"
+        aria-label="Blockquote"
+        aria-pressed="false"
+        title="Blockquote"
+      >
+        Quote
+      </button>
+
+      <button
+        type="button"
+        class="editor-toolbar__button"
+        data-editor-command="horizontal-rule"
+        aria-label="Horizontal divider"
+        title="Horizontal divider"
+      >
+        Divider
+      </button>
+    </div>
+
+    <div class="editor-toolbar__divider" aria-hidden="true"></div>
+
+    <div class="editor-toolbar__group">
+      <button
+        type="button"
+        class="editor-toolbar__button"
+        data-editor-command="undo"
+        aria-label="Undo"
+        title="Undo"
+      >
+        ↶
+      </button>
+
+      <button
+        type="button"
+        class="editor-toolbar__button"
+        data-editor-command="redo"
+        aria-label="Redo"
+        title="Redo"
+      >
+        ↷
+      </button>
+    </div>
+  </div>
+
+  <div
+    id="body-editor"
+    class="body-editor"
+    aria-label="Article body"
+  ></div>
+</div>
+
+<p class="editor-field-help">
+  Use the toolbar to add headings, emphasis, links, lists, quotes, and
+  section dividers. Changes autosave after the story has been created.
+</p>
         </section>
       </main>
 
@@ -409,7 +543,17 @@ Separate paragraphs with a blank line."
 </div>
 
 <script>
-  import { supabaseBrowser } from "../../lib/supabase-browser";
+  import { Editor } from "@tiptap/core";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import { supabaseBrowser } from "../../lib/supabase-browser";
+import {
+  bodyHasContent,
+  getPlainTextFromBody,
+  normalizeArticleBody,
+  type RichTextDocument,
+} from "../../lib/gazette/articleBody";
+import type { Json } from "../../types/database";
 
   type ArticleRecord = {
     id: string;
@@ -438,7 +582,7 @@ Separate paragraphs with a blank line."
     published_at: string | null;
     image_url: string | null;
     image_alt: string | null;
-    body: string[];
+    body: Json;
     status: "draft" | "published";
     is_featured: boolean;
     homepage_order: number | null;
@@ -469,8 +613,18 @@ Separate paragraphs with a blank line."
   const summaryInput =
     document.querySelector<HTMLTextAreaElement>("#summary");
 
-  const bodyInput =
-    document.querySelector<HTMLTextAreaElement>("#body");
+  const bodyEditorElement =
+  document.querySelector<HTMLElement>("#body-editor");
+
+const editorToolbar =
+  document.querySelector<HTMLElement>("#editor-toolbar");
+
+const editorToolbarButtons =
+  Array.from(
+    document.querySelectorAll<HTMLButtonElement>(
+      "[data-editor-command]"
+    )
+  );
 
   const categoryInput =
     document.querySelector<HTMLInputElement>("#category");
@@ -622,6 +776,8 @@ const ALLOWED_IMAGE_TYPES = new Set([
 
 let isUploadingImage = false;
 
+let richTextEditor: Editor | null = null;
+
   function slugify(value: string): string {
     return value
       .toLowerCase()
@@ -631,25 +787,15 @@ let isUploadingImage = false;
       .replace(/^-+|-+$/g, "");
   }
 
-  function bodyTextToParagraphs(value: string): string[] {
-    return value
-      .split(/\n\s*\n/)
-      .map((paragraph) => paragraph.trim())
-      .filter(Boolean);
-  }
+  function getCurrentBody(): RichTextDocument {
+  return normalizeArticleBody(
+    richTextEditor?.getJSON()
+  );
+}
 
-  function bodyToText(value: unknown): string {
-    if (!Array.isArray(value)) {
-      return "";
-    }
-
-    return value
-      .filter(
-        (paragraph): paragraph is string =>
-          typeof paragraph === "string"
-      )
-      .join("\n\n");
-  }
+function getCurrentBodyText(): string {
+  return getPlainTextFromBody(getCurrentBody());
+}
 
   function formatDisplayDate(value: string | null): string {
     if (!value) {
@@ -695,11 +841,303 @@ let isUploadingImage = false;
     return value.charAt(0).toUpperCase() + value.slice(1);
   }
 
+  function updateToolbarState(): void {
+  if (!richTextEditor) {
+    return;
+  }
+
+  for (const button of editorToolbarButtons) {
+    const command = button.dataset.editorCommand;
+
+    let isActive = false;
+    let isDisabled = false;
+
+    switch (command) {
+      case "bold":
+        isActive = richTextEditor.isActive("bold");
+        break;
+
+      case "italic":
+        isActive = richTextEditor.isActive("italic");
+        break;
+
+      case "link":
+        isActive = richTextEditor.isActive("link");
+        break;
+
+      case "heading-2":
+        isActive = richTextEditor.isActive(
+          "heading",
+          { level: 2 }
+        );
+        break;
+
+      case "heading-3":
+        isActive = richTextEditor.isActive(
+          "heading",
+          { level: 3 }
+        );
+        break;
+
+      case "bullet-list":
+        isActive =
+          richTextEditor.isActive("bulletList");
+        break;
+
+      case "ordered-list":
+        isActive =
+          richTextEditor.isActive("orderedList");
+        break;
+
+      case "blockquote":
+        isActive =
+          richTextEditor.isActive("blockquote");
+        break;
+
+      case "undo":
+        isDisabled = !richTextEditor
+          .can()
+          .chain()
+          .focus()
+          .undo()
+          .run();
+        break;
+
+      case "redo":
+        isDisabled = !richTextEditor
+          .can()
+          .chain()
+          .focus()
+          .redo()
+          .run();
+        break;
+    }
+
+    button.classList.toggle(
+      "is-active",
+      isActive
+    );
+
+    if (
+      command !== "undo" &&
+      command !== "redo" &&
+      command !== "horizontal-rule"
+    ) {
+      button.setAttribute(
+        "aria-pressed",
+        String(isActive)
+      );
+    }
+
+    button.disabled = isDisabled;
+  }
+}
+
+function editSelectedLink(): void {
+  if (!richTextEditor) {
+    return;
+  }
+
+  const currentHref =
+    richTextEditor.getAttributes("link").href;
+
+  const enteredUrl = window.prompt(
+    "Enter the destination URL. Leave blank to remove the current link.",
+    typeof currentHref === "string"
+      ? currentHref
+      : "https://"
+  );
+
+  if (enteredUrl === null) {
+    return;
+  }
+
+  const url = enteredUrl.trim();
+
+  if (!url) {
+    richTextEditor
+      .chain()
+      .focus()
+      .extendMarkRange("link")
+      .unsetLink()
+      .run();
+
+    return;
+  }
+
+  richTextEditor
+    .chain()
+    .focus()
+    .extendMarkRange("link")
+    .setLink({
+      href: url,
+      target: "_blank",
+      rel: "noopener noreferrer",
+    })
+    .run();
+}
+
+function runEditorCommand(
+  command: string
+): void {
+  if (!richTextEditor) {
+    return;
+  }
+
+  switch (command) {
+    case "bold":
+      richTextEditor
+        .chain()
+        .focus()
+        .toggleBold()
+        .run();
+      break;
+
+    case "italic":
+      richTextEditor
+        .chain()
+        .focus()
+        .toggleItalic()
+        .run();
+      break;
+
+    case "link":
+      editSelectedLink();
+      break;
+
+    case "heading-2":
+      richTextEditor
+        .chain()
+        .focus()
+        .toggleHeading({ level: 2 })
+        .run();
+      break;
+
+    case "heading-3":
+      richTextEditor
+        .chain()
+        .focus()
+        .toggleHeading({ level: 3 })
+        .run();
+      break;
+
+    case "bullet-list":
+      richTextEditor
+        .chain()
+        .focus()
+        .toggleBulletList()
+        .run();
+      break;
+
+    case "ordered-list":
+      richTextEditor
+        .chain()
+        .focus()
+        .toggleOrderedList()
+        .run();
+      break;
+
+    case "blockquote":
+      richTextEditor
+        .chain()
+        .focus()
+        .toggleBlockquote()
+        .run();
+      break;
+
+    case "horizontal-rule":
+      richTextEditor
+        .chain()
+        .focus()
+        .setHorizontalRule()
+        .run();
+      break;
+
+    case "undo":
+      richTextEditor
+        .chain()
+        .focus()
+        .undo()
+        .run();
+      break;
+
+    case "redo":
+      richTextEditor
+        .chain()
+        .focus()
+        .redo()
+        .run();
+      break;
+  }
+
+  updateToolbarState();
+}
+
+function initializeRichTextEditor(): void {
+  if (!bodyEditorElement || richTextEditor) {
+    return;
+  }
+
+  richTextEditor = new Editor({
+    element: bodyEditorElement,
+
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [2, 3],
+        },
+      }),
+
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: {
+          rel: "noopener noreferrer",
+          target: "_blank",
+        },
+      }),
+    ],
+
+    content: normalizeArticleBody(null),
+
+    editorProps: {
+      attributes: {
+        class: "article-writing-surface",
+        "aria-label": "Article body",
+        spellcheck: "true",
+      },
+    },
+
+    onCreate: () => {
+      updateWritingStats();
+      updateToolbarState();
+    },
+
+    onUpdate: () => {
+      if (isHydrating) {
+        return;
+      }
+
+      updateWritingStats();
+      scheduleAutosave();
+    },
+
+    onSelectionUpdate: () => {
+      updateToolbarState();
+    },
+
+    onTransaction: () => {
+      updateToolbarState();
+    },
+  });
+}
+
   function getEditorSnapshot(): string {
   return JSON.stringify({
     headline: headlineInput?.value ?? "",
     summary: summaryInput?.value ?? "",
-    body: bodyInput?.value ?? "",
+    body: getCurrentBody(),
     category: categoryInput?.value ?? "",
     authorName: authorInput?.value ?? "",
     slug: slugInput?.value ?? "",
@@ -958,24 +1396,28 @@ function scheduleAutosave(): void {
 }
 
   function updateWritingStats(): void {
-    const text = bodyInput?.value.trim() ?? "";
+  const text = getCurrentBodyText().trim();
 
-    const words = text
-      ? text.split(/\s+/).filter(Boolean).length
-      : 0;
+  const words = text
+    ? text.split(/\s+/).filter(Boolean).length
+    : 0;
 
-    const minutes = words === 0 ? 0 : Math.max(1, Math.ceil(words / 225));
+  const minutes =
+    words === 0
+      ? 0
+      : Math.max(1, Math.ceil(words / 225));
 
-    if (wordCount) {
-      wordCount.textContent = `${words} ${
-        words === 1 ? "word" : "words"
-      }`;
-    }
-
-    if (readingTime) {
-      readingTime.textContent = `${minutes} min read`;
-    }
+  if (wordCount) {
+    wordCount.textContent = `${words} ${
+      words === 1 ? "word" : "words"
+    }`;
   }
+
+  if (readingTime) {
+    readingTime.textContent =
+      `${minutes} min read`;
+  }
+}
 
   function updateEditorTitle(): void {
     if (!pageTitle) {
@@ -1071,9 +1513,12 @@ function scheduleAutosave(): void {
     summaryInput.value = article.summary;
   }
 
-  if (bodyInput) {
-    bodyInput.value = bodyToText(article.body);
+  richTextEditor?.commands.setContent(
+  normalizeArticleBody(article.body),
+  {
+    emitUpdate: false,
   }
+);
 
   if (categoryInput) {
     categoryInput.value = article.category;
@@ -1133,7 +1578,7 @@ updateFeaturedImagePreview(
     const authorName =
       authorInput?.value.trim() || "The Gazette Staff";
 
-    const body = bodyTextToParagraphs(bodyInput?.value ?? "");
+    const body = getCurrentBody();
 
     let slug = slugInput?.value.trim() ?? "";
 
@@ -1177,14 +1622,16 @@ updateFeaturedImagePreview(
         return null;
       }
 
-      if (body.length === 0) {
-        setMessage(
-          "Write the article body before publishing.",
-          "error"
-        );
-        bodyInput?.focus();
-        return null;
-      }
+      if (!bodyHasContent(body)) {
+  setMessage(
+    "Write the article body before publishing.",
+    "error"
+  );
+
+  richTextEditor?.commands.focus();
+
+  return null;
+}
 
       if (
         imageUrlInput?.value.trim() &&
@@ -1232,7 +1679,7 @@ updateFeaturedImagePreview(
             : null,
       image_url: imageUrlInput?.value.trim() || null,
       image_alt: imageAltInput?.value.trim() || null,
-      body,
+      body: body as unknown as Json,
       status: requestedStatus,
       is_featured: isFeaturedInput?.checked ?? false,
       homepage_order: homepageOrderValue
@@ -1685,8 +2132,9 @@ async function removeFeaturedImage(): Promise<void> {
   const imageAlt =
     imageAltInput?.value.trim() || "";
 
-  const paragraphs =
-    bodyTextToParagraphs(bodyInput?.value ?? "");
+  const body = getCurrentBody();
+const hasBody = bodyHasContent(body);
+const bodyHtml = richTextEditor?.getHTML() ?? "";
 
   if (previewHeadline) {
     previewHeadline.textContent = headline;
@@ -1733,23 +2181,13 @@ async function removeFeaturedImage(): Promise<void> {
   }
 
   if (previewBody) {
-    previewBody.replaceChildren();
+  previewBody.innerHTML = bodyHtml;
+  previewBody.hidden = !hasBody;
+}
 
-    for (const paragraphText of paragraphs) {
-      const paragraph =
-        document.createElement("p");
-
-      paragraph.textContent = paragraphText;
-      previewBody.append(paragraph);
-    }
-
-    previewBody.hidden = paragraphs.length === 0;
-  }
-
-  if (previewEmptyBody) {
-    previewEmptyBody.hidden =
-      paragraphs.length > 0;
-  }
+if (previewEmptyBody) {
+  previewEmptyBody.hidden = hasBody;
+}
 }
 
 function openPreview(): void {
@@ -1772,14 +2210,15 @@ function closePreview(): void {
 }
 
   async function initializeEditor(): Promise<void> {
-    const isAdmin = await verifyAdmin();
+  const isAdmin = await verifyAdmin();
 
-    if (!isAdmin) {
-      return;
-    }
-
-    await loadArticle();
+  if (!isAdmin) {
+    return;
   }
+
+  initializeRichTextEditor();
+  await loadArticle();
+}
 
   headlineInput?.addEventListener("input", () => {
   updateEditorTitle();
@@ -1793,11 +2232,6 @@ function closePreview(): void {
 
 slugInput?.addEventListener("input", () => {
   slugWasManuallyEdited = true;
-  scheduleAutosave();
-});
-
-bodyInput?.addEventListener("input", () => {
-  updateWritingStats();
   scheduleAutosave();
 });
 
@@ -1849,6 +2283,31 @@ removeImageButton?.addEventListener("click", () => {
   void removeFeaturedImage();
 });
 
+editorToolbar?.addEventListener(
+  "click",
+  (event) => {
+    const target = event.target;
+
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const button =
+      target.closest<HTMLButtonElement>(
+        "[data-editor-command]"
+      );
+
+    const command =
+      button?.dataset.editorCommand;
+
+    if (!button || !command) {
+      return;
+    }
+
+    runEditorCommand(command);
+  }
+);
+
 saveDraftButton?.addEventListener("click", () => {
   void saveArticle("draft");
 });
@@ -1899,7 +2358,6 @@ window.addEventListener(
     }
 
     event.preventDefault();
-    event.returnValue = "";
   }
 );
 
@@ -2137,13 +2595,167 @@ initializeEditor();
     font-weight: 700;
   }
 
-  #body {
-    min-height: 38rem;
-    padding: clamp(1rem, 3vw, 1.5rem);
-    font-family: var(--font-body, Georgia, serif);
-    font-size: clamp(1.05rem, 1.5vw, 1.2rem);
-    line-height: 1.8;
-  }
+  .rich-text-editor {
+  overflow: hidden;
+  border: 1px solid var(--color-rule-dark);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-light);
+}
+
+.rich-text-editor:focus-within {
+  border-color: var(--color-green);
+  outline: 3px solid
+    color-mix(
+      in srgb,
+      var(--color-green) 16%,
+      transparent
+    );
+}
+
+.editor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem;
+  border-bottom: 1px solid var(--color-rule);
+  background: var(--color-surface);
+}
+
+.editor-toolbar__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.editor-toolbar__divider {
+  width: 1px;
+  align-self: stretch;
+  margin-inline: 0.2rem;
+  background: var(--color-rule);
+}
+
+.editor-toolbar__button {
+  display: inline-flex;
+  min-width: 2.35rem;
+  min-height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-ink-soft);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.editor-toolbar__button:hover {
+  border-color: var(--color-rule-dark);
+  background: var(--color-paper-light);
+  color: var(--color-ink);
+}
+
+.editor-toolbar__button.is-active {
+  border-color: var(--color-green);
+  background:
+    color-mix(
+      in srgb,
+      var(--color-green) 10%,
+      white
+    );
+  color: var(--color-green);
+}
+
+.editor-toolbar__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.body-editor {
+  min-height: 38rem;
+}
+
+.body-editor :global(.ProseMirror) {
+  min-height: 38rem;
+  padding: clamp(1rem, 3vw, 1.75rem);
+  color: var(--color-ink);
+  font-family: var(--font-body, Georgia, serif);
+  font-size: clamp(1.05rem, 1.5vw, 1.2rem);
+  line-height: 1.8;
+  outline: none;
+}
+
+.body-editor
+  :global(.ProseMirror > *:first-child) {
+  margin-top: 0;
+}
+
+.body-editor :global(.ProseMirror p) {
+  margin: 0 0 1.35em;
+}
+
+.body-editor :global(.ProseMirror h2) {
+  margin: 1.8em 0 0.65em;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.body-editor :global(.ProseMirror h3) {
+  margin: 1.6em 0 0.6em;
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 3vw, 2.15rem);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.body-editor :global(.ProseMirror ul),
+.body-editor :global(.ProseMirror ol) {
+  margin: 0 0 1.35em;
+  padding-left: 1.6em;
+}
+
+.body-editor :global(.ProseMirror li p) {
+  margin-bottom: 0.35em;
+}
+
+.body-editor :global(.ProseMirror blockquote) {
+  margin: 1.8em 0;
+  padding-left: 1.25em;
+  border-left: 4px solid var(--color-green);
+  color: var(--color-ink-soft);
+  font-style: italic;
+}
+
+.body-editor :global(.ProseMirror a) {
+  color: var(--color-green);
+  font-weight: 700;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
+}
+
+.body-editor :global(.ProseMirror hr) {
+  width: min(10rem, 40%);
+  margin: 3rem auto;
+  border: 0;
+  border-top: 3px double var(--color-rule-dark);
+}
+
+.body-editor
+  :global(.ProseMirror p.is-editor-empty:first-child::before) {
+  float: left;
+  height: 0;
+  color: var(--color-ink-muted);
+  content: "Begin writing your story…";
+  pointer-events: none;
+}
 
   .editor-field-help {
     margin: var(--space-3) 0 0;
@@ -2434,17 +3046,65 @@ initializeEditor();
 }
 
 .story-preview__body {
-  display: grid;
-  gap: 1.55rem;
   width: min(100%, 45rem);
   margin: clamp(2.5rem, 6vw, 5rem) auto 0;
-}
-
-.story-preview__body p {
-  margin: 0;
   font-family: var(--font-body, Georgia, serif);
   font-size: clamp(1.08rem, 1.6vw, 1.25rem);
   line-height: 1.85;
+}
+
+.story-preview__body :global(p) {
+  margin: 0 0 1.55em;
+}
+
+.story-preview__body :global(h2) {
+  margin: 2em 0 0.65em;
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.story-preview__body :global(h3) {
+  margin: 1.8em 0 0.65em;
+  font-size: clamp(1.5rem, 3vw, 2.15rem);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.story-preview__body :global(ul),
+.story-preview__body :global(ol) {
+  margin: 0 0 1.55em;
+  padding-left: 1.6em;
+}
+
+.story-preview__body :global(li) {
+  margin-bottom: 0.4em;
+}
+
+.story-preview__body :global(li p) {
+  margin-bottom: 0.35em;
+}
+
+.story-preview__body :global(blockquote) {
+  margin: 2em 0;
+  padding-left: 1.25em;
+  border-left: 4px solid var(--color-green);
+  color: var(--color-ink-soft);
+  font-size: 1.15em;
+  font-style: italic;
+}
+
+.story-preview__body :global(a) {
+  color: var(--color-green);
+  font-weight: 700;
+  text-underline-offset: 0.15em;
+}
+
+.story-preview__body :global(hr) {
+  width: min(10rem, 40%);
+  margin: 3rem auto;
+  border: 0;
+  border-top: 3px double var(--color-rule-dark);
 }
 
 .story-preview__empty {
