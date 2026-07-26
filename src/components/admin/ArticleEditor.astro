@@ -43,7 +43,7 @@ const editorMode = articleId ? "edit" : "create";
           class="editor-button editor-button--secondary"
           type="button"
         >
-          Save draft
+          Save changes
         </button>
 
         <button
@@ -831,7 +831,9 @@ const previewEmptyBody =
   const mode = editor?.dataset.mode ?? "create";
   let articleId = editor?.dataset.articleId ?? "";
 let slugWasManuallyEdited = mode === "edit";
+
 let currentArticleStatus: ArticleStatus = "draft";
+let selectedArticleStatus: ArticleStatus = "draft";
 
 let lastSavedSnapshot = "";
 let autosaveTimer: number | undefined;
@@ -948,13 +950,44 @@ function updateStatusHelp(status: ArticleStatus): void {
   }
 }
 
-function getSelectedArticleStatus(): ArticleStatus {
-  const selectedStatus =
-    articleStatusInput?.value ?? currentArticleStatus;
+function updatePrimaryAction(): void {
+  if (!publishButton) {
+    return;
+  }
 
-  return isArticleStatus(selectedStatus)
-    ? selectedStatus
-    : currentArticleStatus;
+  const labels: Record<ArticleStatus, string> = {
+    draft:
+      currentArticleStatus === "draft"
+        ? "Save draft"
+        : "Move to draft",
+
+    ready_for_review:
+      currentArticleStatus === "ready_for_review"
+        ? "Save review copy"
+        : "Submit for review",
+
+    scheduled:
+      currentArticleStatus === "scheduled"
+        ? "Update schedule"
+        : "Schedule story",
+
+    published:
+      currentArticleStatus === "published"
+        ? "Update story"
+        : "Publish now",
+
+    archived:
+      currentArticleStatus === "archived"
+        ? "Save archived story"
+        : "Archive story",
+  };
+
+  publishButton.textContent =
+    labels[selectedArticleStatus];
+}
+
+function getSelectedArticleStatus(): ArticleStatus {
+  return selectedArticleStatus;
 }
 
 function isFuturePublicationDate(
@@ -1486,7 +1519,6 @@ function initializeRichTextEditor(): void {
     category: categoryInput?.value ?? "",
     authorName: authorInput?.value ?? "",
     slug: slugInput?.value ?? "",
-    status: articleStatusInput?.value ?? "draft",
     publishedAt: publishedAtInput?.value ?? "",
     imageUrl: imageUrlInput?.value ?? "",
     imageAlt: imageAltInput?.value ?? "",
@@ -1691,16 +1723,9 @@ function scheduleAutosave(): void {
   }
 
   autosaveTimer = window.setTimeout(() => {
-    const selectedStatus =
-      articleStatusInput?.value ?? currentArticleStatus;
-
-    const statusToSave = isArticleStatus(selectedStatus)
-      ? selectedStatus
-      : currentArticleStatus;
-
-    void saveArticle(statusToSave, {
-      isAutosave: true,
-    });
+    void saveArticle(currentArticleStatus, {
+  isAutosave: true,
+});
   }, AUTOSAVE_DELAY);
 }
 
@@ -1723,20 +1748,30 @@ function scheduleAutosave(): void {
   isSaving = saving;
 
   if (saveDraftButton) {
-    saveDraftButton.disabled = saving;
-    saveDraftButton.textContent = saving
-      ? "Saving…"
-      : "Save draft";
-  }
+  saveDraftButton.disabled = saving;
+  saveDraftButton.textContent = saving
+    ? "Saving…"
+    : "Save changes";
+}
 
-  if (publishButton) {
-    publishButton.disabled = saving;
-    publishButton.textContent = saving
-      ? "Publishing…"
-      : currentArticleStatus === "published"
-        ? "Update story"
-        : "Publish";
+if (publishButton) {
+  publishButton.disabled = saving;
+
+  if (saving) {
+    const savingLabels: Record<ArticleStatus, string> = {
+      draft: "Saving…",
+      ready_for_review: "Submitting…",
+      scheduled: "Scheduling…",
+      published: "Publishing…",
+      archived: "Archiving…",
+    };
+
+    publishButton.textContent =
+      savingLabels[selectedArticleStatus];
+  } else {
+    updatePrimaryAction();
   }
+}
 
   if (previewButton) {
     previewButton.disabled = saving;
@@ -1783,14 +1818,25 @@ function scheduleAutosave(): void {
     pageTitle.textContent = headline || "Untitled story";
   }
 
-  function updateStatusDisplay(article: ArticleRecord): void {
+  function updateStatusDisplay(
+  article: ArticleRecord,
+  options: {
+    syncSelectedStatus?: boolean;
+  } = {}
+): void {
+  const { syncSelectedStatus = true } = options;
+
   currentArticleStatus = article.status;
 
-  if (articleStatusInput) {
-    articleStatusInput.value = article.status;
-  }
+  if (syncSelectedStatus) {
+    selectedArticleStatus = article.status;
 
-  updateStatusHelp(article.status);
+    if (articleStatusInput) {
+      articleStatusInput.value = article.status;
+    }
+
+    updateStatusHelp(article.status);
+  }
 
   if (statusPanel) {
     statusPanel.hidden = false;
@@ -1811,12 +1857,7 @@ function scheduleAutosave(): void {
       formatDisplayDate(article.updated_at);
   }
 
-  if (publishButton) {
-    publishButton.textContent =
-      article.status === "published"
-        ? "Update story"
-        : "Publish";
-  }
+  updatePrimaryAction();
 
   if (viewPublishedStory) {
     const canView =
@@ -1893,11 +1934,15 @@ function scheduleAutosave(): void {
     slugInput.value = article.slug;
   }
 
-  if (articleStatusInput) {
+  currentArticleStatus = article.status;
+selectedArticleStatus = article.status;
+
+if (articleStatusInput) {
   articleStatusInput.value = article.status;
 }
 
 updateStatusHelp(article.status);
+updatePrimaryAction();
 
   if (publishedAtInput) {
     publishedAtInput.value =
@@ -2093,7 +2138,10 @@ if (
 
     const article = data as ArticleRecord;
 
-updateStatusDisplay(article);
+updateStatusDisplay(article, {
+  syncSelectedStatus: !isAutosave,
+});
+
 markCurrentStateAsSaved(article.updated_at);
 
 if (isAutosave) {
@@ -2172,6 +2220,10 @@ return true;
   lastSavedSnapshot = getEditorSnapshot();
   hasUnsavedChanges = false;
   setSaveStatus("Not yet saved");
+
+  currentArticleStatus = "draft";
+selectedArticleStatus = "draft";
+updatePrimaryAction();
 
   renderPublishingReadiness();
   return;
@@ -2648,18 +2700,11 @@ editorToolbar?.addEventListener(
 );
 
 saveDraftButton?.addEventListener("click", () => {
-  const selectedStatus =
-    articleStatusInput?.value ?? "draft";
-
-  void saveArticle(
-    isArticleStatus(selectedStatus)
-      ? selectedStatus
-      : "draft"
-  );
+  void saveArticle(currentArticleStatus);
 });
 
 publishButton?.addEventListener("click", () => {
-  void saveArticle("published");
+  void saveArticle(selectedArticleStatus);
 });
 
 previewButton?.addEventListener(
@@ -2699,9 +2744,11 @@ articleStatusInput?.addEventListener("change", () => {
     return;
   }
 
+  selectedArticleStatus = selectedStatus;
+
   updateStatusHelp(selectedStatus);
+  updatePrimaryAction();
   renderPublishingReadiness();
-  scheduleAutosave();
 });
 
 window.addEventListener(
@@ -2732,14 +2779,7 @@ document.addEventListener(
 
     event.preventDefault();
 
-    const selectedStatus =
-  articleStatusInput?.value ?? currentArticleStatus;
-
-void saveArticle(
-  isArticleStatus(selectedStatus)
-    ? selectedStatus
-    : currentArticleStatus
-);
+    void saveArticle(currentArticleStatus);
   }
 );
 
