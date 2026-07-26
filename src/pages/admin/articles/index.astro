@@ -19,26 +19,36 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
     </header>
 
     <section class="stories-summary" aria-label="Story totals">
-      <article class="stories-summary__card">
-        <span>All stories</span>
-        <strong id="all-count">0</strong>
-      </article>
+  <article class="stories-summary__card">
+    <span>All stories</span>
+    <strong id="all-count">0</strong>
+  </article>
 
-      <article class="stories-summary__card">
-        <span>Published</span>
-        <strong id="published-count">0</strong>
-      </article>
+  <article class="stories-summary__card">
+    <span>Drafts</span>
+    <strong id="draft-count">0</strong>
+  </article>
 
-      <article class="stories-summary__card">
-        <span>Drafts</span>
-        <strong id="draft-count">0</strong>
-      </article>
+  <article class="stories-summary__card">
+    <span>Ready for review</span>
+    <strong id="review-count">0</strong>
+  </article>
 
-      <article class="stories-summary__card">
-        <span>Archived</span>
-        <strong id="archived-count">0</strong>
-      </article>
-    </section>
+  <article class="stories-summary__card">
+    <span>Scheduled</span>
+    <strong id="scheduled-count">0</strong>
+  </article>
+
+  <article class="stories-summary__card">
+    <span>Published</span>
+    <strong id="published-count">0</strong>
+  </article>
+
+  <article class="stories-summary__card">
+    <span>Archived</span>
+    <strong id="archived-count">0</strong>
+  </article>
+</section>
 
     <section class="stories-toolbar" aria-label="Story controls">
       <label class="stories-search">
@@ -61,11 +71,13 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         <span class="sr-only">Filter by status</span>
 
         <select id="status-filter">
-          <option value="all">All statuses</option>
-          <option value="draft">Drafts</option>
-          <option value="published">Published</option>
-          <option value="archived">Archived</option>
-        </select>
+  <option value="all">All statuses</option>
+  <option value="draft">Drafts</option>
+  <option value="ready_for_review">Ready for review</option>
+  <option value="scheduled">Scheduled</option>
+  <option value="published">Published</option>
+  <option value="archived">Archived</option>
+</select>
       </label>
     </section>
 
@@ -103,15 +115,29 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
   <script>
     import { supabaseBrowser } from "../../../lib/supabase-browser";
 
-    type ArticleSummary = {
-      id: string;
-      slug: string;
-      category: string;
-      headline: string;
-      status: string;
-      published_at: string | null;
-      updated_at: string;
-    };
+    type ArticleStatus =
+  | "draft"
+  | "ready_for_review"
+  | "scheduled"
+  | "published"
+  | "archived";
+
+type ArticleSummary = {
+  id: string;
+  slug: string;
+  category: string;
+  headline: string;
+  author_name: string;
+  status: ArticleStatus;
+  status_label: string;
+  is_featured: boolean;
+  published_at: string | null;
+  updated_at: string;
+  editorial_date: string;
+  editorial_sort_at: string;
+  can_publish: boolean;
+  needs_image_alt: boolean;
+};
 
     const loading =
       document.querySelector<HTMLElement>("#stories-loading");
@@ -143,6 +169,12 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
     const draftCount =
       document.querySelector<HTMLElement>("#draft-count");
 
+    const reviewCount =
+  document.querySelector<HTMLElement>("#review-count");
+
+const scheduledCount =
+  document.querySelector<HTMLElement>("#scheduled-count");
+
     const archivedCount =
       document.querySelector<HTMLElement>("#archived-count");
 
@@ -163,71 +195,106 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       }).format(new Date(value));
     }
 
-    function capitalize(value: string): string {
-      return value.charAt(0).toUpperCase() + value.slice(1);
-    }
+    function getArticleDateLabel(
+  article: ArticleSummary
+): string {
+  if (
+    article.status === "scheduled" &&
+    article.published_at
+  ) {
+    return `Scheduled for ${formatDate(
+      article.published_at
+    )}`;
+  }
 
-    function createStoryRow(article: ArticleSummary): HTMLElement {
-      const row = document.createElement("article");
-      row.className = "story-row";
+  if (
+    article.status === "published" &&
+    article.published_at
+  ) {
+    return `Published ${formatDate(
+      article.published_at
+    )}`;
+  }
 
-      const main = document.createElement("div");
-      main.className = "story-row__main";
+  if (article.status === "archived") {
+    return `Archived · Updated ${formatDate(
+      article.updated_at
+    )}`;
+  }
 
-      const category = document.createElement("p");
-      category.className = "story-row__category";
-      category.textContent = article.category || "Uncategorized";
+  return `Updated ${formatDate(article.updated_at)}`;
+}
 
-      const headline = document.createElement("h3");
+    function createStoryRow(
+  article: ArticleSummary
+): HTMLElement {
+  const row = document.createElement("article");
+  row.className = "story-row";
 
-      const editLink = document.createElement("a");
-      editLink.href = `/admin/articles/${article.id}`;
-      editLink.textContent = article.headline;
+  const main = document.createElement("div");
+  main.className = "story-row__main";
 
-      headline.append(editLink);
+  const categoryRow = document.createElement("div");
+  categoryRow.className = "story-row__category-row";
 
-      const meta = document.createElement("p");
-      meta.className = "story-row__meta";
+  const category = document.createElement("p");
+  category.className = "story-row__category";
+  category.textContent =
+    article.category || "Uncategorized";
 
-      const displayDate =
-        article.status === "published"
-          ? article.published_at
-          : article.updated_at;
+  categoryRow.append(category);
 
-      meta.textContent =
-        article.status === "published"
-          ? `Published ${formatDate(displayDate)}`
-          : `Updated ${formatDate(displayDate)}`;
+  if (article.is_featured) {
+    const featured = document.createElement("span");
+    featured.className = "story-row__featured";
+    featured.textContent = "Featured";
 
-      main.append(category, headline, meta);
+    categoryRow.append(featured);
+  }
 
-      const status = document.createElement("span");
-      status.className = `status-badge status-badge--${article.status}`;
-      status.textContent = capitalize(article.status);
+  const headline = document.createElement("h3");
 
-      const actions = document.createElement("div");
-      actions.className = "story-row__actions";
+  const editLink = document.createElement("a");
+  editLink.href = `/admin/articles/${article.id}`;
+  editLink.textContent =
+    article.headline || "Untitled story";
 
-      const editAction = document.createElement("a");
-      editAction.href = `/admin/articles/${article.id}`;
-      editAction.textContent = "Edit";
+  headline.append(editLink);
 
-      if (article.status === "published" && article.slug) {
-        const viewAction = document.createElement("a");
-        viewAction.href = `/gazette/${article.slug}`;
-        viewAction.target = "_blank";
-        viewAction.rel = "noreferrer";
-        viewAction.textContent = "View";
+  const meta = document.createElement("p");
+  meta.className = "story-row__meta";
+  meta.textContent = getArticleDateLabel(article);
 
-        actions.append(viewAction);
-      }
+  main.append(categoryRow, headline, meta);
 
-      actions.append(editAction);
+  const status = document.createElement("span");
+  status.className =
+    `status-badge status-badge--${article.status}`;
+  status.textContent = article.status_label;
 
-      row.append(main, status, actions);
+  const actions = document.createElement("div");
+  actions.className = "story-row__actions";
 
-      return row;
-    }
+  const editAction = document.createElement("a");
+  editAction.href = `/admin/articles/${article.id}`;
+  editAction.textContent = "Edit";
+
+  if (article.status === "published" && article.slug) {
+    const viewAction = document.createElement("a");
+    viewAction.href = `/gazette/${article.slug}`;
+    viewAction.target = "_blank";
+    viewAction.rel = "noreferrer";
+    viewAction.textContent = "View";
+
+    actions.append(viewAction);
+  }
+
+  actions.append(editAction);
+
+  row.append(main, status, actions);
+
+  return row;
+}
 
     function renderStories(): void {
       if (!storyList || !emptyState) {
@@ -239,9 +306,10 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 
       const filteredArticles = articles.filter((article) => {
         const matchesSearch =
-          !query ||
-          article.headline.toLowerCase().includes(query) ||
-          article.category.toLowerCase().includes(query);
+  !query ||
+  article.headline.toLowerCase().includes(query) ||
+  article.category.toLowerCase().includes(query) ||
+  article.author_name.toLowerCase().includes(query);
 
         const matchesStatus =
           selectedStatus === "all" ||
@@ -298,6 +366,29 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       return true;
     }
 
+    function applyStatusFromUrl(): void {
+  if (!statusFilter) {
+    return;
+  }
+
+  const statusFromUrl =
+    new URLSearchParams(window.location.search)
+      .get("status");
+
+  if (
+    statusFromUrl &&
+    (
+      statusFromUrl === "draft" ||
+      statusFromUrl === "ready_for_review" ||
+      statusFromUrl === "scheduled" ||
+      statusFromUrl === "published" ||
+      statusFromUrl === "archived"
+    )
+  ) {
+    statusFilter.value = statusFromUrl;
+  }
+}
+
     async function initializeStories(): Promise<void> {
       const isAdmin = await verifyAdmin();
 
@@ -306,13 +397,28 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       }
 
       const { data, error } = await supabaseBrowser
-        .from("gazette_articles")
-        .select(
-          "id, slug, category, headline, status, published_at, updated_at"
-        )
-        .order("updated_at", {
-          ascending: false,
-        });
+  .from("editorial_articles")
+  .select(
+    `
+      id,
+      slug,
+      category,
+      headline,
+      author_name,
+      status,
+      status_label,
+      is_featured,
+      published_at,
+      updated_at,
+      editorial_date,
+      editorial_sort_at,
+      can_publish,
+      needs_image_alt
+    `
+  )
+  .order("editorial_sort_at", {
+    ascending: false,
+  });
 
       if (loading) {
         loading.hidden = true;
@@ -337,35 +443,71 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         allCount.textContent = String(articles.length);
       }
 
-      if (publishedCount) {
-        publishedCount.textContent = String(
-          articles.filter(
-            (article) => article.status === "published"
-          ).length
-        );
-      }
+      const countByStatus = (
+  status: ArticleStatus
+): number =>
+  articles.filter(
+    (article) => article.status === status
+  ).length;
 
-      if (draftCount) {
-        draftCount.textContent = String(
-          articles.filter(
-            (article) => article.status === "draft"
-          ).length
-        );
-      }
+if (draftCount) {
+  draftCount.textContent = String(
+    countByStatus("draft")
+  );
+}
 
-      if (archivedCount) {
-        archivedCount.textContent = String(
-          articles.filter(
-            (article) => article.status === "archived"
-          ).length
-        );
-      }
+if (reviewCount) {
+  reviewCount.textContent = String(
+    countByStatus("ready_for_review")
+  );
+}
 
+if (scheduledCount) {
+  scheduledCount.textContent = String(
+    countByStatus("scheduled")
+  );
+}
+
+if (publishedCount) {
+  publishedCount.textContent = String(
+    countByStatus("published")
+  );
+}
+
+if (archivedCount) {
+  archivedCount.textContent = String(
+    countByStatus("archived")
+  );
+}
+
+      applyStatusFromUrl();
       renderStories();
     }
 
     searchInput?.addEventListener("input", renderStories);
-    statusFilter?.addEventListener("change", renderStories);
+    statusFilter?.addEventListener("change", () => {
+  const selectedStatus =
+    statusFilter.value;
+
+  const url = new URL(window.location.href);
+
+  if (selectedStatus === "all") {
+    url.searchParams.delete("status");
+  } else {
+    url.searchParams.set(
+      "status",
+      selectedStatus
+    );
+  }
+
+  window.history.replaceState(
+    {},
+    "",
+    url
+  );
+
+  renderStories();
+});
 
     initializeStories();
   </script>
@@ -408,10 +550,10 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
   }
 
   .stories-summary {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--space-4);
-  }
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
 
   .stories-summary__card {
     display: grid;
@@ -638,6 +780,16 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
     color: #6b592d;
   }
 
+  .status-badge--ready_for_review {
+  background: #e7edf6;
+  color: #34587b;
+}
+
+.status-badge--scheduled {
+  background: #eee7f6;
+  color: #67468a;
+}
+
   .status-badge--archived {
     background: #ececeb;
     color: #666a66;
@@ -704,4 +856,35 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       width: fit-content;
     }
   }
+
+  .story-row__category-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: var(--space-2);
+}
+
+.story-row__category-row
+  .story-row__category {
+  margin: 0;
+}
+
+.story-row__featured {
+  display: inline-flex;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--color-green) 25%,
+      transparent
+    );
+  border-radius: 999px;
+  color: var(--color-green);
+  font-size: 0.56rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+ 
 </style>

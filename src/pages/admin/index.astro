@@ -21,30 +21,57 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
     </header>
 
     <section class="desk-overview" aria-label="Publishing overview">
-      <a class="desk-stat" href="/admin/articles">
-        <span>All stories</span>
-        <strong id="all-count">0</strong>
-        <small>Open the story archive →</small>
-      </a>
+  <a class="desk-stat" href="/admin/articles">
+    <span>All stories</span>
+    <strong id="all-count">0</strong>
+    <small>Open the story archive →</small>
+  </a>
 
-      <a
-        class="desk-stat"
-        href="/admin/articles?status=draft"
-      >
-        <span>Drafts</span>
-        <strong id="draft-count">0</strong>
-        <small>Stories still in progress →</small>
-      </a>
+  <a
+    class="desk-stat"
+    href="/admin/articles?status=draft"
+  >
+    <span>Drafts</span>
+    <strong id="draft-count">0</strong>
+    <small>Stories still in progress →</small>
+  </a>
 
-      <a
-        class="desk-stat"
-        href="/admin/articles?status=published"
-      >
-        <span>Published</span>
-        <strong id="published-count">0</strong>
-        <small>View published work →</small>
-      </a>
-    </section>
+  <a
+    class="desk-stat"
+    href="/admin/articles?status=ready_for_review"
+  >
+    <span>Ready for review</span>
+    <strong id="review-count">0</strong>
+    <small>Stories awaiting approval →</small>
+  </a>
+
+  <a
+    class="desk-stat"
+    href="/admin/articles?status=scheduled"
+  >
+    <span>Scheduled</span>
+    <strong id="scheduled-count">0</strong>
+    <small>Upcoming publications →</small>
+  </a>
+
+  <a
+    class="desk-stat"
+    href="/admin/articles?status=published"
+  >
+    <span>Published</span>
+    <strong id="published-count">0</strong>
+    <small>View published work →</small>
+  </a>
+
+  <a
+    class="desk-stat"
+    href="/admin/articles?status=archived"
+  >
+    <span>Archived</span>
+    <strong id="archived-count">0</strong>
+    <small>Retired Gazette stories →</small>
+  </a>
+</section>
 
     <section class="desk-grid">
       <article class="desk-panel desk-panel--recent">
@@ -169,15 +196,29 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
   <script>
     import { supabaseBrowser } from "../../lib/supabase-browser";
 
-    type ArticleSummary = {
-      id: string;
-      slug: string;
-      category: string;
-      headline: string;
-      status: string;
-      published_at: string | null;
-      updated_at: string;
-    };
+    type ArticleStatus =
+  | "draft"
+  | "ready_for_review"
+  | "scheduled"
+  | "published"
+  | "archived";
+
+type ArticleSummary = {
+  id: string;
+  slug: string;
+  category: string;
+  headline: string;
+  author_name: string;
+  status: ArticleStatus;
+  status_label: string;
+  is_featured: boolean;
+  published_at: string | null;
+  updated_at: string;
+  editorial_date: string;
+  editorial_sort_at: string;
+  can_publish: boolean;
+  needs_image_alt: boolean;
+};
 
     const loading =
       document.querySelector<HTMLElement>("#desk-loading");
@@ -195,10 +236,19 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
       document.querySelector<HTMLElement>("#all-count");
 
     const draftCount =
-      document.querySelector<HTMLElement>("#draft-count");
+  document.querySelector<HTMLElement>("#draft-count");
 
-    const publishedCount =
-      document.querySelector<HTMLElement>("#published-count");
+const reviewCount =
+  document.querySelector<HTMLElement>("#review-count");
+
+const scheduledCount =
+  document.querySelector<HTMLElement>("#scheduled-count");
+
+const publishedCount =
+  document.querySelector<HTMLElement>("#published-count");
+
+const archivedCount =
+  document.querySelector<HTMLElement>("#archived-count");
 
     const recentStories =
       document.querySelector<HTMLElement>("#recent-stories");
@@ -214,41 +264,85 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
       }).format(new Date(value));
     }
 
+    function getArticleDateLabel(
+  article: ArticleSummary
+): string {
+  if (
+    article.status === "scheduled" &&
+    article.published_at
+  ) {
+    return `Scheduled for ${formatDate(
+      article.published_at
+    )}`;
+  }
+
+  if (
+    article.status === "published" &&
+    article.published_at
+  ) {
+    return `Published ${formatDate(
+      article.published_at
+    )}`;
+  }
+
+  if (article.status === "archived") {
+    return `Archived · Updated ${formatDate(
+      article.updated_at
+    )}`;
+  }
+
+  return `Updated ${formatDate(article.updated_at)}`;
+}
+
     function createRecentStory(
-      article: ArticleSummary
-    ): HTMLElement {
-      const story = document.createElement("article");
-      story.className = "recent-story";
+  article: ArticleSummary
+): HTMLElement {
+  const story = document.createElement("article");
+  story.className = "recent-story";
 
-      const content = document.createElement("div");
+  const content = document.createElement("div");
 
-      const category = document.createElement("p");
-      category.className = "recent-story__category";
-      category.textContent = article.category || "Uncategorized";
+  const categoryRow = document.createElement("div");
+  categoryRow.className = "recent-story__category-row";
 
-      const headline = document.createElement("h3");
+  const category = document.createElement("p");
+  category.className = "recent-story__category";
+  category.textContent =
+    article.category || "Uncategorized";
 
-      const link = document.createElement("a");
-      link.href = `/admin/articles/${article.id}`;
-      link.textContent = article.headline;
+  categoryRow.append(category);
 
-      headline.append(link);
+  if (article.is_featured) {
+    const featured = document.createElement("span");
+    featured.className = "recent-story__featured";
+    featured.textContent = "Featured";
+    categoryRow.append(featured);
+  }
 
-      const meta = document.createElement("p");
-      meta.className = "recent-story__meta";
-      meta.textContent = `Updated ${formatDate(article.updated_at)}`;
+  const headline = document.createElement("h3");
 
-      content.append(category, headline, meta);
+  const link = document.createElement("a");
+  link.href = `/admin/articles/${article.id}`;
+  link.textContent =
+    article.headline || "Untitled story";
 
-      const status = document.createElement("span");
-      status.className =
-        `status-badge status-badge--${article.status}`;
-      status.textContent = article.status;
+  headline.append(link);
 
-      story.append(content, status);
+  const meta = document.createElement("p");
+  meta.className = "recent-story__meta";
+  meta.textContent = getArticleDateLabel(article);
 
-      return story;
-    }
+  content.append(categoryRow, headline, meta);
+
+  const status = document.createElement("span");
+  status.className =
+    `status-badge status-badge--${article.status}`;
+  status.textContent = article.status_label;
+
+  story.append(content, status);
+
+  return story;
+}
 
     async function verifyAdmin(): Promise<boolean> {
       const {
@@ -296,13 +390,28 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
       }
 
       const { data, error } = await supabaseBrowser
-        .from("gazette_articles")
-        .select(
-          "id, slug, category, headline, status, published_at, updated_at"
-        )
-        .order("updated_at", {
-          ascending: false,
-        });
+  .from("editorial_articles")
+  .select(
+    `
+      id,
+      slug,
+      category,
+      headline,
+      author_name,
+      status,
+      status_label,
+      is_featured,
+      published_at,
+      updated_at,
+      editorial_date,
+      editorial_sort_at,
+      can_publish,
+      needs_image_alt
+    `
+  )
+  .order("editorial_sort_at", {
+    ascending: false,
+  });
 
       if (loading) {
         loading.hidden = true;

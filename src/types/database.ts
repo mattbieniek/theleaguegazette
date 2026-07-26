@@ -902,6 +902,90 @@ export type Database = {
           },
         ]
       }
+      editorial_articles: {
+        Row: {
+          author_name: string | null
+          can_publish: boolean | null
+          category: string | null
+          created_at: string | null
+          editorial_date: string | null
+          editorial_sort_at: string | null
+          has_body: boolean | null
+          has_featured_image: boolean | null
+          has_summary: boolean | null
+          headline: string | null
+          homepage_order: number | null
+          id: string | null
+          image_alt: string | null
+          image_url: string | null
+          is_due_for_publishing: boolean | null
+          is_featured: boolean | null
+          is_publicly_available: boolean | null
+          is_scheduled: boolean | null
+          needs_image_alt: boolean | null
+          published_at: string | null
+          slug: string | null
+          status: string | null
+          status_label: string | null
+          summary: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          author_name?: string | null
+          can_publish?: never
+          category?: string | null
+          created_at?: string | null
+          editorial_date?: never
+          editorial_sort_at?: never
+          has_body?: never
+          has_featured_image?: never
+          has_summary?: never
+          headline?: string | null
+          homepage_order?: number | null
+          id?: string | null
+          image_alt?: string | null
+          image_url?: string | null
+          is_due_for_publishing?: never
+          is_featured?: boolean | null
+          is_publicly_available?: never
+          is_scheduled?: never
+          needs_image_alt?: never
+          published_at?: string | null
+          slug?: string | null
+          status?: string | null
+          status_label?: never
+          summary?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          author_name?: string | null
+          can_publish?: never
+          category?: string | null
+          created_at?: string | null
+          editorial_date?: never
+          editorial_sort_at?: never
+          has_body?: never
+          has_featured_image?: never
+          has_summary?: never
+          headline?: string | null
+          homepage_order?: number | null
+          id?: string | null
+          image_alt?: string | null
+          image_url?: string | null
+          is_due_for_publishing?: never
+          is_featured?: boolean | null
+          is_publicly_available?: never
+          is_scheduled?: never
+          needs_image_alt?: never
+          published_at?: string | null
+          slug?: string | null
+          status?: string | null
+          status_label?: never
+          summary?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       season_standings: {
         Row: {
           average_points: number | null
