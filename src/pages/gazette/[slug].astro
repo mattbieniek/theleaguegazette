@@ -1,0 +1,191 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  getPublishedArticleBySlug,
+  getPublishedArticles,
+} from "../../lib/queries/gazette";
+import { formatPublicationDate } from "../../lib/formatDate";
+
+export async function getStaticPaths() {
+  const articles = await getPublishedArticles();
+
+  return articles.map((article) => ({
+    params: {
+      slug: article.slug,
+    },
+  }));
+}
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  throw new Error("Missing Gazette article slug.");
+}
+
+const story = await getPublishedArticleBySlug(slug);
+
+if (!story) {
+  return Astro.redirect("/404");
+}
+---
+
+<BaseLayout
+  title={`${story.headline} | The League Gazette`}
+  description={story.summary}
+>
+  <article class="article-page">
+    <header class="article-header site-shell">
+      <a class="article-header__back" href="/gazette">
+        Gazette
+      </a>
+
+      <p class="eyebrow">{story.category}</p>
+
+      <h1>{story.headline}</h1>
+
+      <p class="article-header__dek">
+        {story.summary}
+      </p>
+
+      <div class="article-header__meta">
+        <span>
+          By <strong>{story.author_name}</strong>
+        </span>
+
+        <span aria-hidden="true">·</span>
+
+        {
+            story.published_at && (
+                <time datetime={story.published_at}>
+                    {formatPublicationDate(story.published_at)}
+                </time>
+            )
+        }
+      </div>
+    </header>
+
+    <figure class="article-image site-shell">
+      <img
+        src={story.image_url}
+        alt={story.image_alt ?? ""}
+        width="1600"
+        height="1000"
+      />
+    </figure>
+
+    <div class="article-body site-shell">
+      <div class="article-body__content">
+        {
+          story.body.map((paragraph) => (
+            <p>{paragraph}</p>
+          ))
+        }
+      </div>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .article-page {
+    padding-bottom: var(--space-9);
+  }
+
+  .article-header {
+    max-width: 70rem;
+    padding-top: clamp(2rem, 6vw, 5rem);
+    padding-bottom: clamp(2rem, 5vw, 4rem);
+  }
+
+  .article-header__back {
+    display: inline-flex;
+    margin-bottom: var(--space-5);
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .article-header__back::before {
+    content: "←";
+    margin-right: var(--space-2);
+  }
+
+  .article-header h1 {
+    max-width: 13ch;
+    margin-bottom: var(--space-5);
+    font-size: clamp(3rem, 7vw, 6.5rem);
+    letter-spacing: -0.055em;
+    line-height: 0.94;
+  }
+
+  .article-header__dek {
+    max-width: 48rem;
+    margin-bottom: var(--space-5);
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.2rem, 2.4vw, 1.65rem);
+    line-height: 1.45;
+  }
+
+  .article-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .article-header__meta strong {
+    color: var(--color-ink-soft);
+  }
+
+  .article-image {
+    max-width: 82rem;
+  }
+
+  .article-image img {
+    width: 100%;
+    aspect-ratio: 8 / 5;
+    object-fit: cover;
+  }
+
+  .article-body {
+    max-width: 70rem;
+    padding-top: clamp(2rem, 5vw, 4.5rem);
+  }
+
+  .article-body__content {
+    max-width: 44rem;
+    margin-inline: auto;
+  }
+
+  .article-body__content p {
+    margin-bottom: 1.5em;
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.15rem, 2vw, 1.35rem);
+    line-height: 1.7;
+  }
+
+  .article-body__content p:first-child::first-letter {
+    float: left;
+    margin-right: 0.12em;
+    color: var(--color-green);
+    font-family: var(--font-editorial);
+    font-size: 4.8rem;
+    font-weight: 700;
+    line-height: 0.78;
+  }
+
+  @media (max-width: 600px) {
+    .article-header h1 {
+      font-size: clamp(2.7rem, 13vw, 4.5rem);
+    }
+
+    .article-body__content p:first-child::first-letter {
+      font-size: 4rem;
+    }
+  }
+</style>

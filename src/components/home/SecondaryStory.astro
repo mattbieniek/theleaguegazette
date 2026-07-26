@@ -1,9 +1,9 @@
 ---
-import type { HomepageStory } from "../../data/homepage";
+import type { GazetteArticle } from "../../lib/queries/gazette";
 import { formatPublicationDate } from "../../lib/formatDate";
 
 interface Props {
-  story: HomepageStory;
+  story: GazetteArticle;
 }
 
 const { story } = Astro.props;
@@ -18,8 +18,8 @@ const { story } = Astro.props;
     <div class="secondary-story__image-frame">
       <img
         class="secondary-story__image"
-        src={story.image}
-        alt={story.imageAlt}
+        src={story.image_url ?? "/images/homepage/article-placeholder.jpg"}
+        alt={story.image_alt ?? ""}
         width="1000"
         height="700"
         loading="lazy"
@@ -41,11 +41,15 @@ const { story } = Astro.props;
     </p>
 
     <p class="secondary-story__meta">
-      <span>{story.author}</span>
+      <span>{story.author_name}</span>
       <span aria-hidden="true">·</span>
-      <time datetime={story.publishedAt}>
-        {formatPublicationDate(story.publishedAt)}
-      </time>
+      {
+        story.published_at && (
+          <time datetime={story.published_at}>
+            {formatPublicationDate(story.published_at)}
+          </time>
+        )
+      }
     </p>
   </div>
 </article>

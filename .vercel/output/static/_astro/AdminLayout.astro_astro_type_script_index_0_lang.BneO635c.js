@@ -1,0 +1,1 @@
+import{t as e}from"./supabase-browser.BQmbDAmZ.js";var t=document.querySelector(`#admin-sign-out`);async function n(){if(!t)return;let{data:{session:n}}=await e.auth.getSession();n&&(t.hidden=!1,t.addEventListener(`click`,async()=>{t.disabled=!0,await e.auth.signOut(),window.location.assign(`/admin/login`)}))}n();

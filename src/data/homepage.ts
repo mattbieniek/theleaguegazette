@@ -7,6 +7,7 @@ export interface HomepageStory {
   publishedAt: string;
   image: string;
   imageAlt: string;
+  body: string[];
 }
 
 export const leadStory: HomepageStory = {
@@ -20,6 +21,11 @@ export const leadStory: HomepageStory = {
   image: "/images/homepage/lead-story-placeholder.jpg",
   imageAlt:
     "Fantasy football draft materials arranged on a table before the season",
+  body: [
+    "A new season has arrived, which means every manager has once again convinced himself that this will be the year everything finally goes according to plan.",
+    "Draft boards are being studied, old mistakes are being reclassified as learning experiences and projected standings are already being treated as personal attacks.",
+    "For now, everyone is undefeated. That condition is expected to last only briefly.",
+  ],
 };
 
 export const secondaryStories: HomepageStory[] = [
@@ -33,6 +39,11 @@ export const secondaryStories: HomepageStory[] = [
     publishedAt: "2026-07-24",
     image: "/images/homepage/power-rankings-placeholder.jpg",
     imageAlt: "A handwritten fantasy football rankings sheet",
+    body: [
+      "The preseason power rankings have arrived, despite the inconvenient fact that no meaningful football has yet been played.",
+      "Recent success was rewarded, roster construction was reviewed and confidence was treated with the suspicion it deserves.",
+      "Several teams believe they were ranked too low. At least one believes the ranking process itself should be investigated.",
+    ],
   },
   {
     slug: "draft-night-questions",
@@ -44,5 +55,15 @@ export const secondaryStories: HomepageStory[] = [
     publishedAt: "2026-07-23",
     image: "/images/homepage/draft-night-placeholder.jpg",
     imageAlt: "A fantasy football draft board with player names",
+    body: [
+      "Draft night has a way of turning careful preparation into immediate panic.",
+      "The biggest questions rarely concern projections alone. They involve old rivalries, positional runs and the fear that someone else knows something you do not.",
+      "By the final round, every roster will look both brilliant and deeply flawed.",
+    ],
   },
+];
+
+export const homepageStories: HomepageStory[] = [
+  leadStory,
+  ...secondaryStories,
 ];

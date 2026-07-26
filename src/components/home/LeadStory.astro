@@ -1,9 +1,9 @@
 ---
-import type { HomepageStory } from "../../data/homepage";
+import type { GazetteArticle } from "../../lib/queries/gazette";
 import { formatPublicationDate } from "../../lib/formatDate";
 
 interface Props {
-  story: HomepageStory;
+  story: GazetteArticle;
 }
 
 const { story } = Astro.props;
@@ -18,8 +18,8 @@ const { story } = Astro.props;
     <div class="lead-story__image-frame">
       <img
         class="lead-story__image"
-        src={story.image}
-        alt={story.imageAlt}
+        src={story.image_url ?? "/images/homepage/article-placeholder.jpg"}
+        alt={story.image_alt ?? ""}
         width="1600"
         height="1000"
         loading="eager"
@@ -43,11 +43,15 @@ const { story } = Astro.props;
 
     <div class="lead-story__footer">
       <p class="lead-story__byline">
-        By <strong>{story.author}</strong>
+        By <strong>{story.author_name}</strong>
         <span aria-hidden="true">·</span>
-        <time datetime={story.publishedAt}>
-          {formatPublicationDate(story.publishedAt)}
-        </time>
+        {
+          story.published_at && (
+            <time datetime={story.published_at}>
+              {formatPublicationDate(story.published_at)}
+            </time>
+          )
+        }
       </p>
 
       <a class="story-link" href={`/gazette/${story.slug}`}>

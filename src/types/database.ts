@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string
+          display_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       fantasy_teams: {
         Row: {
           avatar: string | null
@@ -104,6 +122,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      gazette_articles: {
+        Row: {
+          author_name: string
+          body: Json
+          category: string
+          created_at: string
+          headline: string
+          homepage_order: number | null
+          id: string
+          image_alt: string | null
+          image_url: string | null
+          is_featured: boolean
+          published_at: string | null
+          slug: string
+          status: string
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          author_name?: string
+          body?: Json
+          category: string
+          created_at?: string
+          headline: string
+          homepage_order?: number | null
+          id?: string
+          image_alt?: string | null
+          image_url?: string | null
+          is_featured?: boolean
+          published_at?: string | null
+          slug: string
+          status?: string
+          summary: string
+          updated_at?: string
+        }
+        Update: {
+          author_name?: string
+          body?: Json
+          category?: string
+          created_at?: string
+          headline?: string
+          homepage_order?: number | null
+          id?: string
+          image_alt?: string | null
+          image_url?: string | null
+          is_featured?: boolean
+          published_at?: string | null
+          slug?: string
+          status?: string
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       league_members: {
         Row: {
@@ -998,7 +1070,7 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      is_gazette_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

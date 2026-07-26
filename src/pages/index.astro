@@ -2,10 +2,18 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import LeadStory from "../components/home/LeadStory.astro";
 import SecondaryStory from "../components/home/SecondaryStory.astro";
-import {
-  leadStory,
-  secondaryStories,
-} from "../data/homepage";
+import { getHomepageArticles } from "../lib/queries/gazette";
+
+const stories = await getHomepageArticles();
+
+const leadStory =
+  stories.find((story) => story.is_featured) ??
+  stories[0] ??
+  null;
+
+const secondaryStories = stories
+  .filter((story) => story.id !== leadStory?.id)
+  .slice(0, 2);
 ---
 
 <BaseLayout
@@ -30,7 +38,16 @@ import {
       </p>
     </section>
 
-    <LeadStory story={leadStory} />
+    {
+      leadStory ? (
+        <LeadStory story={leadStory} />
+      ) : (
+        <section class="empty-state">
+          <p class="eyebrow">Latest Edition</p>
+          <h1>No stories have been published yet.</h1>
+        </section>
+      )
+    }
 
     <section
       class="secondary-section"
@@ -159,5 +176,16 @@ import {
       flex-direction: column;
       gap: var(--space-3);
     }
+  }
+
+  .empty-state {
+    padding-block: var(--space-8);
+  }
+
+  .empty-state h1 {
+    max-width: 14ch;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    letter-spacing: -0.05em;
+    line-height: 0.95;
   }
 </style>

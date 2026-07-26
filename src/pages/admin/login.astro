@@ -1,0 +1,215 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Admin Login | The League Gazette">
+  <div class="admin-shell login-page">
+    <section class="login-card">
+      <div class="login-card__heading">
+        <p class="eyebrow">Editorial Desk</p>
+        <h1>Sign in</h1>
+
+        <p>
+          Access Gazette drafts, published stories and editorial controls.
+        </p>
+      </div>
+
+      <form id="login-form" class="login-form">
+        <label>
+          <span>Email address</span>
+
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            required
+          />
+        </label>
+
+        <label>
+          <span>Password</span>
+
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </label>
+
+        <p
+          id="login-message"
+          class="login-message"
+          role="status"
+          aria-live="polite"
+        ></p>
+
+        <button id="login-button" type="submit">
+          Sign in
+        </button>
+      </form>
+    </section>
+  </div>
+
+  <script>
+    import { supabaseBrowser } from "../../lib/supabase-browser";
+
+    const form =
+      document.querySelector<HTMLFormElement>("#login-form");
+
+    const emailInput =
+      document.querySelector<HTMLInputElement>("#email");
+
+    const passwordInput =
+      document.querySelector<HTMLInputElement>("#password");
+
+    const message =
+      document.querySelector<HTMLParagraphElement>(
+        "#login-message"
+      );
+
+    const button =
+      document.querySelector<HTMLButtonElement>(
+        "#login-button"
+      );
+
+    async function redirectExistingUser() {
+      const {
+        data: { session },
+      } = await supabaseBrowser.auth.getSession();
+
+      if (session) {
+        window.location.replace("/admin");
+      }
+    }
+
+    redirectExistingUser();
+
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (
+        !emailInput ||
+        !passwordInput ||
+        !message ||
+        !button
+      ) {
+        return;
+      }
+
+      message.textContent = "";
+      button.disabled = true;
+      button.textContent = "Signing in…";
+
+      const { error } =
+        await supabaseBrowser.auth.signInWithPassword({
+          email: emailInput.value.trim(),
+          password: passwordInput.value,
+        });
+
+      if (error) {
+        message.textContent =
+          "Unable to sign in. Check your email and password.";
+
+        button.disabled = false;
+        button.textContent = "Sign in";
+        return;
+      }
+
+      window.location.assign("/admin");
+    });
+  </script>
+</AdminLayout>
+
+<style>
+  .login-page {
+    display: grid;
+    min-height: calc(100vh - 5rem);
+    place-items: center;
+    padding-block: var(--space-7);
+  }
+
+  .login-card {
+    width: min(100%, 31rem);
+    padding: clamp(1.5rem, 5vw, 3rem);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .login-card__heading {
+    margin-bottom: var(--space-6);
+  }
+
+  .login-card h1 {
+    margin-bottom: var(--space-3);
+    font-size: clamp(2.7rem, 8vw, 4.5rem);
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+  }
+
+  .login-card__heading > p:last-child {
+    margin-bottom: 0;
+    color: var(--color-ink-soft);
+  }
+
+  .login-form {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .login-form label {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .login-form label span {
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .login-form input {
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--color-rule-dark);
+    border-radius: var(--radius-sm);
+    background: var(--color-paper-light);
+    color: var(--color-ink);
+    font: inherit;
+  }
+
+  .login-form input:focus {
+    border-color: var(--color-green);
+    outline: 3px solid
+      color-mix(in srgb, var(--color-green) 18%, transparent);
+  }
+
+  .login-form button {
+    min-height: 3rem;
+    padding: 0.75rem 1rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--color-green);
+    color: white;
+    font: inherit;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .login-form button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+
+  .login-message {
+    min-height: 1.4rem;
+    margin: calc(var(--space-2) * -1) 0;
+    color: #9a2f2f;
+    font-size: var(--text-sm);
+  }
+</style>

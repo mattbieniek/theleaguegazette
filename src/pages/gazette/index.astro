@@ -1,0 +1,184 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getPublishedArticles } from "../../lib/queries/gazette";
+import { formatPublicationDate } from "../../lib/formatDate";
+
+const articles = await getPublishedArticles();
+---
+
+<BaseLayout
+  title="Gazette | The League Gazette"
+  description="League stories, analysis, rankings and commentary from Far Far Away Football."
+>
+  <div class="site-shell gazette-index">
+    <header class="gazette-index__header">
+      <p class="eyebrow">The Weekly Gazette</p>
+
+      <h1>Stories from around the league</h1>
+
+      <p>
+        Matchup coverage, power rankings, awards and commentary from Far Far
+        Away Football.
+      </p>
+    </header>
+
+    <section class="story-list" aria-label="Gazette stories">
+      {
+        articles.map((story) => (
+          <article class="story-list__item">
+            <a
+              class="story-list__image"
+              href={`/gazette/${story.slug}`}
+            >
+              <img
+                src={story.image_url ?? "/images/homepage/article-placeholder.jpg"}
+                alt={story.image_alt ?? ""}
+                width="1000"
+                height="700"
+                loading="lazy"
+              />
+            </a>
+
+            <div>
+              <p class="eyebrow">{story.category}</p>
+
+              <h2>
+                <a href={`/gazette/${story.slug}`}>
+                  {story.headline}
+                </a>
+              </h2>
+
+              <p class="story-list__summary">
+                {story.summary}
+              </p>
+
+              <p class="story-list__meta">
+                {story.author_name}
+
+                {
+                    story.published_at && (
+                    <>
+                        <span aria-hidden="true">·</span>
+
+                        <time datetime={story.published_at}>
+                        {formatPublicationDate(story.published_at)}
+                        </time>
+                    </>
+                    )
+                }
+                </p>
+            </div>
+          </article>
+        ))
+      }
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .gazette-index {
+    padding-block: clamp(2rem, 6vw, 5rem) var(--space-9);
+  }
+
+  .gazette-index__header {
+    max-width: 54rem;
+    margin-bottom: var(--space-7);
+    padding-bottom: var(--space-6);
+    border-bottom: 3px double var(--color-rule-dark);
+  }
+
+  .gazette-index__header h1 {
+    margin-bottom: var(--space-4);
+    font-size: clamp(3rem, 7vw, 6rem);
+    letter-spacing: -0.055em;
+    line-height: 0.95;
+  }
+
+  .gazette-index__header > p:last-child {
+    max-width: 42rem;
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: var(--text-xl);
+    line-height: 1.45;
+  }
+
+  .story-list {
+    display: grid;
+  }
+
+  .story-list__item {
+    display: grid;
+    grid-template-columns: minmax(15rem, 0.75fr) minmax(0, 1.25fr);
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    padding-block: var(--space-6);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .story-list__item:first-child {
+    padding-top: 0;
+  }
+
+  .story-list__image {
+    display: block;
+    overflow: hidden;
+  }
+
+  .story-list__image img {
+    width: 100%;
+    aspect-ratio: 10 / 7;
+    object-fit: cover;
+    transition: transform var(--transition-standard);
+  }
+
+  .story-list__image:hover img {
+    transform: scale(1.02);
+  }
+
+  .story-list__item h2 {
+    max-width: 20ch;
+    margin-bottom: var(--space-3);
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .story-list__item h2 a:hover {
+    color: var(--color-green);
+  }
+
+  .story-list__summary {
+    max-width: 42rem;
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: var(--text-lg);
+    line-height: 1.5;
+  }
+
+  .story-list__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 760px) {
+    .story-list__item {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .story-list__image img {
+      transition: none;
+    }
+
+    .story-list__image:hover img {
+      transform: none;
+    }
+  }
+</style>
