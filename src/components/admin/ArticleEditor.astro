@@ -1127,6 +1127,12 @@ function getStatusConfirmationConfig(
     return null;
   }
 
+  const currentStoryIsPublic =
+  isArticlePubliclyAvailable(
+    currentStatus,
+    currentArticlePublishedAt
+  );
+
   if (targetStatus === "published") {
     return {
       title: "Publish this story?",
@@ -1166,7 +1172,7 @@ function getStatusConfirmationConfig(
     return {
       title: "Archive this story?",
       description:
-        currentStatus === "published"
+        currentStoryIsPublic
           ? "This story will be removed from the public website and retained in the editorial archive."
           : "This story will be moved into the editorial archive.",
       confirmLabel: "Archive story",
@@ -1175,30 +1181,30 @@ function getStatusConfirmationConfig(
   }
 
   if (
-    currentStatus === "published" &&
-    targetStatus === "draft"
-  ) {
-    return {
-      title: "Move this story back to draft?",
-      description:
-        "This story will be removed from the public website and returned to draft status.",
-      confirmLabel: "Move to draft",
-      tone: "danger",
-    };
-  }
+  currentStoryIsPublic &&
+  targetStatus === "draft"
+) {
+  return {
+    title: "Move this story back to draft?",
+    description:
+      "This story will be removed from the public website and returned to draft status.",
+    confirmLabel: "Move to draft",
+    tone: "danger",
+  };
+}
 
   if (
-    currentStatus === "published" &&
-    targetStatus === "ready_for_review"
-  ) {
-    return {
-      title: "Return this story to review?",
-      description:
-        "This story will be removed from the public website and returned to the editorial review queue.",
-      confirmLabel: "Return to review",
-      tone: "danger",
-    };
-  }
+  currentStoryIsPublic &&
+  targetStatus === "ready_for_review"
+) {
+  return {
+    title: "Return this story to review?",
+    description:
+      "This story will be removed from the public website and returned to the editorial review queue.",
+    confirmLabel: "Return to review",
+    tone: "danger",
+  };
+}
 
   return null;
 }
@@ -1341,6 +1347,26 @@ function isFuturePublicationDate(
   );
 }
 
+function isExistingLiveScheduleUnchanged(): boolean {
+  if (
+    currentArticleStatus !== "scheduled" ||
+    !isArticlePubliclyAvailable(
+      currentArticleStatus,
+      currentArticlePublishedAt
+    )
+  ) {
+    return false;
+  }
+
+  const selectedValue =
+    publishedAtInput?.value ?? "";
+
+  return (
+    selectedValue ===
+    toDatetimeLocal(currentArticlePublishedAt)
+  );
+}
+
 function getReadinessRequirements(
   status: ArticleStatus = getSelectedArticleStatus()
 ): ReadinessRequirement[] {
@@ -1400,14 +1426,21 @@ function getReadinessRequirements(
   ];
 
   if (status === "scheduled") {
-    requirements.push({
-      key: "publication_date",
-      label: "Future publication date selected",
-      isComplete: isFuturePublicationDate(
+  const existingLiveScheduleIsUnchanged =
+    isExistingLiveScheduleUnchanged();
+
+  requirements.push({
+    key: "publication_date",
+    label: existingLiveScheduleIsUnchanged
+      ? "Original publication date retained"
+      : "Future publication date selected",
+    isComplete:
+      existingLiveScheduleIsUnchanged ||
+      isFuturePublicationDate(
         publishedAtInput?.value ?? ""
       ),
-    });
-  }
+  });
+}
 
   return requirements;
 }

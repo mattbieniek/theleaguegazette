@@ -29,7 +29,7 @@ export async function getPublishedArticles(): Promise<
   const { data, error } = await supabase
     .from("gazette_articles")
     .select("*")
-    .eq("status", "published")
+    .in("status", ["published", "scheduled"])
     .lte("published_at", new Date().toISOString())
     .order("published_at", {
       ascending: false,
@@ -51,7 +51,7 @@ export async function getHomepageArticles(): Promise<
   const { data, error } = await supabase
     .from("gazette_articles")
     .select("*")
-    .eq("status", "published")
+    .in("status", ["published", "scheduled"])
     .lte("published_at", new Date().toISOString())
     .order("homepage_order", {
       ascending: true,
@@ -79,7 +79,7 @@ export async function getPublishedArticleBySlug(
     .from("gazette_articles")
     .select("*")
     .eq("slug", slug)
-    .eq("status", "published")
+    .in("status", ["published", "scheduled"])
     .lte("published_at", new Date().toISOString())
     .maybeSingle();
 

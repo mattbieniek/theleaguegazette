@@ -24,6 +24,10 @@
 			"dest": "_render"
 		},
 		{
+			"src": "^/gazette/([^/]+?)/?$",
+			"dest": "_render"
+		},
+		{
 			"src": "^/404/?$",
 			"dest": "_render"
 		},

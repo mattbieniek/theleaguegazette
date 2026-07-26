@@ -1,21 +1,9 @@
 ---
+export const prerender = false;
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ArticleBody from "../../components/gazette/ArticleBody.astro";
-import {
-  getPublishedArticleBySlug,
-  getPublishedArticles,
-} from "../../lib/queries/gazette";
+import { getPublishedArticleBySlug } from "../../lib/queries/gazette";
 import { formatPublicationDate } from "../../lib/formatDate";
-
-export async function getStaticPaths() {
-  const articles = await getPublishedArticles();
-
-  return articles.map((article) => ({
-    params: {
-      slug: article.slug,
-    },
-  }));
-}
 
 const { slug } = Astro.params;
 
