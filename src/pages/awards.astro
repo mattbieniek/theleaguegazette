@@ -1,285 +1,37 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+
 import {
-  getAwardsWeekOptions,
-  getWeeklyAwardsResults,
-  type WeeklyTeamResult,
+  getAwardsPageData,
 } from "../lib/queries/awards";
+
+import {
+  buildWeeklyAwards,
+} from "../lib/gazette/awards";
 
 export const prerender = false;
 
-type Award = {
-  label: string;
-  title: string;
-  teamName: string;
-  opponentName: string | null;
-  primaryValue: string;
-  description: string;
-  tone:
-    | "positive"
-    | "negative"
-    | "neutral"
-    | "warning";
-};
+const {
+  weekOptions,
+  seasons,
+  selectedOption,
+  selectedSeasonOptions,
+  results,
+} = await getAwardsPageData({
+  season: Astro.url.searchParams.get(
+    "season"
+  ),
+  week: Astro.url.searchParams.get(
+    "week"
+  ),
+});
 
-function formatPoints(value: number): string {
-  return value.toFixed(2);
-}
-
-function getHighest(
-  rows: WeeklyTeamResult[],
-  value: (row: WeeklyTeamResult) => number
-): WeeklyTeamResult | null {
-  return (
-    [...rows].sort(
-      (first, second) =>
-        value(second) - value(first)
-    )[0] ?? null
-  );
-}
-
-function getLowest(
-  rows: WeeklyTeamResult[],
-  value: (row: WeeklyTeamResult) => number
-): WeeklyTeamResult | null {
-  return (
-    [...rows].sort(
-      (first, second) =>
-        value(first) - value(second)
-    )[0] ?? null
-  );
-}
-
-const weekOptions =
-  await getAwardsWeekOptions();
-
-const requestedSeason = Number(
-  Astro.url.searchParams.get("season")
-);
-
-const requestedWeek = Number(
-  Astro.url.searchParams.get("week")
-);
-
-const requestedOption = weekOptions.find(
-  (option) =>
-    option.seasonYear === requestedSeason &&
-    option.week === requestedWeek
-);
-
-const selectedOption =
-  requestedOption ??
-  weekOptions.find(
-    (option) => option.isComplete
-  ) ??
-  weekOptions[0] ??
-  null;
-
-const results = selectedOption
-  ? await getWeeklyAwardsResults(
-      selectedOption.seasonYear,
+const awards = selectedOption
+  ? buildWeeklyAwards(
+      results,
       selectedOption.week
     )
   : [];
-
-const winners = results.filter(
-  (result) => result.result === "W"
-);
-
-const losers = results.filter(
-  (result) => result.result === "L"
-);
-
-const uniqueMatchups = Array.from(
-  new Map(
-    results.map((result) => [
-      result.matchup_id,
-      result,
-    ])
-  ).values()
-);
-
-const highestScore = getHighest(
-  results,
-  (result) => result.points_for
-);
-
-const lowestScore = getLowest(
-  results,
-  (result) => result.points_for
-);
-
-const biggestBlowout = getHighest(
-  winners,
-  (result) => result.point_differential
-);
-
-const closestMatchup = getLowest(
-  uniqueMatchups,
-  (result) =>
-    Math.abs(result.point_differential)
-);
-
-const highestScoringLoss = getHighest(
-  losers,
-  (result) => result.points_for
-);
-
-const luckiestWin = getLowest(
-  winners,
-  (result) => result.points_for
-);
-
-const bestBench = getHighest(
-  results,
-  (result) => result.bench_points
-);
-
-const awards: Award[] = [];
-
-if (highestScore) {
-  awards.push({
-    label: "Performance of the Week",
-    title: "The Golden Box Score",
-    teamName: highestScore.team_name,
-    opponentName:
-      highestScore.opponent_team_name,
-    primaryValue: `${formatPoints(
-      highestScore.points_for
-    )} points`,
-    description:
-      highestScore.result === "W"
-        ? `The week's highest-scoring lineup delivered a win against ${highestScore.opponent_team_name ?? "the opposition"}.`
-        : `The week's highest score somehow was not enough to secure a victory.`,
-    tone: "positive",
-  });
-}
-
-if (lowestScore) {
-  awards.push({
-    label: "Low-Water Mark",
-    title: "The Paper Bag",
-    teamName: lowestScore.team_name,
-    opponentName:
-      lowestScore.opponent_team_name,
-    primaryValue: `${formatPoints(
-      lowestScore.points_for
-    )} points`,
-    description: `No team scored fewer points during Week ${selectedOption?.week ?? ""}.`,
-    tone: "negative",
-  });
-}
-
-if (biggestBlowout) {
-  awards.push({
-    label: "Largest Margin",
-    title: "The Steamroller",
-    teamName: biggestBlowout.team_name,
-    opponentName:
-      biggestBlowout.opponent_team_name,
-    primaryValue: `+${formatPoints(
-      biggestBlowout.point_differential
-    )}`,
-    description: `${biggestBlowout.opponent_team_name ?? "The opponent"} was buried beneath the largest scoring margin of the week.`,
-    tone: "positive",
-  });
-}
-
-if (closestMatchup) {
-  awards.push({
-    label: "Closest Finish",
-    title: "The Photo Finish",
-    teamName:
-      closestMatchup.result === "L"
-        ? closestMatchup.opponent_team_name ??
-          closestMatchup.team_name
-        : closestMatchup.team_name,
-    opponentName:
-      closestMatchup.result === "L"
-        ? closestMatchup.team_name
-        : closestMatchup.opponent_team_name,
-    primaryValue: `${formatPoints(
-      Math.abs(
-        closestMatchup.point_differential
-      )
-    )}-point margin`,
-    description:
-      "The week's narrowest matchup came down to the smallest handful of points.",
-    tone: "neutral",
-  });
-}
-
-if (highestScoringLoss) {
-  awards.push({
-    label: "Toughest Defeat",
-    title: "The Bad Beat",
-    teamName:
-      highestScoringLoss.team_name,
-    opponentName:
-      highestScoringLoss.opponent_team_name,
-    primaryValue: `${formatPoints(
-      highestScoringLoss.points_for
-    )} points`,
-    description: `${highestScoringLoss.team_name} posted the highest score among the week's losing teams.`,
-    tone: "warning",
-  });
-}
-
-if (luckiestWin) {
-  awards.push({
-    label: "Lowest Winning Score",
-    title: "The Escape Artist",
-    teamName: luckiestWin.team_name,
-    opponentName:
-      luckiestWin.opponent_team_name,
-    primaryValue: `${formatPoints(
-      luckiestWin.points_for
-    )} points`,
-    description:
-      "A win is a win, even when the scoreboard suggests it should not have been comfortable.",
-    tone: "warning",
-  });
-}
-
-if (bestBench) {
-  awards.push({
-    label: "Bench Production",
-    title: "The Clipboard All-Stars",
-    teamName: bestBench.team_name,
-    opponentName:
-      bestBench.opponent_team_name,
-    primaryValue: `${formatPoints(
-      bestBench.bench_points
-    )} bench points`,
-    description:
-      "The most productive group of players who spent the week watching from the sideline.",
-    tone: "neutral",
-  });
-}
-
-const seasons = Array.from(
-  new Set(
-    weekOptions.map(
-      (option) => option.seasonYear
-    )
-  )
-).sort((first, second) => second - first);
-
-const selectedSeasonOptions =
-  selectedOption
-    ? weekOptions.filter(
-        (option) =>
-          option.seasonYear ===
-          selectedOption.seasonYear
-      )
-    : [];
-
-console.log({
-  weekOptions,
-  selectedOption,
-  resultsCount: results.length,
-  results,
-});
 ---
 
 <BaseLayout
@@ -323,7 +75,6 @@ console.log({
     </header>
 
     {
-      weekOptions.length > 0 &&
         selectedOption && (
           <section
             class="awards-controls"

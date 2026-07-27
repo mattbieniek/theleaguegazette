@@ -27,10 +27,53 @@ export type AwardsWeekOption = {
   isComplete: boolean;
 };
 
+export type AwardsPageData = {
+  weekOptions: AwardsWeekOption[];
+  seasons: number[];
+  selectedOption: AwardsWeekOption | null;
+  selectedSeasonOptions: AwardsWeekOption[];
+  results: WeeklyTeamResult[];
+};
+
+export type AwardsPageSelection = {
+  season?: string | number | null;
+  week?: string | number | null;
+};
+
 function toNumber(value: unknown): number {
   const parsed = Number(value);
 
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toOptionalNumber(
+  value: string | number | null | undefined
+): number | null {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return null;
+  }
+
+  const parsed = Number(value);
+
+  return Number.isFinite(parsed)
+    ? parsed
+    : null;
+}
+
+function getAvailableSeasons(
+  weekOptions: AwardsWeekOption[]
+): number[] {
+  return Array.from(
+    new Set(
+      weekOptions.map(
+        (option) => option.seasonYear
+      )
+    )
+  ).sort((first, second) => second - first);
 }
 
 function normalizeResult(
@@ -201,11 +244,93 @@ export async function getWeeklyAwardsResults(
       row as Record<string, unknown>
     )
   );
+}
 
-  console.log("Awards results query", {
-  seasonYear,
-  week,
-  data,
-  error,
-});
+export async function getAwardsPageData(
+  selection: AwardsPageSelection = {}
+): Promise<AwardsPageData> {
+  const weekOptions =
+    await getAwardsWeekOptions();
+
+  const seasons =
+    getAvailableSeasons(weekOptions);
+
+  const requestedSeason =
+    toOptionalNumber(selection.season);
+
+  const requestedWeek =
+    toOptionalNumber(selection.week);
+
+  const requestedOption =
+    requestedSeason !== null &&
+    requestedWeek !== null
+      ? weekOptions.find(
+          (option) =>
+            option.seasonYear ===
+              requestedSeason &&
+            option.week === requestedWeek
+        ) ?? null
+      : null;
+
+  /*
+   * When a season is provided without a week,
+   * default to the latest complete week from
+   * that season.
+   */
+  const requestedSeasonDefault =
+    requestedSeason !== null
+      ? weekOptions.find(
+          (option) =>
+            option.seasonYear ===
+              requestedSeason &&
+            option.isComplete
+        ) ??
+        weekOptions.find(
+          (option) =>
+            option.seasonYear ===
+            requestedSeason
+        ) ??
+        null
+      : null;
+
+  /*
+   * Default behavior:
+   * 1. Exact requested season/week
+   * 2. Latest complete week in requested season
+   * 3. Latest available week in requested season
+   * 4. Latest complete week overall
+   * 5. Latest week overall
+   */
+  const selectedOption =
+    requestedOption ??
+    requestedSeasonDefault ??
+    weekOptions.find(
+      (option) => option.isComplete
+    ) ??
+    weekOptions[0] ??
+    null;
+
+  const selectedSeasonOptions =
+    selectedOption
+      ? weekOptions.filter(
+          (option) =>
+            option.seasonYear ===
+            selectedOption.seasonYear
+        )
+      : [];
+
+  const results = selectedOption
+    ? await getWeeklyAwardsResults(
+        selectedOption.seasonYear,
+        selectedOption.week
+      )
+    : [];
+
+  return {
+    weekOptions,
+    seasons,
+    selectedOption,
+    selectedSeasonOptions,
+    results,
+  };
 }
