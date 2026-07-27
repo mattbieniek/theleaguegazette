@@ -19,36 +19,52 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
     </header>
 
     <section class="stories-summary" aria-label="Story totals">
-  <article class="stories-summary__card">
-    <span>All stories</span>
-    <strong id="all-count">0</strong>
-  </article>
+      <button class="stories-summary__card" type="button" data-status-card="all">
+        <span>All stories</span>
+        <strong id="all-count">0</strong>
+      </button>
 
-  <article class="stories-summary__card">
-    <span>Drafts</span>
-    <strong id="draft-count">0</strong>
-  </article>
+      <button class="stories-summary__card" type="button" data-status-card="draft">
+        <span>Drafts</span>
+        <strong id="draft-count">0</strong>
+      </button>
 
-  <article class="stories-summary__card">
-    <span>Ready for review</span>
-    <strong id="review-count">0</strong>
-  </article>
+      <button
+        class="stories-summary__card"
+        type="button"
+        data-status-card="ready_for_review"
+      >
+        <span>Ready for review</span>
+        <strong id="review-count">0</strong>
+      </button>
 
-  <article class="stories-summary__card">
-    <span>Scheduled</span>
-    <strong id="scheduled-count">0</strong>
-  </article>
+      <button
+        class="stories-summary__card"
+        type="button"
+        data-status-card="scheduled"
+      >
+        <span>Scheduled</span>
+        <strong id="scheduled-count">0</strong>
+      </button>
 
-  <article class="stories-summary__card">
-    <span>Published</span>
-    <strong id="published-count">0</strong>
-  </article>
+      <button
+        class="stories-summary__card"
+        type="button"
+        data-status-card="published"
+      >
+        <span>Published</span>
+        <strong id="published-count">0</strong>
+      </button>
 
-  <article class="stories-summary__card">
-    <span>Archived</span>
-    <strong id="archived-count">0</strong>
-  </article>
-</section>
+      <button
+        class="stories-summary__card"
+        type="button"
+        data-status-card="archived"
+      >
+        <span>Archived</span>
+        <strong id="archived-count">0</strong>
+      </button>
+    </section>
 
     <section class="stories-toolbar" aria-label="Story controls">
       <label class="stories-search">
@@ -62,23 +78,50 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         <input
           id="story-search"
           type="search"
-          placeholder="Search stories"
+          placeholder="Search headline, category or author"
           autocomplete="off"
         />
       </label>
 
-      <label class="stories-filter">
-        <span class="sr-only">Filter by status</span>
+      <div class="stories-toolbar__filters">
+        <label class="stories-filter">
+          <span class="stories-filter__label">Status</span>
 
-        <select id="status-filter">
-  <option value="all">All statuses</option>
-  <option value="draft">Drafts</option>
-  <option value="ready_for_review">Ready for review</option>
-  <option value="scheduled">Scheduled</option>
-  <option value="published">Published</option>
-  <option value="archived">Archived</option>
-</select>
-      </label>
+          <select id="status-filter">
+            <option value="all">All statuses</option>
+            <option value="draft">Drafts</option>
+            <option value="ready_for_review">Ready for review</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="published">Published</option>
+            <option value="archived">Archived</option>
+          </select>
+        </label>
+
+        <label class="stories-filter">
+          <span class="stories-filter__label">Category</span>
+
+          <select id="category-filter">
+            <option value="all">All categories</option>
+          </select>
+        </label>
+
+        <label class="stories-filter">
+          <span class="stories-filter__label">Sort</span>
+
+          <select id="sort-filter">
+            <option value="updated-desc">Recently updated</option>
+            <option value="created-desc">Recently created</option>
+            <option value="published-desc">Publication date: newest</option>
+            <option value="published-asc">Publication date: oldest</option>
+            <option value="headline-asc">Headline: A–Z</option>
+            <option value="headline-desc">Headline: Z–A</option>
+          </select>
+        </label>
+
+        <button id="clear-filters" class="stories-clear" type="button" hidden>
+          Clear
+        </button>
+      </div>
     </section>
 
     <div
@@ -92,7 +135,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       <div class="stories-panel__heading">
         <div>
           <p class="eyebrow">Archive</p>
-          <h2>All stories</h2>
+          <h2 id="stories-panel-title">All stories</h2>
         </div>
 
         <span id="visible-count" class="stories-panel__count">
@@ -105,9 +148,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       <div id="stories-empty" class="stories-empty" hidden>
         <p class="eyebrow">No results</p>
         <h3>No stories found</h3>
-        <p>
-          Try changing your search or status filter.
-        </p>
+        <p>Try changing your search, filters or sort order.</p>
       </div>
     </section>
   </div>
@@ -116,208 +157,328 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
     import { supabaseBrowser } from "../../../lib/supabase-browser";
 
     type ArticleStatus =
-  | "draft"
-  | "ready_for_review"
-  | "scheduled"
-  | "published"
-  | "archived";
+      | "draft"
+      | "ready_for_review"
+      | "scheduled"
+      | "published"
+      | "archived";
 
-type ArticleSummary = {
-  id: string;
-  slug: string;
-  category: string;
-  headline: string;
-  author_name: string;
-  status: ArticleStatus;
-  status_label: string;
-  is_featured: boolean;
-  published_at: string | null;
-  updated_at: string;
-  editorial_date: string;
-  editorial_sort_at: string;
-  can_publish: boolean;
-  needs_image_alt: boolean;
-  is_due_for_publishing: boolean;
-  is_publicly_available: boolean;
-};
+    type SortOption =
+      | "updated-desc"
+      | "created-desc"
+      | "published-desc"
+      | "published-asc"
+      | "headline-asc"
+      | "headline-desc";
 
-    const loading =
-      document.querySelector<HTMLElement>("#stories-loading");
+    type ArticleSummary = {
+      id: string;
+      slug: string | null;
+      category: string | null;
+      headline: string | null;
+      author_name: string | null;
+      status: ArticleStatus;
+      status_label: string;
+      is_featured: boolean;
+      published_at: string | null;
+      created_at: string;
+      updated_at: string;
+      editorial_date: string;
+      editorial_sort_at: string;
+      can_publish: boolean;
+      needs_image_alt: boolean;
+      is_due_for_publishing: boolean;
+      is_publicly_available: boolean;
+    };
 
-    const page =
-      document.querySelector<HTMLElement>("#stories-page");
+    const STATUS_LABELS: Record<ArticleStatus | "all", string> = {
+      all: "All stories",
+      draft: "Drafts",
+      ready_for_review: "Ready for review",
+      scheduled: "Scheduled stories",
+      published: "Published stories",
+      archived: "Archived stories",
+    };
 
-    const storyList =
-      document.querySelector<HTMLElement>("#story-list");
+    const VALID_SORT_OPTIONS = new Set<SortOption>([
+      "updated-desc",
+      "created-desc",
+      "published-desc",
+      "published-asc",
+      "headline-asc",
+      "headline-desc",
+    ]);
 
-    const message =
-      document.querySelector<HTMLElement>("#stories-message");
-
-    const emptyState =
-      document.querySelector<HTMLElement>("#stories-empty");
-
+    const loading = document.querySelector<HTMLElement>("#stories-loading");
+    const page = document.querySelector<HTMLElement>("#stories-page");
+    const storyList = document.querySelector<HTMLElement>("#story-list");
+    const message = document.querySelector<HTMLElement>("#stories-message");
+    const emptyState = document.querySelector<HTMLElement>("#stories-empty");
     const searchInput =
       document.querySelector<HTMLInputElement>("#story-search");
-
     const statusFilter =
       document.querySelector<HTMLSelectElement>("#status-filter");
+    const categoryFilter =
+      document.querySelector<HTMLSelectElement>("#category-filter");
+    const sortFilter =
+      document.querySelector<HTMLSelectElement>("#sort-filter");
+    const clearFiltersButton =
+      document.querySelector<HTMLButtonElement>("#clear-filters");
+    const panelTitle =
+      document.querySelector<HTMLElement>("#stories-panel-title");
+    const summaryCards = Array.from(
+      document.querySelectorAll<HTMLButtonElement>("[data-status-card]"),
+    );
 
-    const allCount =
-      document.querySelector<HTMLElement>("#all-count");
-
+    const allCount = document.querySelector<HTMLElement>("#all-count");
+    const draftCount = document.querySelector<HTMLElement>("#draft-count");
+    const reviewCount = document.querySelector<HTMLElement>("#review-count");
+    const scheduledCount =
+      document.querySelector<HTMLElement>("#scheduled-count");
     const publishedCount =
       document.querySelector<HTMLElement>("#published-count");
-
-    const draftCount =
-      document.querySelector<HTMLElement>("#draft-count");
-
-    const reviewCount =
-  document.querySelector<HTMLElement>("#review-count");
-
-const scheduledCount =
-  document.querySelector<HTMLElement>("#scheduled-count");
-
     const archivedCount =
       document.querySelector<HTMLElement>("#archived-count");
-
     const visibleCount =
       document.querySelector<HTMLElement>("#visible-count");
 
     let articles: ArticleSummary[] = [];
+    let searchUrlTimer: number | undefined;
+
+    function normalizeText(value: string | null | undefined): string {
+      return value?.trim() ?? "";
+    }
 
     function formatDate(value: string | null): string {
       if (!value) {
         return "Not published";
       }
 
+      const parsedDate = new Date(value);
+
+      if (Number.isNaN(parsedDate.getTime())) {
+        return "Date unavailable";
+      }
+
       return new Intl.DateTimeFormat("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
-      }).format(new Date(value));
+      }).format(parsedDate);
     }
 
-    function getArticleDateLabel(
-  article: ArticleSummary
-): string {
-  if (
-    article.status === "scheduled" &&
-    article.is_due_for_publishing &&
-    article.published_at
-  ) {
-    return `Published automatically ${formatDate(
-      article.published_at
-    )}`;
-  }
+    function getArticleDateLabel(article: ArticleSummary): string {
+      if (
+        article.status === "scheduled" &&
+        article.is_due_for_publishing &&
+        article.published_at
+      ) {
+        return `Published automatically ${formatDate(article.published_at)}`;
+      }
 
-  if (
-    article.status === "scheduled" &&
-    article.published_at
-  ) {
-    return `Scheduled for ${formatDate(
-      article.published_at
-    )}`;
-  }
+      if (article.status === "scheduled" && article.published_at) {
+        return `Scheduled for ${formatDate(article.published_at)}`;
+      }
 
-  if (
-    article.status === "published" &&
-    article.published_at
-  ) {
-    return `Published ${formatDate(
-      article.published_at
-    )}`;
-  }
+      if (article.status === "published" && article.published_at) {
+        return `Published ${formatDate(article.published_at)}`;
+      }
 
-  if (article.status === "archived") {
-    return `Archived · Updated ${formatDate(
-      article.updated_at
-    )}`;
-  }
+      if (article.status === "archived") {
+        return `Archived · Updated ${formatDate(article.updated_at)}`;
+      }
 
-  return `Updated ${formatDate(article.updated_at)}`;
-}
+      return `Updated ${formatDate(article.updated_at)}`;
+    }
 
-    function createStoryRow(
-  article: ArticleSummary
-): HTMLElement {
-  const row = document.createElement("article");
-  row.className = "story-row";
+    function createStoryRow(article: ArticleSummary): HTMLElement {
+      const row = document.createElement("article");
+      row.className = "story-row";
 
-  const main = document.createElement("div");
-  main.className = "story-row__main";
+      const main = document.createElement("div");
+      main.className = "story-row__main";
 
-  const categoryRow = document.createElement("div");
-  categoryRow.className = "story-row__category-row";
+      const categoryRow = document.createElement("div");
+      categoryRow.className = "story-row__category-row";
 
-  const category = document.createElement("p");
-  category.className = "story-row__category";
-  category.textContent =
-    article.category || "Uncategorized";
+      const category = document.createElement("p");
+      category.className = "story-row__category";
+      category.textContent = normalizeText(article.category) || "Uncategorized";
 
-  categoryRow.append(category);
+      categoryRow.append(category);
 
-  if (article.is_featured) {
-    const featured = document.createElement("span");
-    featured.className = "story-row__featured";
-    featured.textContent = "Featured";
+      if (article.is_featured) {
+        const featured = document.createElement("span");
+        featured.className = "story-row__featured";
+        featured.textContent = "Featured";
+        categoryRow.append(featured);
+      }
 
-    categoryRow.append(featured);
-  }
+      if (article.needs_image_alt) {
+        const warning = document.createElement("span");
+        warning.className = "story-row__warning";
+        warning.textContent = "Needs image alt text";
+        categoryRow.append(warning);
+      }
 
-  const headline = document.createElement("h3");
+      const headline = document.createElement("h3");
+      const editLink = document.createElement("a");
+      editLink.href = `/admin/articles/${article.id}`;
+      editLink.textContent = normalizeText(article.headline) || "Untitled story";
+      headline.append(editLink);
 
-  const editLink = document.createElement("a");
-  editLink.href = `/admin/articles/${article.id}`;
-  editLink.textContent =
-    article.headline || "Untitled story";
+      const meta = document.createElement("p");
+      meta.className = "story-row__meta";
 
-  headline.append(editLink);
+      const authorName = normalizeText(article.author_name);
+      const dateLabel = getArticleDateLabel(article);
+      meta.textContent = authorName ? `${authorName} · ${dateLabel}` : dateLabel;
 
-  const meta = document.createElement("p");
-  meta.className = "story-row__meta";
-  meta.textContent = getArticleDateLabel(article);
+      main.append(categoryRow, headline, meta);
 
-  main.append(categoryRow, headline, meta);
+      const status = document.createElement("span");
+      const statusModifier =
+        article.status === "scheduled" && article.is_due_for_publishing
+          ? "live-scheduled"
+          : article.status;
 
-  const status = document.createElement("span");
+      status.className = `status-badge status-badge--${statusModifier}`;
+      status.textContent = article.status_label;
 
-const statusModifier =
-  article.status === "scheduled" &&
-  article.is_due_for_publishing
-    ? "live-scheduled"
-    : article.status;
+      const actions = document.createElement("div");
+      actions.className = "story-row__actions";
 
-status.className =
-  `status-badge status-badge--${statusModifier}`;
+      const editAction = document.createElement("a");
+      editAction.href = `/admin/articles/${article.id}`;
+      editAction.textContent = "Edit";
 
-status.textContent = article.status_label;
+      if (article.is_publicly_available && article.slug) {
+        const viewAction = document.createElement("a");
+        viewAction.href = `/gazette/${article.slug}`;
+        viewAction.target = "_blank";
+        viewAction.rel = "noreferrer";
+        viewAction.textContent = "View live";
+        actions.append(viewAction);
+      }
 
-  const actions = document.createElement("div");
-  actions.className = "story-row__actions";
+      actions.append(editAction);
+      row.append(main, status, actions);
 
-  const editAction = document.createElement("a");
-  editAction.href = `/admin/articles/${article.id}`;
-  editAction.textContent = "Edit";
+      return row;
+    }
 
-  if (
-  article.is_publicly_available &&
-  article.slug
-) {
-    const viewAction = document.createElement("a");
-    viewAction.href = `/gazette/${article.slug}`;
-    viewAction.target = "_blank";
-    viewAction.rel = "noreferrer";
-    viewAction.textContent = "View";
+    function compareDateValues(
+      firstValue: string | null,
+      secondValue: string | null,
+      direction: "asc" | "desc",
+    ): number {
+      const firstTime = firstValue ? new Date(firstValue).getTime() : NaN;
+      const secondTime = secondValue ? new Date(secondValue).getTime() : NaN;
+      const firstIsValid = !Number.isNaN(firstTime);
+      const secondIsValid = !Number.isNaN(secondTime);
 
-    actions.append(viewAction);
-  }
+      if (!firstIsValid && !secondIsValid) {
+        return 0;
+      }
 
-  actions.append(editAction);
+      if (!firstIsValid) {
+        return 1;
+      }
 
-  row.append(main, status, actions);
+      if (!secondIsValid) {
+        return -1;
+      }
 
-  return row;
-}
+      return direction === "asc"
+        ? firstTime - secondTime
+        : secondTime - firstTime;
+    }
+
+    function sortArticles(
+      items: ArticleSummary[],
+      selectedSort: SortOption,
+    ): ArticleSummary[] {
+      return [...items].sort((first, second) => {
+        switch (selectedSort) {
+          case "created-desc":
+            return compareDateValues(first.created_at, second.created_at, "desc");
+
+          case "published-desc":
+            return compareDateValues(
+              first.published_at,
+              second.published_at,
+              "desc",
+            );
+
+          case "published-asc":
+            return compareDateValues(
+              first.published_at,
+              second.published_at,
+              "asc",
+            );
+
+          case "headline-asc":
+            return normalizeText(first.headline).localeCompare(
+              normalizeText(second.headline),
+              "en-US",
+              { sensitivity: "base" },
+            );
+
+          case "headline-desc":
+            return normalizeText(second.headline).localeCompare(
+              normalizeText(first.headline),
+              "en-US",
+              { sensitivity: "base" },
+            );
+
+          case "updated-desc":
+          default:
+            return compareDateValues(first.updated_at, second.updated_at, "desc");
+        }
+      });
+    }
+
+    function getSelectedStatus(): ArticleStatus | "all" {
+      const selectedStatus = statusFilter?.value ?? "all";
+
+      return selectedStatus === "draft" ||
+        selectedStatus === "ready_for_review" ||
+        selectedStatus === "scheduled" ||
+        selectedStatus === "published" ||
+        selectedStatus === "archived"
+        ? selectedStatus
+        : "all";
+    }
+
+    function getSelectedSort(): SortOption {
+      const selectedSort = sortFilter?.value as SortOption | undefined;
+
+      return selectedSort && VALID_SORT_OPTIONS.has(selectedSort)
+        ? selectedSort
+        : "updated-desc";
+    }
+
+    function updateSummaryCardState(selectedStatus: ArticleStatus | "all"): void {
+      for (const card of summaryCards) {
+        const isActive = card.dataset.statusCard === selectedStatus;
+        card.classList.toggle("is-active", isActive);
+        card.setAttribute("aria-pressed", String(isActive));
+      }
+    }
+
+    function updateClearButtonState(): void {
+      if (!clearFiltersButton) {
+        return;
+      }
+
+      const hasActiveControls =
+        Boolean(searchInput?.value.trim()) ||
+        getSelectedStatus() !== "all" ||
+        (categoryFilter?.value ?? "all") !== "all" ||
+        getSelectedSort() !== "updated-desc";
+
+      clearFiltersButton.hidden = !hasActiveControls;
+    }
 
     function renderStories(): void {
       if (!storyList || !emptyState) {
@@ -325,39 +486,192 @@ status.textContent = article.status_label;
       }
 
       const query = searchInput?.value.trim().toLowerCase() ?? "";
-      const selectedStatus = statusFilter?.value ?? "all";
+      const selectedStatus = getSelectedStatus();
+      const selectedCategory = categoryFilter?.value ?? "all";
+      const selectedSort = getSelectedSort();
 
       const filteredArticles = articles.filter((article) => {
-        const matchesSearch =
-  !query ||
-  article.headline.toLowerCase().includes(query) ||
-  article.category.toLowerCase().includes(query) ||
-  article.author_name.toLowerCase().includes(query);
+        const searchableText = [
+          normalizeText(article.headline),
+          normalizeText(article.category),
+          normalizeText(article.author_name),
+        ]
+          .join(" ")
+          .toLowerCase();
 
+        const matchesSearch = !query || searchableText.includes(query);
         const matchesStatus =
-          selectedStatus === "all" ||
-          article.status === selectedStatus;
+          selectedStatus === "all" || article.status === selectedStatus;
+        const articleCategory = normalizeText(article.category) || "Uncategorized";
+        const matchesCategory =
+          selectedCategory === "all" || articleCategory === selectedCategory;
 
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesStatus && matchesCategory;
       });
+
+      const sortedArticles = sortArticles(filteredArticles, selectedSort);
 
       storyList.replaceChildren();
 
-      for (const article of filteredArticles) {
+      for (const article of sortedArticles) {
         storyList.append(createStoryRow(article));
       }
 
-      const hasResults = filteredArticles.length > 0;
-
+      const hasResults = sortedArticles.length > 0;
       storyList.hidden = !hasResults;
       emptyState.hidden = hasResults;
 
       if (visibleCount) {
-        visibleCount.textContent =
-          `${filteredArticles.length} ${
-            filteredArticles.length === 1 ? "story" : "stories"
-          }`;
+        visibleCount.textContent = `${sortedArticles.length} ${
+          sortedArticles.length === 1 ? "story" : "stories"
+        }`;
       }
+
+      if (panelTitle) {
+        panelTitle.textContent = STATUS_LABELS[selectedStatus];
+      }
+
+      updateSummaryCardState(selectedStatus);
+      updateClearButtonState();
+    }
+
+    function populateCategoryFilter(): void {
+      if (!categoryFilter) {
+        return;
+      }
+
+      const categories = Array.from(
+        new Set(
+          articles.map(
+            (article) => normalizeText(article.category) || "Uncategorized",
+          ),
+        ),
+      ).sort((first, second) =>
+        first.localeCompare(second, "en-US", { sensitivity: "base" }),
+      );
+
+      categoryFilter.replaceChildren();
+
+      const allOption = document.createElement("option");
+      allOption.value = "all";
+      allOption.textContent = "All categories";
+      categoryFilter.append(allOption);
+
+      for (const category of categories) {
+        const option = document.createElement("option");
+        option.value = category;
+        option.textContent = category;
+        categoryFilter.append(option);
+      }
+    }
+
+    function syncUrlFromControls(): void {
+      const url = new URL(window.location.href);
+      const query = searchInput?.value.trim() ?? "";
+      const selectedStatus = getSelectedStatus();
+      const selectedCategory = categoryFilter?.value ?? "all";
+      const selectedSort = getSelectedSort();
+
+      if (query) {
+        url.searchParams.set("q", query);
+      } else {
+        url.searchParams.delete("q");
+      }
+
+      if (selectedStatus === "all") {
+        url.searchParams.delete("status");
+      } else {
+        url.searchParams.set("status", selectedStatus);
+      }
+
+      if (selectedCategory === "all") {
+        url.searchParams.delete("category");
+      } else {
+        url.searchParams.set("category", selectedCategory);
+      }
+
+      if (selectedSort === "updated-desc") {
+        url.searchParams.delete("sort");
+      } else {
+        url.searchParams.set("sort", selectedSort);
+      }
+
+      window.history.replaceState({}, "", url);
+    }
+
+    function scheduleSearchUrlSync(): void {
+      if (searchUrlTimer !== undefined) {
+        window.clearTimeout(searchUrlTimer);
+      }
+
+      searchUrlTimer = window.setTimeout(() => {
+        syncUrlFromControls();
+      }, 250);
+    }
+
+    function applyStateFromUrl(): void {
+      const params = new URLSearchParams(window.location.search);
+      const statusFromUrl = params.get("status");
+      const categoryFromUrl = params.get("category");
+      const sortFromUrl = params.get("sort") as SortOption | null;
+      const queryFromUrl = params.get("q") ?? "";
+
+      if (searchInput) {
+        searchInput.value = queryFromUrl;
+      }
+
+      if (
+        statusFilter &&
+        (statusFromUrl === "draft" ||
+          statusFromUrl === "ready_for_review" ||
+          statusFromUrl === "scheduled" ||
+          statusFromUrl === "published" ||
+          statusFromUrl === "archived")
+      ) {
+        statusFilter.value = statusFromUrl;
+      } else if (statusFilter) {
+        statusFilter.value = "all";
+      }
+
+      if (
+        categoryFilter &&
+        categoryFromUrl &&
+        Array.from(categoryFilter.options).some(
+          (option) => option.value === categoryFromUrl,
+        )
+      ) {
+        categoryFilter.value = categoryFromUrl;
+      } else if (categoryFilter) {
+        categoryFilter.value = "all";
+      }
+
+      if (sortFilter && sortFromUrl && VALID_SORT_OPTIONS.has(sortFromUrl)) {
+        sortFilter.value = sortFromUrl;
+      } else if (sortFilter) {
+        sortFilter.value = "updated-desc";
+      }
+    }
+
+    function clearFilters(): void {
+      if (searchInput) {
+        searchInput.value = "";
+      }
+
+      if (statusFilter) {
+        statusFilter.value = "all";
+      }
+
+      if (categoryFilter) {
+        categoryFilter.value = "all";
+      }
+
+      if (sortFilter) {
+        sortFilter.value = "updated-desc";
+      }
+
+      syncUrlFromControls();
+      renderStories();
+      searchInput?.focus();
     }
 
     async function verifyAdmin(): Promise<boolean> {
@@ -371,10 +685,7 @@ status.textContent = article.status_label;
         return false;
       }
 
-      const {
-        data: adminRecord,
-        error: adminError,
-      } = await supabaseBrowser
+      const { data: adminRecord, error: adminError } = await supabaseBrowser
         .from("admin_users")
         .select("user_id")
         .eq("user_id", user.id)
@@ -389,29 +700,6 @@ status.textContent = article.status_label;
       return true;
     }
 
-    function applyStatusFromUrl(): void {
-  if (!statusFilter) {
-    return;
-  }
-
-  const statusFromUrl =
-    new URLSearchParams(window.location.search)
-      .get("status");
-
-  if (
-    statusFromUrl &&
-    (
-      statusFromUrl === "draft" ||
-      statusFromUrl === "ready_for_review" ||
-      statusFromUrl === "scheduled" ||
-      statusFromUrl === "published" ||
-      statusFromUrl === "archived"
-    )
-  ) {
-    statusFilter.value = statusFromUrl;
-  }
-}
-
     async function initializeStories(): Promise<void> {
       const isAdmin = await verifyAdmin();
 
@@ -420,30 +708,31 @@ status.textContent = article.status_label;
       }
 
       const { data, error } = await supabaseBrowser
-  .from("editorial_articles")
-  .select(
-    `
-      id,
-      slug,
-      category,
-      headline,
-      author_name,
-      status,
-      status_label,
-      is_featured,
-      published_at,
-      updated_at,
-      editorial_date,
-      editorial_sort_at,
-      can_publish,
-      needs_image_alt,
-      is_due_for_publishing,
-      is_publicly_available
-    `
-  )
-  .order("editorial_sort_at", {
-    ascending: false,
-  });
+        .from("editorial_articles")
+        .select(
+          `
+            id,
+            slug,
+            category,
+            headline,
+            author_name,
+            status,
+            status_label,
+            is_featured,
+            published_at,
+            created_at,
+            updated_at,
+            editorial_date,
+            editorial_sort_at,
+            can_publish,
+            needs_image_alt,
+            is_due_for_publishing,
+            is_publicly_available
+          `,
+        )
+        .order("editorial_sort_at", {
+          ascending: false,
+        });
 
       if (loading) {
         loading.hidden = true;
@@ -455,8 +744,7 @@ status.textContent = article.status_label;
 
       if (error) {
         if (message) {
-          message.textContent =
-            `Unable to load stories: ${error.message}`;
+          message.textContent = `Unable to load stories: ${error.message}`;
         }
 
         return;
@@ -468,71 +756,73 @@ status.textContent = article.status_label;
         allCount.textContent = String(articles.length);
       }
 
-      const countByStatus = (
-  status: ArticleStatus
-): number =>
-  articles.filter(
-    (article) => article.status === status
-  ).length;
+      const countByStatus = (status: ArticleStatus): number =>
+        articles.filter((article) => article.status === status).length;
 
-if (draftCount) {
-  draftCount.textContent = String(
-    countByStatus("draft")
-  );
-}
+      if (draftCount) {
+        draftCount.textContent = String(countByStatus("draft"));
+      }
 
-if (reviewCount) {
-  reviewCount.textContent = String(
-    countByStatus("ready_for_review")
-  );
-}
+      if (reviewCount) {
+        reviewCount.textContent = String(countByStatus("ready_for_review"));
+      }
 
-if (scheduledCount) {
-  scheduledCount.textContent = String(
-    countByStatus("scheduled")
-  );
-}
+      if (scheduledCount) {
+        scheduledCount.textContent = String(countByStatus("scheduled"));
+      }
 
-if (publishedCount) {
-  publishedCount.textContent = String(
-    countByStatus("published")
-  );
-}
+      if (publishedCount) {
+        publishedCount.textContent = String(countByStatus("published"));
+      }
 
-if (archivedCount) {
-  archivedCount.textContent = String(
-    countByStatus("archived")
-  );
-}
+      if (archivedCount) {
+        archivedCount.textContent = String(countByStatus("archived"));
+      }
 
-      applyStatusFromUrl();
+      populateCategoryFilter();
+      applyStateFromUrl();
       renderStories();
     }
 
-    searchInput?.addEventListener("input", renderStories);
+    searchInput?.addEventListener("input", () => {
+      renderStories();
+      scheduleSearchUrlSync();
+    });
+
     statusFilter?.addEventListener("change", () => {
-  const selectedStatus =
-    statusFilter.value;
+      syncUrlFromControls();
+      renderStories();
+    });
 
-  const url = new URL(window.location.href);
+    categoryFilter?.addEventListener("change", () => {
+      syncUrlFromControls();
+      renderStories();
+    });
 
-  if (selectedStatus === "all") {
-    url.searchParams.delete("status");
-  } else {
-    url.searchParams.set(
-      "status",
-      selectedStatus
-    );
-  }
+    sortFilter?.addEventListener("change", () => {
+      syncUrlFromControls();
+      renderStories();
+    });
 
-  window.history.replaceState(
-    {},
-    "",
-    url
-  );
+    clearFiltersButton?.addEventListener("click", clearFilters);
 
-  renderStories();
-});
+    for (const card of summaryCards) {
+      card.addEventListener("click", () => {
+        const requestedStatus = card.dataset.statusCard ?? "all";
+
+        if (statusFilter) {
+          statusFilter.value = requestedStatus;
+        }
+
+        syncUrlFromControls();
+        renderStories();
+      });
+    }
+
+    window.addEventListener("popstate", () => {
+      applyStateFromUrl();
+      renderStories();
+    });
 
     initializeStories();
   </script>
@@ -544,6 +834,11 @@ if (archivedCount) {
     display: grid;
     place-items: center;
     color: var(--color-ink-soft);
+  }
+
+  .stories-loading[hidden],
+  .stories-page[hidden] {
+    display: none;
   }
 
   .stories-page {
@@ -574,11 +869,34 @@ if (archivedCount) {
     font-size: clamp(1rem, 1.4vw, 1.15rem);
   }
 
+  .stories-new-button {
+    display: inline-flex;
+    min-height: 3.25rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.8rem 1.15rem;
+    border: 1px solid var(--color-green);
+    border-radius: var(--radius-sm);
+    background: var(--color-green);
+    color: #fff;
+    font-size: var(--text-sm);
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: var(--shadow-card);
+  }
+
+  .stories-new-button:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+  }
+
   .stories-summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
-}
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
 
   .stories-summary__card {
     display: grid;
@@ -588,7 +906,29 @@ if (archivedCount) {
     border: 1px solid var(--color-rule);
     border-radius: var(--radius-lg);
     background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    text-align: left;
     box-shadow: var(--shadow-card);
+    cursor: pointer;
+    transition:
+      transform 150ms ease,
+      border-color 150ms ease,
+      background 150ms ease;
+  }
+
+  .stories-summary__card:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-green);
+  }
+
+  .stories-summary__card.is-active {
+    border-color: var(--color-green);
+    background: color-mix(
+      in srgb,
+      var(--color-green) 5%,
+      var(--color-surface)
+    );
   }
 
   .stories-summary__card span {
@@ -606,14 +946,19 @@ if (archivedCount) {
   }
 
   .stories-toolbar {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
+    display: grid;
+    grid-template-columns: minmax(18rem, 1fr) auto;
+    align-items: end;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
   }
 
   .stories-search {
     position: relative;
-    flex: 1;
   }
 
   .stories-search svg {
@@ -629,12 +974,33 @@ if (archivedCount) {
     pointer-events: none;
   }
 
+  .stories-toolbar__filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: end;
+    gap: var(--space-3);
+  }
+
+  .stories-filter {
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .stories-filter__label {
+    color: var(--color-ink-soft);
+    font-size: 0.65rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
   .stories-search input,
   .stories-filter select {
     min-height: 3.1rem;
     border: 1px solid var(--color-rule-dark);
     border-radius: var(--radius-sm);
-    background: var(--color-surface);
+    background: var(--color-paper-light);
     color: var(--color-ink);
     font: inherit;
   }
@@ -645,15 +1011,39 @@ if (archivedCount) {
   }
 
   .stories-filter select {
-    min-width: 11rem;
-    padding: 0.75rem 2.5rem 0.75rem 0.9rem;
+    min-width: 10.5rem;
+    padding: 0.75rem 2.4rem 0.75rem 0.9rem;
+  }
+
+  .stories-filter:last-of-type select {
+    min-width: 13.5rem;
   }
 
   .stories-search input:focus,
-  .stories-filter select:focus {
+  .stories-filter select:focus,
+  .stories-clear:focus-visible,
+  .stories-summary__card:focus-visible,
+  .stories-new-button:focus-visible {
     border-color: var(--color-green);
     outline: 3px solid
       color-mix(in srgb, var(--color-green) 18%, transparent);
+  }
+
+  .stories-clear {
+    min-height: 3.1rem;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--color-rule-dark);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-green);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .stories-clear:hover {
+    background: color-mix(in srgb, var(--color-green) 6%, transparent);
   }
 
   .stories-message {
@@ -704,7 +1094,7 @@ if (archivedCount) {
     display: grid;
   }
 
-  .story-row {
+  :global(.story-row) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
@@ -712,27 +1102,35 @@ if (archivedCount) {
     padding: clamp(1.2rem, 3vw, 1.75rem)
       clamp(1.25rem, 3vw, 2rem);
     border-bottom: 1px solid var(--color-rule);
+    transition: background 150ms ease;
   }
 
-  .story-row:last-child {
+  :global(.story-row):last-child {
     border-bottom: 0;
   }
 
-  .story-row:hover {
-    background:
-      color-mix(
-        in srgb,
-        var(--color-green) 4%,
-        var(--color-surface)
-      );
+  :global(.story-row):hover {
+    background: color-mix(
+      in srgb,
+      var(--color-green) 4%,
+      var(--color-surface)
+    );
   }
 
   .story-row__main {
     min-width: 0;
   }
 
-  .story-row__category {
-    margin: 0 0 var(--space-2);
+  :global(.story-row__category-row) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: var(--space-2);
+  }
+
+  :global(.story-row__category) {
+    margin: 0;
     color: var(--color-green);
     font-size: 0.68rem;
     font-weight: 850;
@@ -740,46 +1138,70 @@ if (archivedCount) {
     text-transform: uppercase;
   }
 
-  .story-row h3 {
+  :global(.story-row__featured),
+  :global(.story-row__warning) {
+    display: inline-flex;
+    padding: 0.2rem 0.4rem;
+    border-radius: 999px;
+    font-size: 0.56rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  :global(.story-row__featured) {
+    border: 1px solid
+      color-mix(in srgb, var(--color-green) 25%, transparent);
+    color: var(--color-green);
+  }
+
+  :global(.story-row__warning) {
+    border: 1px solid #d7b0aa;
+    background: #f9ece9;
+    color: #8c3028;
+  }
+
+  :global(.story-row) h3 {
     margin: 0;
     font-size: clamp(1.25rem, 2.2vw, 1.65rem);
     letter-spacing: -0.025em;
     line-height: 1.1;
   }
 
-  .story-row h3 a {
+  :global(.story-row) h3 a {
     color: inherit;
     text-decoration: none;
   }
 
-  .story-row h3 a:hover {
+  :global(.story-row) h3 a:hover {
     color: var(--color-green);
   }
 
-  .story-row__meta {
+  :global(.story-row__meta) {
     margin: var(--space-2) 0 0;
     color: var(--color-ink-soft);
     font-size: var(--text-sm);
   }
 
-  .story-row__actions {
+  :global(.story-row__actions) {
     display: flex;
     align-items: center;
     gap: var(--space-3);
   }
 
-  .story-row__actions a {
+  :global(.story-row__actions) a {
     color: var(--color-green);
     font-size: var(--text-sm);
     font-weight: 750;
     text-decoration: none;
+    white-space: nowrap;
   }
 
-  .story-row__actions a:hover {
+  :global(.story-row__actions) a:hover {
     text-decoration: underline;
   }
 
-  .status-badge {
+  :global(.status-badge) {
     display: inline-flex;
     min-width: 5.5rem;
     justify-content: center;
@@ -789,9 +1211,11 @@ if (archivedCount) {
     font-weight: 850;
     letter-spacing: 0.06em;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
-  .status-badge--published {
+  :global(.status-badge--published),
+  .status-badge--live-scheduled {
     background: color-mix(
       in srgb,
       var(--color-green) 13%,
@@ -800,31 +1224,22 @@ if (archivedCount) {
     color: var(--color-green);
   }
 
-  .status-badge--draft {
+  :global(.status-badge--draft) {
     background: #eee7d7;
     color: #6b592d;
   }
 
-  .status-badge--ready_for_review {
-  background: #e7edf6;
-  color: #34587b;
-}
+  :global(.status-badge--ready_for_review) {
+    background: #e7edf6;
+    color: #34587b;
+  }
 
-.status-badge--scheduled {
-  background: #eee7f6;
-  color: #67468a;
-}
+  :global(.status-badge--scheduled) {
+    background: #eee7f6;
+    color: #67468a;
+  }
 
-.status-badge--live-scheduled {
-  background: color-mix(
-    in srgb,
-    var(--color-green) 13%,
-    transparent
-  );
-  color: var(--color-green);
-}
-
-  .status-badge--archived {
+  :global(.status-badge--archived) {
     background: #ececeb;
     color: #666a66;
   }
@@ -853,17 +1268,48 @@ if (archivedCount) {
     white-space: nowrap;
   }
 
+  @media (max-width: 1100px) {
+    .stories-toolbar {
+      grid-template-columns: 1fr;
+    }
+
+    .stories-toolbar__filters {
+      justify-content: start;
+    }
+  }
+
   @media (max-width: 850px) {
     .stories-summary {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .story-row {
+    :global(.story-row) {
       grid-template-columns: minmax(0, 1fr) auto;
     }
 
-    .story-row__actions {
+    :global(.story-row__actions) {
       grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .stories-header {
+      align-items: start;
+      flex-direction: column;
+    }
+
+    .stories-new-button {
+      width: 100%;
+    }
+
+    .stories-toolbar__filters {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .stories-filter select,
+    .stories-clear {
+      width: 100%;
     }
   }
 
@@ -872,53 +1318,13 @@ if (archivedCount) {
       grid-template-columns: 1fr;
     }
 
-    .stories-toolbar {
-      align-items: stretch;
-      flex-direction: column;
-    }
-
-    .stories-filter select {
-      width: 100%;
-    }
-
-    .story-row {
+    :global(.story-row) {
       grid-template-columns: 1fr;
       gap: var(--space-3);
     }
 
-    .status-badge {
+    :global(.status-badge) {
       width: fit-content;
     }
   }
-
-  .story-row__category-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.55rem;
-  margin-bottom: var(--space-2);
-}
-
-.story-row__category-row
-  .story-row__category {
-  margin: 0;
-}
-
-.story-row__featured {
-  display: inline-flex;
-  padding: 0.2rem 0.4rem;
-  border: 1px solid
-    color-mix(
-      in srgb,
-      var(--color-green) 25%,
-      transparent
-    );
-  border-radius: 999px;
-  color: var(--color-green);
-  font-size: 0.56rem;
-  font-weight: 850;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
- 
 </style>
