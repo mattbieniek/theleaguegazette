@@ -1,41 +1,302 @@
 ---
+import BaseLayout from "../layouts/BaseLayout.astro";
 import StandingsTable from "../components/StandingsTable.astro";
 import { getSeasonStandings } from "../lib/queries/standings";
 
-const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+const sleeperLeagueId =
+  import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
 
 if (!sleeperLeagueId) {
-  throw new Error("Missing PUBLIC_SLEEPER_LEAGUE_ID.");
+  throw new Error(
+    "Missing PUBLIC_SLEEPER_LEAGUE_ID."
+  );
 }
 
-const standings = await getSeasonStandings(sleeperLeagueId);
+const standings =
+  await getSeasonStandings(sleeperLeagueId);
+
+const seasonYear =
+  standings.find(
+    (standing) =>
+      typeof standing.season_year === "number"
+  )?.season_year ?? null;
+
+const leader = standings[0] ?? null;
+
+const highestScoringTeam =
+  standings.length > 0
+    ? [...standings].sort(
+        (a, b) =>
+          Number(b.points_for ?? 0) -
+          Number(a.points_for ?? 0)
+      )[0]
+    : null;
+
+function formatPoints(value: number | null): string {
+  return Number(value ?? 0).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1"
-    />
-    <title>Standings | The League Gazette</title>
-  </head>
+<BaseLayout
+  title="Standings"
+  description="Current Far Far Away Football standings, records and scoring totals."
+>
+  <div class="site-shell">
+    <header class="page-header">
+      <div class="page-header__title">
+        <p class="eyebrow">
+          {seasonYear
+            ? `${seasonYear} Season`
+            : "Far Far Away Football"}
+        </p>
 
-  <body class="bg-slate-100 text-slate-950">
-    <main class="mx-auto max-w-6xl px-4 py-12">
-      <section class="rounded-xl bg-white p-6 shadow-sm">
-        <div class="mb-6">
-          <p class="text-sm font-semibold uppercase tracking-widest text-slate-500">
-            Far Far Away Football
+        <h1>League Standings</h1>
+      </div>
+
+      <div class="page-header__intro">
+        <p>
+          The official table, updated from the latest
+          available Sleeper league data.
+        </p>
+      </div>
+    </header>
+
+    {
+      standings.length > 0 && (
+        <section
+          class="standings-summary"
+          aria-label="Standings summary"
+        >
+          <article class="summary-card">
+            <p class="summary-card__label">
+              League Leader
+            </p>
+
+            <p class="summary-card__value">
+              {leader?.team_name ?? "—"}
+            </p>
+
+            <p class="summary-card__detail">
+              {leader?.wins ?? 0}-{leader?.losses ?? 0}
+              {(leader?.ties ?? 0) > 0
+                ? `-${leader?.ties}`
+                : ""}{" "}
+              record
+            </p>
+          </article>
+
+          <article class="summary-card">
+            <p class="summary-card__label">
+              Top Scoring Team
+            </p>
+
+            <p class="summary-card__value">
+              {highestScoringTeam?.team_name ?? "—"}
+            </p>
+
+            <p class="summary-card__detail">
+              {formatPoints(
+                highestScoringTeam?.points_for ?? null
+              )}{" "}
+              points
+            </p>
+          </article>
+
+          <article class="summary-card">
+            <p class="summary-card__label">
+              Teams
+            </p>
+
+            <p class="summary-card__value">
+              {standings.length}
+            </p>
+
+            <p class="summary-card__detail">
+              Competing this season
+            </p>
+          </article>
+        </section>
+      )
+    }
+
+    <section
+      class="standings-section"
+      aria-labelledby="standings-table-title"
+    >
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">
+            Official Table
           </p>
 
-          <h1 class="mt-2 text-4xl font-bold">
-            Season Standings
-          </h1>
+          <h2 id="standings-table-title">
+            Current Order
+          </h2>
         </div>
 
+        <p>
+          Ranked by the league standings rules reflected
+          in the synced season data.
+        </p>
+      </div>
+
+      <div class="standings-card">
         <StandingsTable standings={standings} />
-      </section>
-    </main>
-  </body>
-</html>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .page-header {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(18rem, 31rem);
+    gap: clamp(2rem, 6vw, 6rem);
+    align-items: end;
+    padding-bottom: var(--space-6);
+    border-bottom: 3px double var(--color-rule-dark);
+  }
+
+  .page-header h1 {
+    margin-bottom: 0;
+    font-size: clamp(3rem, 7vw, 6rem);
+    letter-spacing: -0.055em;
+    line-height: 0.88;
+  }
+
+  .page-header__intro {
+    justify-self: end;
+    max-width: 31rem;
+  }
+
+  .page-header__intro p {
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+    line-height: 1.45;
+  }
+
+  .standings-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: var(--space-7);
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .summary-card {
+    min-width: 0;
+    padding: clamp(1.4rem, 3vw, 2.25rem);
+  }
+
+  .summary-card + .summary-card {
+    border-left: 1px solid var(--color-rule);
+  }
+
+  .summary-card__label {
+    margin-bottom: var(--space-3);
+    color: var(--color-green);
+    font-family: var(--font-data);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .summary-card__value {
+    margin-bottom: var(--space-2);
+    overflow-wrap: anywhere;
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.6rem, 3vw, 2.5rem);
+    font-weight: 650;
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+  }
+
+  .summary-card__detail {
+    margin: 0;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.7rem;
+    letter-spacing: 0.025em;
+    line-height: 1.5;
+    text-transform: uppercase;
+  }
+
+  .standings-section {
+    padding-top: var(--space-8);
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-6);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--color-rule-dark);
+  }
+
+  .section-heading h2 {
+    margin: 0;
+    font-size: clamp(2.2rem, 4vw, 3.6rem);
+    letter-spacing: -0.045em;
+    line-height: 0.95;
+  }
+
+  .section-heading > p {
+    max-width: 28rem;
+    margin: 0;
+    color: var(--color-ink-muted);
+    font-size: var(--text-sm);
+    line-height: 1.55;
+    text-align: right;
+  }
+
+  .standings-card {
+    margin-top: var(--space-4);
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  @media (max-width: 780px) {
+    .page-header {
+      grid-template-columns: 1fr;
+      gap: var(--space-5);
+      align-items: start;
+    }
+
+    .page-header__intro {
+      justify-self: start;
+    }
+
+    .standings-summary {
+      grid-template-columns: 1fr;
+    }
+
+    .summary-card + .summary-card {
+      border-top: 1px solid var(--color-rule);
+      border-left: 0;
+    }
+
+    .section-heading {
+      align-items: start;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .section-heading > p {
+      text-align: left;
+    }
+  }
+</style>
