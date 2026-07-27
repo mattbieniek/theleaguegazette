@@ -4,180 +4,649 @@ import { getPublishedArticles } from "../../lib/queries/gazette";
 import { formatPublicationDate } from "../../lib/formatDate";
 
 const articles = await getPublishedArticles();
+
+const leadArticle = articles[0] ?? null;
+const archiveArticles = articles.slice(1);
+
+const categoryCount = new Set(
+  articles
+    .map((article) => article.category?.trim())
+    .filter(Boolean)
+).size;
+
+function getArticleImage(
+  imageUrl: string | null
+): string {
+  return (
+    imageUrl ??
+    "/images/homepage/article-placeholder.jpg"
+  );
+}
 ---
 
 <BaseLayout
-  title="Gazette | The League Gazette"
+  title="The Gazette"
   description="League stories, analysis, rankings and commentary from Far Far Away Football."
 >
   <div class="site-shell gazette-index">
-    <header class="gazette-index__header">
-      <p class="eyebrow">The Weekly Gazette</p>
+    <header class="page-header">
+      <div class="page-header__title">
+        <p class="eyebrow">
+          The Weekly Gazette
+        </p>
 
-      <h1>Stories from around the league</h1>
+        <h1>Stories from Around the League</h1>
+      </div>
 
-      <p>
-        Matchup coverage, power rankings, awards and commentary from Far Far
-        Away Football.
-      </p>
+      <div class="page-header__intro">
+        <p>
+          Matchup coverage, rankings, awards, arguments and
+          assorted dispatches from Far Far Away Football.
+        </p>
+      </div>
     </header>
 
-    <section class="story-list" aria-label="Gazette stories">
-      {
-        articles.map((story) => (
-          <article class="story-list__item">
+    {
+      leadArticle ? (
+        <>
+          <section
+            class="lead-story"
+            aria-labelledby="lead-story-title"
+          >
             <a
-              class="story-list__image"
-              href={`/gazette/${story.slug}`}
+              class="lead-story__image"
+              href={`/gazette/${leadArticle.slug}`}
+              aria-label={`Read ${leadArticle.headline}`}
             >
               <img
-                src={story.image_url ?? "/images/homepage/article-placeholder.jpg"}
-                alt={story.image_alt ?? ""}
-                width="1000"
-                height="700"
-                loading="lazy"
+                src={getArticleImage(
+                  leadArticle.image_url
+                )}
+                alt={leadArticle.image_alt ?? ""}
+                width="1600"
+                height="1000"
               />
             </a>
 
-            <div>
-              <p class="eyebrow">{story.category}</p>
+            <div class="lead-story__content">
+              <p class="eyebrow">
+                {leadArticle.category}
+              </p>
 
-              <h2>
-                <a href={`/gazette/${story.slug}`}>
-                  {story.headline}
+              <h2 id="lead-story-title">
+                <a href={`/gazette/${leadArticle.slug}`}>
+                  {leadArticle.headline}
                 </a>
               </h2>
 
-              <p class="story-list__summary">
-                {story.summary}
-              </p>
+              {
+                leadArticle.summary && (
+                  <p class="lead-story__summary">
+                    {leadArticle.summary}
+                  </p>
+                )
+              }
 
-              <p class="story-list__meta">
-                {story.author_name}
+              <div class="story-meta">
+                <span>
+                  By {leadArticle.author_name}
+                </span>
 
                 {
-                    story.published_at && (
+                  leadArticle.published_at && (
                     <>
-                        <span aria-hidden="true">·</span>
+                      <span aria-hidden="true">·</span>
 
-                        <time datetime={story.published_at}>
-                        {formatPublicationDate(story.published_at)}
-                        </time>
+                      <time
+                        datetime={
+                          leadArticle.published_at
+                        }
+                      >
+                        {formatPublicationDate(
+                          leadArticle.published_at
+                        )}
+                      </time>
                     </>
-                    )
+                  )
                 }
-                </p>
+              </div>
+
+              <a
+                class="lead-story__read"
+                href={`/gazette/${leadArticle.slug}`}
+              >
+                Read the story
+                <span aria-hidden="true">→</span>
+              </a>
             </div>
-          </article>
-        ))
-      }
-    </section>
+          </section>
+
+          <section
+            class="archive-section"
+            aria-labelledby="archive-title"
+          >
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">
+                  Story Archive
+                </p>
+
+                <h2 id="archive-title">
+                  Latest Dispatches
+                </h2>
+              </div>
+
+              <div class="archive-summary">
+                <span>
+                  {articles.length}
+                  {" "}
+                  {articles.length === 1
+                    ? "story"
+                    : "stories"}
+                </span>
+
+                <span aria-hidden="true">·</span>
+
+                <span>
+                  {categoryCount}
+                  {" "}
+                  {categoryCount === 1
+                    ? "category"
+                    : "categories"}
+                </span>
+              </div>
+            </div>
+
+            {
+              archiveArticles.length > 0 ? (
+                <div class="story-grid">
+                  {
+                    archiveArticles.map(
+                      (story) => (
+                        <article class="story-card">
+                          <a
+                            class="story-card__image"
+                            href={`/gazette/${story.slug}`}
+                            aria-label={`Read ${story.headline}`}
+                          >
+                            <img
+                              src={getArticleImage(
+                                story.image_url
+                              )}
+                              alt={
+                                story.image_alt ?? ""
+                              }
+                              width="1000"
+                              height="700"
+                              loading="lazy"
+                            />
+                          </a>
+
+                          <div class="story-card__content">
+                            <p class="eyebrow">
+                              {story.category}
+                            </p>
+
+                            <h3>
+                              <a
+                                href={`/gazette/${story.slug}`}
+                              >
+                                {story.headline}
+                              </a>
+                            </h3>
+
+                            {
+                              story.summary && (
+                                <p class="story-card__summary">
+                                  {story.summary}
+                                </p>
+                              )
+                            }
+
+                            <div class="story-meta">
+                              <span>
+                                {story.author_name}
+                              </span>
+
+                              {
+                                story.published_at && (
+                                  <>
+                                    <span
+                                      aria-hidden="true"
+                                    >
+                                      ·
+                                    </span>
+
+                                    <time
+                                      datetime={
+                                        story.published_at
+                                      }
+                                    >
+                                      {formatPublicationDate(
+                                        story.published_at
+                                      )}
+                                    </time>
+                                  </>
+                                )
+                              }
+                            </div>
+                          </div>
+
+                          <a
+                            class="story-card__footer"
+                            href={`/gazette/${story.slug}`}
+                            aria-label={`Continue reading ${story.headline}`}
+                          >
+                            <span>Continue reading</span>
+
+                            <span aria-hidden="true">
+                              →
+                            </span>
+                          </a>
+                        </article>
+                      )
+                    )
+                  }
+                </div>
+              ) : (
+                <div class="archive-section__single">
+                  <p>
+                    This is currently the only published
+                    story in the Gazette archive.
+                  </p>
+                </div>
+              )
+            }
+          </section>
+        </>
+      ) : (
+        <section class="empty-state">
+          <p class="eyebrow">
+            The Weekly Gazette
+          </p>
+
+          <h2>The presses are quiet—for now.</h2>
+
+          <p>
+            Published stories will appear here as soon as the
+            first edition is released.
+          </p>
+        </section>
+      )
+    }
   </div>
 </BaseLayout>
 
 <style>
   .gazette-index {
-    padding-block: clamp(2rem, 6vw, 5rem) var(--space-9);
+    padding-bottom: var(--space-9);
   }
 
-  .gazette-index__header {
-    max-width: 54rem;
-    margin-bottom: var(--space-7);
+  .page-header {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(18rem, 31rem);
+    gap: clamp(2rem, 6vw, 6rem);
+    align-items: end;
     padding-bottom: var(--space-6);
-    border-bottom: 3px double var(--color-rule-dark);
+    border-bottom:
+      3px double var(--color-rule-dark);
   }
 
-  .gazette-index__header h1 {
-    margin-bottom: var(--space-4);
+  .page-header h1 {
+    max-width: 13ch;
+    margin: 0;
     font-size: clamp(3rem, 7vw, 6rem);
     letter-spacing: -0.055em;
-    line-height: 0.95;
+    line-height: 0.88;
   }
 
-  .gazette-index__header > p:last-child {
-    max-width: 42rem;
+  .page-header__intro {
+    justify-self: end;
+    max-width: 31rem;
+  }
+
+  .page-header__intro p {
+    margin: 0;
     color: var(--color-ink-soft);
     font-family: var(--font-editorial);
-    font-size: var(--text-xl);
+    font-size:
+      clamp(1.1rem, 1.8vw, 1.3rem);
     line-height: 1.45;
   }
 
-  .story-list {
+  .lead-story {
     display: grid;
+    grid-template-columns:
+      minmax(0, 1.35fr)
+      minmax(20rem, 0.65fr);
+    gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: stretch;
+    padding-block: var(--space-7);
+    border-bottom:
+      1px solid var(--color-rule-dark);
   }
 
-  .story-list__item {
-    display: grid;
-    grid-template-columns: minmax(15rem, 0.75fr) minmax(0, 1.25fr);
-    gap: clamp(1.5rem, 4vw, 3.5rem);
-    padding-block: var(--space-6);
-    border-bottom: 1px solid var(--color-rule);
-  }
-
-  .story-list__item:first-child {
-    padding-top: 0;
-  }
-
-  .story-list__image {
+  .lead-story__image {
     display: block;
+    min-height: 28rem;
     overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--color-paper-dark);
   }
 
-  .story-list__image img {
+  .lead-story__image img {
     width: 100%;
-    aspect-ratio: 10 / 7;
+    height: 100%;
+    min-height: 28rem;
     object-fit: cover;
-    transition: transform var(--transition-standard);
+    transition:
+      transform var(--transition-standard);
   }
 
-  .story-list__image:hover img {
-    transform: scale(1.02);
+  .lead-story__image:hover img {
+    transform: scale(1.015);
   }
 
-  .story-list__item h2 {
-    max-width: 20ch;
-    margin-bottom: var(--space-3);
-    font-size: clamp(2rem, 4vw, 3.4rem);
-    letter-spacing: -0.04em;
-    line-height: 1;
+  .lead-story__content {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    padding-block: var(--space-4);
   }
 
-  .story-list__item h2 a:hover {
+  .lead-story h2 {
+    max-width: 11ch;
+    margin-bottom: var(--space-4);
+    font-size:
+      clamp(2.7rem, 5vw, 5rem);
+    letter-spacing: -0.055em;
+    line-height: 0.92;
+  }
+
+  .lead-story h2 a {
+    color: var(--color-ink);
+    transition:
+      color var(--transition-fast);
+      
+  }
+
+  .lead-story h2 a:hover {
     color: var(--color-green);
   }
 
-  .story-list__summary {
-    max-width: 42rem;
+  .lead-story h2,
+  .story-card h3 {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .lead-story__summary {
+    max-width: 35rem;
+    margin-bottom: var(--space-5);
     color: var(--color-ink-soft);
     font-family: var(--font-editorial);
-    font-size: var(--text-lg);
+    font-size:
+      clamp(1.1rem, 1.8vw, 1.3rem);
     line-height: 1.5;
   }
 
-  .story-list__meta {
+  .story-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem;
-    margin-bottom: 0;
+    gap: 0.4rem;
     color: var(--color-ink-muted);
     font-family: var(--font-data);
-    font-size: 0.68rem;
-    letter-spacing: 0.04em;
+    font-size: 0.65rem;
+    letter-spacing: 0.045em;
+    line-height: 1.5;
     text-transform: uppercase;
   }
 
-  @media (max-width: 760px) {
-    .story-list__item {
+  .lead-story__read {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+    padding-bottom: var(--space-2);
+    border-bottom:
+      1px solid var(--color-green);
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .lead-story__read:hover {
+    border-color: transparent;
+  }
+
+  .archive-section {
+    padding-top: var(--space-8);
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-6);
+    padding-bottom: var(--space-5);
+    border-bottom:
+      1px solid var(--color-rule-dark);
+  }
+
+  .section-heading h2 {
+    margin: 0;
+    font-size:
+      clamp(2.2rem, 4vw, 3.6rem);
+    letter-spacing: -0.045em;
+    line-height: 0.95;
+  }
+
+  .archive-summary {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.64rem;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+  }
+
+  .story-grid {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    gap: clamp(1.25rem, 3vw, 2rem);
+    padding-top: var(--space-6);
+  }
+
+  .story-card {
+    display: flex;
+    min-width: 0;
+    overflow: hidden;
+    flex-direction: column;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    transition:
+      border-color var(--transition-standard),
+      box-shadow var(--transition-standard),
+      transform var(--transition-standard);
+  }
+
+  .story-card:hover {
+    border-color: var(--color-rule-dark);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-3px);
+  }
+
+  .story-card__image {
+    display: block;
+    overflow: hidden;
+    background: var(--color-paper-dark);
+  }
+
+  .story-card__image img {
+    width: 100%;
+    aspect-ratio: 10 / 6;
+    object-fit: cover;
+    transition:
+      transform var(--transition-standard);
+  }
+
+  .story-card:hover
+    .story-card__image img {
+    transform: scale(1.02);
+  }
+
+  .story-card__content {
+    padding:
+      clamp(1.25rem, 3vw, 2rem);
+  }
+
+  .story-card h3 {
+    max-width: 19ch;
+    margin-bottom: var(--space-3);
+    font-size:
+      clamp(1.8rem, 3.3vw, 2.7rem);
+    letter-spacing: -0.04em;
+    line-height: 0.98;
+  }
+
+  .story-card h3 a {
+    color: var(--color-ink);
+    transition:
+      color var(--transition-fast);
+  }
+
+  .story-card h3 a:hover {
+    color: var(--color-green);
+  }
+
+  .story-card__summary {
+    display: -webkit-box;
+    overflow: hidden;
+    margin-bottom: var(--space-5);
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: var(--text-lg);
+    line-height: 1.48;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .story-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding:
+      var(--space-4)
+      clamp(1.25rem, 3vw, 2rem);
+    margin-top: auto;
+    border-top: 1px solid var(--color-rule);
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    transition:
+      background-color var(--transition-fast);
+  }
+
+  .story-card__footer:hover {
+    background: var(--color-green-faint);
+  }
+
+  .archive-section__single {
+    padding: var(--space-7);
+    margin-top: var(--space-6);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    text-align: center;
+  }
+
+  .archive-section__single p {
+    margin: 0;
+    color: var(--color-ink-muted);
+    font-family: var(--font-editorial);
+    font-size: var(--text-lg);
+  }
+
+  .empty-state {
+    max-width: 52rem;
+    padding-block: var(--space-9);
+  }
+
+  .empty-state h2 {
+    margin-bottom: var(--space-4);
+    font-size:
+      clamp(2.7rem, 6vw, 5.5rem);
+    letter-spacing: -0.055em;
+    line-height: 0.92;
+  }
+
+  .empty-state > p:last-child {
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: var(--text-xl);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 900px) {
+    .lead-story {
+      grid-template-columns: 1fr;
+    }
+
+    .lead-story__image,
+    .lead-story__image img {
+      min-height: auto;
+    }
+
+    .lead-story__content {
+      padding-block: 0;
+    }
+  }
+
+  @media (max-width: 780px) {
+    .page-header {
+      grid-template-columns: 1fr;
+      gap: var(--space-5);
+    }
+
+    .page-header__intro {
+      justify-self: start;
+    }
+
+    .section-heading {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .archive-summary {
+      justify-content: flex-start;
+    }
+
+    .story-grid {
       grid-template-columns: 1fr;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .story-list__image img {
+    .lead-story__image img,
+    .story-card,
+    .story-card__image img {
       transition: none;
     }
 
-    .story-list__image:hover img {
+    .lead-story__image:hover img,
+    .story-card:hover,
+    .story-card:hover
+      .story-card__image img {
       transform: none;
     }
   }

@@ -1,9 +1,21 @@
 ---
-export const prerender = false;
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ArticleBody from "../../components/gazette/ArticleBody.astro";
-import { getPublishedArticleBySlug } from "../../lib/queries/gazette";
+import {
+  getPublishedArticleBySlug,
+  getPublishedArticles,
+} from "../../lib/queries/gazette";
 import { formatPublicationDate } from "../../lib/formatDate";
+
+export async function getStaticPaths() {
+  const articles = await getPublishedArticles();
+
+  return articles.map((article) => ({
+    params: {
+      slug: article.slug,
+    },
+  }));
+}
 
 const { slug } = Astro.params;
 
@@ -16,6 +28,93 @@ const story = await getPublishedArticleBySlug(slug);
 if (!story) {
   return Astro.redirect("/404");
 }
+
+const publishedArticles = await getPublishedArticles();
+
+const currentIndex = publishedArticles.findIndex(
+  (article) => article.slug === story.slug
+);
+
+const newerStory =
+  currentIndex > 0
+    ? publishedArticles[currentIndex - 1]
+    : null;
+
+const olderStory =
+  currentIndex >= 0 &&
+  currentIndex < publishedArticles.length - 1
+    ? publishedArticles[currentIndex + 1]
+    : null;
+
+const relatedStories = publishedArticles
+  .filter((article) => article.slug !== story.slug)
+  .sort((first, second) => {
+    const firstMatchesCategory =
+      first.category?.trim().toLowerCase() ===
+      story.category?.trim().toLowerCase();
+
+    const secondMatchesCategory =
+      second.category?.trim().toLowerCase() ===
+      story.category?.trim().toLowerCase();
+
+    return Number(secondMatchesCategory) -
+      Number(firstMatchesCategory);
+  })
+  .slice(0, 3);
+
+function getPlainText(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => getPlainText(item))
+      .join(" ");
+  }
+
+  if (
+    value &&
+    typeof value === "object"
+  ) {
+    const record = value as Record<string, unknown>;
+
+    const currentText =
+      typeof record.text === "string"
+        ? record.text
+        : "";
+
+    const childText = getPlainText(record.content);
+
+    return `${currentText} ${childText}`.trim();
+  }
+
+  return "";
+}
+
+function calculateReadingTime(body: unknown): number {
+  const wordCount = getPlainText(body)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+
+  return Math.max(1, Math.ceil(wordCount / 225));
+}
+
+function getArticleImage(
+  imageUrl: string | null
+): string {
+  return (
+    imageUrl ??
+    "/images/homepage/article-placeholder.jpg"
+  );
+}
+
+const readingTime = calculateReadingTime(story.body);
+const canonicalUrl = new URL(
+  `/gazette/${story.slug}`,
+  Astro.site ?? Astro.url
+).toString();
 ---
 
 <BaseLayout
@@ -24,54 +123,343 @@ if (!story) {
 >
   <article class="article-page">
     <header class="article-header site-shell">
-      <a class="article-header__back" href="/gazette">
-        Gazette
-      </a>
+      <nav
+        class="article-header__breadcrumb"
+        aria-label="Breadcrumb"
+      >
+        <a href="/gazette">
+          The Gazette
+        </a>
 
-      <p class="eyebrow">{story.category}</p>
+        <span aria-hidden="true">/</span>
 
-      <h1>{story.headline}</h1>
+        <span>{story.category}</span>
+      </nav>
 
-      <p class="article-header__dek">
-        {story.summary}
-      </p>
+      <div class="article-header__content">
+        <p class="eyebrow">
+          {story.category}
+        </p>
 
-      <div class="article-header__meta">
-        <span>
-          By <strong>{story.author_name}</strong>
-        </span>
-
-        <span aria-hidden="true">·</span>
+        <h1>{story.headline}</h1>
 
         {
-            story.published_at && (
-                <time datetime={story.published_at}>
-                    {formatPublicationDate(story.published_at)}
-                </time>
-            )
+          story.summary && (
+            <p class="article-header__dek">
+              {story.summary}
+            </p>
+          )
         }
+
+        <div class="article-header__footer">
+          <div class="article-header__meta">
+            <span>
+              By <strong>{story.author_name}</strong>
+            </span>
+
+            {
+              story.published_at && (
+                <>
+                  <span aria-hidden="true">·</span>
+
+                  <time datetime={story.published_at}>
+                    {formatPublicationDate(
+                      story.published_at
+                    )}
+                  </time>
+                </>
+              )
+            }
+
+            <span aria-hidden="true">·</span>
+
+            <span>
+              {readingTime}
+              {" "}
+              {readingTime === 1
+                ? "minute"
+                : "minutes"}
+              {" "}read
+            </span>
+          </div>
+
+          <div
+            class="article-actions"
+            aria-label="Article actions"
+          >
+            <button
+              id="share-story"
+              type="button"
+              data-title={story.headline}
+              data-url={canonicalUrl}
+            >
+              Share
+            </button>
+
+            <button
+              id="copy-story-link"
+              type="button"
+              data-url={canonicalUrl}
+            >
+              Copy link
+            </button>
+          </div>
+        </div>
+
+        <p
+          id="article-action-message"
+          class="article-action-message"
+          role="status"
+          aria-live="polite"
+        ></p>
       </div>
     </header>
 
     {
-  story.image_url && (
-    <figure class="article-image site-shell">
-      <img
-        src={story.image_url}
-        alt={story.image_alt ?? ""}
-        width="1600"
-        height="1000"
-      />
-    </figure>
-  )
-}
+      story.image_url && (
+        <figure class="article-image site-shell">
+          <div class="article-image__frame">
+            <img
+              src={story.image_url}
+              alt={story.image_alt ?? ""}
+              width="1600"
+              height="1000"
+            />
+          </div>
+        </figure>
+      )
+    }
 
-    <div class="article-body site-shell">
-  <div class="article-body__content">
-    <ArticleBody body={story.body} />
-  </div>
-</div>
+    <div class="article-reading-layout site-shell">
+      <aside
+        class="article-reading-layout__rail"
+        aria-label="Article navigation"
+      >
+        <a href="/gazette">
+          <span aria-hidden="true">←</span>
+          All stories
+        </a>
+
+        <p>
+          {story.category}
+        </p>
+      </aside>
+
+      <div class="article-body">
+        <ArticleBody body={story.body} />
+      </div>
+    </div>
+
+    {
+      newerStory || olderStory ? (
+        <nav
+          class="story-navigation site-shell"
+          aria-label="Previous and next Gazette stories"
+        >
+          {
+            olderStory ? (
+              <a
+                class="story-navigation__item"
+                href={`/gazette/${olderStory.slug}`}
+              >
+                <span class="story-navigation__direction">
+                  ← Older story
+                </span>
+
+                <strong>
+                  {olderStory.headline}
+                </strong>
+              </a>
+            ) : (
+              <div></div>
+            )
+          }
+
+          {
+            newerStory ? (
+              <a
+                class="story-navigation__item story-navigation__item--next"
+                href={`/gazette/${newerStory.slug}`}
+              >
+                <span class="story-navigation__direction">
+                  Newer story →
+                </span>
+
+                <strong>
+                  {newerStory.headline}
+                </strong>
+              </a>
+            ) : (
+              <div></div>
+            )
+          }
+        </nav>
+      ) : null
+    }
+
+    {
+      relatedStories.length > 0 && (
+        <section
+          class="more-stories site-shell"
+          aria-labelledby="more-stories-title"
+        >
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">
+                Continue Reading
+              </p>
+
+              <h2 id="more-stories-title">
+                More from the Gazette
+              </h2>
+            </div>
+
+            <a href="/gazette">
+              View the full archive
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+
+          <div class="more-stories__grid">
+            {
+              relatedStories.map((article) => (
+                <article class="related-story">
+                  <a
+                    class="related-story__image"
+                    href={`/gazette/${article.slug}`}
+                    aria-label={`Read ${article.headline}`}
+                  >
+                    <img
+                      src={getArticleImage(
+                        article.image_url
+                      )}
+                      alt={article.image_alt ?? ""}
+                      width="900"
+                      height="600"
+                      loading="lazy"
+                    />
+                  </a>
+
+                  <div class="related-story__content">
+                    <p class="eyebrow">
+                      {article.category}
+                    </p>
+
+                    <h3>
+                      <a
+                        href={`/gazette/${article.slug}`}
+                      >
+                        {article.headline}
+                      </a>
+                    </h3>
+
+                    {
+                      article.published_at && (
+                        <time
+                          datetime={article.published_at}
+                        >
+                          {formatPublicationDate(
+                            article.published_at
+                          )}
+                        </time>
+                      )
+                    }
+                  </div>
+                </article>
+              ))
+            }
+          </div>
+        </section>
+      )
+    }
   </article>
+
+  <script>
+    const shareButton =
+      document.querySelector<HTMLButtonElement>(
+        "#share-story"
+      );
+
+    const copyButton =
+      document.querySelector<HTMLButtonElement>(
+        "#copy-story-link"
+      );
+
+    const message =
+      document.querySelector<HTMLElement>(
+        "#article-action-message"
+      );
+
+    function setMessage(value: string): void {
+      if (!message) {
+        return;
+      }
+
+      message.textContent = value;
+
+      window.setTimeout(() => {
+        if (message.textContent === value) {
+          message.textContent = "";
+        }
+      }, 3000);
+    }
+
+    shareButton?.addEventListener("click", async () => {
+      const title =
+        shareButton.dataset.title ??
+        document.title;
+
+      const url =
+        shareButton.dataset.url ??
+        window.location.href;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title,
+            url,
+          });
+        } catch (error) {
+          if (
+            error instanceof DOMException &&
+            error.name === "AbortError"
+          ) {
+            return;
+          }
+
+          setMessage(
+            "The share menu could not be opened."
+          );
+        }
+
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(url);
+        setMessage("Story link copied.");
+      } catch {
+        setMessage(
+          "Copy the address from your browser to share this story."
+        );
+      }
+    });
+
+    copyButton?.addEventListener("click", async () => {
+      const url =
+        copyButton.dataset.url ??
+        window.location.href;
+
+      try {
+        await navigator.clipboard.writeText(url);
+        setMessage("Story link copied.");
+      } catch {
+        setMessage(
+          "The link could not be copied automatically."
+        );
+      }
+    });
+  </script>
 </BaseLayout>
 
 <style>
@@ -80,39 +468,67 @@ if (!story) {
   }
 
   .article-header {
-    max-width: 70rem;
-    padding-top: clamp(2rem, 6vw, 5rem);
-    padding-bottom: clamp(2rem, 5vw, 4rem);
+    padding-top: clamp(2rem, 5vw, 4rem);
+    padding-bottom: clamp(2.5rem, 6vw, 5rem);
+    border-bottom: 3px double var(--color-rule-dark);
   }
 
-  .article-header__back {
-    display: inline-flex;
-    margin-bottom: var(--space-5);
+  .article-header__breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: clamp(2rem, 5vw, 4.5rem);
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.64rem;
+    font-weight: 600;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+  }
+
+  .article-header__breadcrumb a {
     color: var(--color-green);
-    font-size: var(--text-sm);
-    font-weight: 700;
   }
 
-  .article-header__back::before {
-    content: "←";
-    margin-right: var(--space-2);
+  .article-header__breadcrumb a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.25rem;
   }
+
+  .article-header__content {
+  width: 100%;
+  min-width: 0;
+  max-width: 74rem;
+}
 
   .article-header h1 {
-    max-width: 13ch;
-    margin-bottom: var(--space-5);
-    font-size: clamp(3rem, 7vw, 6.5rem);
-    letter-spacing: -0.055em;
-    line-height: 0.94;
-  }
+  width: 100%;
+  min-width: 0;
+  max-width: 15ch;
+  margin-bottom: var(--space-5);
+  font-size: clamp(3.1rem, 8vw, 7.75rem);
+  letter-spacing: -0.06em;
+  line-height: 0.88;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
 
   .article-header__dek {
-    max-width: 48rem;
-    margin-bottom: var(--space-5);
+    max-width: 52rem;
+    margin-bottom: var(--space-6);
     color: var(--color-ink-soft);
     font-family: var(--font-editorial);
-    font-size: clamp(1.2rem, 2.4vw, 1.65rem);
-    line-height: 1.45;
+    font-size: clamp(1.25rem, 2.4vw, 1.75rem);
+    line-height: 1.43;
+  }
+
+  .article-header__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--color-rule);
   }
 
   .article-header__meta {
@@ -121,8 +537,9 @@ if (!story) {
     gap: 0.4rem;
     color: var(--color-ink-muted);
     font-family: var(--font-data);
-    font-size: 0.7rem;
-    letter-spacing: 0.04em;
+    font-size: 0.67rem;
+    letter-spacing: 0.045em;
+    line-height: 1.5;
     text-transform: uppercase;
   }
 
@@ -130,29 +547,344 @@ if (!story) {
     color: var(--color-ink-soft);
   }
 
-  .article-image {
-    max-width: 82rem;
+  .article-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: var(--space-2);
   }
 
-  .article-image img {
-    width: 100%;
-    aspect-ratio: 8 / 5;
-    object-fit: cover;
+  .article-actions button {
+    min-height: 2.5rem;
+    padding-inline: var(--space-4);
+    border: 1px solid var(--color-rule-dark);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-ink-soft);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+      border-color var(--transition-fast),
+      background-color var(--transition-fast),
+      color var(--transition-fast);
+  }
+
+  .article-actions button:hover {
+    border-color: var(--color-green);
+    background: var(--color-green);
+    color: white;
+  }
+
+  .article-action-message {
+    min-height: 1.5rem;
+    margin: var(--space-3) 0 0;
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 650;
+  }
+
+  .article-image {
+  width: 100%;
+  min-width: 0;
+  padding-top: clamp(1.5rem, 4vw, 3rem);
+}
+
+.article-image__frame {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-paper-dark);
+}
+
+.article-image img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+  .article-reading-layout {
+    display: grid;
+    grid-template-columns:
+      minmax(9rem, 0.3fr)
+      minmax(0, 44rem)
+      minmax(0, 0.3fr);
+    gap: clamp(1.5rem, 4vw, 4rem);
+    padding-top: clamp(3rem, 7vw, 6rem);
+  }
+
+  .article-reading-layout__rail {
+    align-self: start;
+    position: sticky;
+    top: 7rem;
+    display: grid;
+    gap: var(--space-4);
+    padding-top: var(--space-2);
+  }
+
+  .article-reading-layout__rail a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .article-reading-layout__rail p {
+    margin: 0;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+    text-transform: uppercase;
   }
 
   .article-body {
-    max-width: 70rem;
-    padding-top: clamp(2rem, 5vw, 4.5rem);
+    grid-column: 2;
+    min-width: 0;
   }
 
-  .article-body__content {
-    max-width: 44rem;
-    margin-inline: auto;
+  .story-navigation {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+    padding-top: var(--space-8);
+    margin-top: var(--space-8);
+    border-top: 3px double var(--color-rule-dark);
   }
 
-  @media (max-width: 600px) {
-    .article-header h1 {
-      font-size: clamp(2.7rem, 13vw, 4.5rem);
+  .story-navigation__item {
+    display: grid;
+    align-content: start;
+    gap: var(--space-3);
+    min-width: 0;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    color: var(--color-ink);
+    transition:
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  .story-navigation__item:hover {
+    border-color: var(--color-green);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-2px);
+  }
+
+  .story-navigation__item--next {
+    text-align: right;
+  }
+
+  .story-navigation__direction {
+    color: var(--color-green);
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .story-navigation strong {
+    font-family: var(--font-editorial);
+    font-size: clamp(1.35rem, 2.5vw, 1.9rem);
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  .more-stories {
+    padding-top: var(--space-9);
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-6);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--color-rule-dark);
+  }
+
+  .section-heading h2 {
+    margin: 0;
+    font-size: clamp(2.2rem, 4vw, 3.6rem);
+    letter-spacing: -0.045em;
+    line-height: 0.95;
+  }
+
+  .section-heading > a {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .more-stories__grid {
+    display: grid;
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+    gap: clamp(1rem, 2.5vw, 1.75rem);
+    padding-top: var(--space-6);
+  }
+
+  .related-story {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    transition:
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  .related-story:hover {
+    border-color: var(--color-rule-dark);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-2px);
+  }
+
+  .related-story__image {
+    display: block;
+    overflow: hidden;
+    background: var(--color-paper-dark);
+  }
+
+  .related-story__image img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    transition: transform var(--transition-standard);
+  }
+
+  .related-story:hover
+    .related-story__image img {
+    transform: scale(1.02);
+  }
+
+  .related-story__content {
+    padding: clamp(1.15rem, 2.5vw, 1.6rem);
+  }
+
+  .related-story h3 {
+    margin-bottom: var(--space-4);
+    font-size: clamp(1.35rem, 2.5vw, 1.9rem);
+    letter-spacing: -0.03em;
+    line-height: 1.03;
+    overflow-wrap: anywhere;
+  }
+
+  .related-story h3 a {
+    color: var(--color-ink);
+  }
+
+  .related-story h3 a:hover {
+    color: var(--color-green);
+  }
+
+  .related-story time {
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 960px) {
+    .article-reading-layout {
+      grid-template-columns: minmax(0, 44rem);
+      justify-content: center;
+    }
+
+    .article-reading-layout__rail {
+      position: static;
+      grid-row: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--color-rule);
+    }
+
+    .article-body {
+      grid-column: 1;
+    }
+  }
+
+  @media (max-width: 780px) {
+    .article-header__footer {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .story-navigation {
+      grid-template-columns: 1fr;
+    }
+
+    .story-navigation__item--next {
+      text-align: left;
+    }
+
+    .section-heading {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .more-stories__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 520px) {
+  .article-header h1 {
+    max-width: 100%;
+    font-size: clamp(2.5rem, 12vw, 4rem);
+    letter-spacing: -0.05em;
+    line-height: 0.92;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .article-actions {
+    width: 100%;
+  }
+
+  .article-actions button {
+    flex: 1;
+  }
+
+  .article-image__frame {
+  border-radius: var(--radius-md);
+}
+}
+
+  @media (prefers-reduced-motion: reduce) {
+    .story-navigation__item,
+    .related-story,
+    .related-story__image img {
+      transition: none;
+    }
+
+    .story-navigation__item:hover,
+    .related-story:hover,
+    .related-story:hover
+      .related-story__image img {
+      transform: none;
     }
   }
 </style>

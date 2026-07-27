@@ -1,0 +1,650 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import MatchupCard from "../components/matchups/MatchupCard.astro";
+import { getSeasonMatchups } from "../lib/queries/matchups";
+
+const sleeperLeagueId =
+  import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+
+const matchupWeeks = sleeperLeagueId
+  ? await getSeasonMatchups(sleeperLeagueId)
+  : [];
+
+const availableWeeks = matchupWeeks.map(
+  (matchupWeek) => matchupWeek.week
+);
+
+const requestedWeek = Number(
+  Astro.url.searchParams.get("week")
+);
+
+const latestWeek =
+  availableWeeks.at(-1) ?? null;
+
+const selectedWeek =
+  Number.isInteger(requestedWeek) &&
+  availableWeeks.includes(requestedWeek)
+    ? requestedWeek
+    : latestWeek;
+
+const selectedMatchupWeek =
+  matchupWeeks.find(
+    (matchupWeek) =>
+      matchupWeek.week === selectedWeek
+  ) ?? null;
+
+const selectedWeekIndex =
+  selectedWeek === null
+    ? -1
+    : availableWeeks.indexOf(selectedWeek);
+
+const previousWeek =
+  selectedWeekIndex > 0
+    ? availableWeeks[selectedWeekIndex - 1]
+    : null;
+
+const nextWeek =
+  selectedWeekIndex >= 0 &&
+  selectedWeekIndex < availableWeeks.length - 1
+    ? availableWeeks[selectedWeekIndex + 1]
+    : null;
+
+const seasonYear =
+  selectedMatchupWeek?.seasonYear ??
+  matchupWeeks.find(
+    (matchupWeek) =>
+      matchupWeek.seasonYear !== null
+  )?.seasonYear ??
+  null;
+
+const highestScoringMatchup =
+  selectedMatchupWeek?.matchups.reduce(
+    (highest, matchup) => {
+      const total = matchup.teams.reduce(
+        (sum, team) =>
+          sum + Number(team.points ?? 0),
+        0
+      );
+
+      if (!highest || total > highest.total) {
+        return {
+          matchup,
+          total,
+        };
+      }
+
+      return highest;
+    },
+    null as
+      | {
+          matchup:
+            (typeof selectedMatchupWeek.matchups)[number];
+          total: number;
+        }
+      | null
+  ) ?? null;
+
+const closestMatchup =
+  selectedMatchupWeek?.matchups.reduce(
+    (closest, matchup) => {
+      const firstScore =
+        matchup.teams[0].points;
+      const secondScore =
+        matchup.teams[1].points;
+
+      if (
+        firstScore === null ||
+        secondScore === null
+      ) {
+        return closest;
+      }
+
+      const margin = Math.abs(
+        firstScore - secondScore
+      );
+
+      if (
+        !closest ||
+        margin < closest.margin
+      ) {
+        return {
+          matchup,
+          margin,
+        };
+      }
+
+      return closest;
+    },
+    null as
+      | {
+          matchup:
+            (typeof selectedMatchupWeek.matchups)[number];
+          margin: number;
+        }
+      | null
+  ) ?? null;
+
+function formatPoints(value: number): string {
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+---
+
+<BaseLayout
+  title="Matchups"
+  description="Weekly scores and matchup results from Far Far Away Football."
+>
+  <div class="site-shell">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">
+          {
+            seasonYear
+              ? `${seasonYear} Season`
+              : "Far Far Away Football"
+          }
+        </p>
+
+        <h1>Weekly Matchups</h1>
+      </div>
+
+      <div class="page-header__intro">
+        <p>
+          Every head-to-head result from the current league
+          season, week by week.
+        </p>
+      </div>
+    </header>
+
+    {
+      selectedMatchupWeek ? (
+        <>
+          <section
+            class="week-navigation"
+            aria-label="Select matchup week"
+          >
+            <div class="week-navigation__current">
+              <p>Viewing</p>
+
+              <h2>
+                Week {selectedMatchupWeek.week}
+              </h2>
+            </div>
+
+            <div class="week-navigation__controls">
+              {
+                previousWeek ? (
+                  <a href={`/matchups?week=${previousWeek}`}>
+                    <span aria-hidden="true">←</span>
+                    Week {previousWeek}
+                  </a>
+                ) : (
+                  <span
+                    class="week-navigation__disabled"
+                    aria-hidden="true"
+                  >
+                    ← Previous
+                  </span>
+                )
+              }
+
+              <label>
+                <span class="sr-only">
+                  Select a matchup week
+                </span>
+
+                <select
+                  id="matchup-week-select"
+                  aria-label="Select matchup week"
+                >
+                  {
+                    [...availableWeeks]
+                      .reverse()
+                      .map((week) => (
+                        <option
+                          value={week}
+                          selected={
+                            week === selectedWeek
+                          }
+                        >
+                          Week {week}
+                        </option>
+                      ))
+                  }
+                </select>
+              </label>
+
+              {
+                nextWeek ? (
+                  <a href={`/matchups?week=${nextWeek}`}>
+                    Week {nextWeek}
+                    <span aria-hidden="true">→</span>
+                  </a>
+                ) : (
+                  <span
+                    class="week-navigation__disabled"
+                    aria-hidden="true"
+                  >
+                    Next →
+                  </span>
+                )
+              }
+            </div>
+          </section>
+
+          <section
+            class="week-summary"
+            aria-label={`Week ${selectedMatchupWeek.week} summary`}
+          >
+            <article>
+              <p>Matchups</p>
+
+              <strong>
+                {selectedMatchupWeek.matchups.length}
+              </strong>
+
+              <span>
+                Games recorded
+              </span>
+            </article>
+
+            <article>
+              <p>Highest Combined Score</p>
+
+              <strong>
+                {
+                  highestScoringMatchup
+                    ? formatPoints(
+                        highestScoringMatchup.total
+                      )
+                    : "—"
+                }
+              </strong>
+
+              <span>
+                {
+                  highestScoringMatchup
+                    ? highestScoringMatchup.matchup.teams
+                        .map((team) => team.teamName)
+                        .join(" vs. ")
+                    : "No result available"
+                }
+              </span>
+            </article>
+
+            <article>
+              <p>Closest Finish</p>
+
+              <strong>
+                {
+                  closestMatchup
+                    ? formatPoints(
+                        closestMatchup.margin
+                      )
+                    : "—"
+                }
+              </strong>
+
+              <span>
+                {
+                  closestMatchup
+                    ? closestMatchup.matchup.teams
+                        .map((team) => team.teamName)
+                        .join(" vs. ")
+                    : "No result available"
+                }
+              </span>
+            </article>
+          </section>
+
+          <section
+            class="matchups-section"
+            aria-labelledby="week-matchups-title"
+          >
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">
+                  Scoreboard
+                </p>
+
+                <h2 id="week-matchups-title">
+                  Week {selectedMatchupWeek.week} Results
+                </h2>
+              </div>
+
+              <p>
+                Scores, winners and lineup totals from the
+                latest synced Sleeper matchup data.
+              </p>
+            </div>
+
+            <div class="matchups-grid">
+              {
+                selectedMatchupWeek.matchups.map(
+                  (matchup) => (
+                    <MatchupCard matchup={matchup} />
+                  )
+                )
+              }
+            </div>
+          </section>
+        </>
+      ) : (
+        <section class="empty-state">
+          <p class="eyebrow">
+            Matchup Archive
+          </p>
+
+          <h2>No matchup data is available yet.</h2>
+
+          <p>
+            Weekly results will appear here after Sleeper
+            matchup data has been synchronized.
+          </p>
+        </section>
+      )
+    }
+  </div>
+
+  <script>
+    const select = document.querySelector<HTMLSelectElement>(
+      "#matchup-week-select"
+    );
+
+    select?.addEventListener("change", () => {
+      const week = Number(select.value);
+
+      if (Number.isInteger(week)) {
+        window.location.href = `/matchups?week=${week}`;
+      }
+    });
+  </script>
+</BaseLayout>
+
+<style>
+  .page-header {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(18rem, 31rem);
+    gap: clamp(2rem, 6vw, 6rem);
+    align-items: end;
+    padding-bottom: var(--space-6);
+    border-bottom: 3px double var(--color-rule-dark);
+  }
+
+  .page-header h1 {
+    max-width: 13ch;
+    margin: 0;
+    font-size: clamp(3rem, 7vw, 6rem);
+    letter-spacing: -0.055em;
+    line-height: 0.88;
+  }
+
+  .page-header__intro {
+    justify-self: end;
+    max-width: 31rem;
+  }
+
+  .page-header__intro p {
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+    line-height: 1.45;
+  }
+
+  .week-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+    padding-block: var(--space-6);
+    border-bottom: 1px solid var(--color-rule-dark);
+  }
+
+  .week-navigation__current p {
+    margin-bottom: var(--space-1);
+    color: var(--color-green);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .week-navigation__current h2 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3.3rem);
+    letter-spacing: -0.045em;
+    line-height: 0.95;
+  }
+
+  .week-navigation__controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .week-navigation__controls a,
+  .week-navigation__disabled {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: var(--space-2);
+    padding-inline: var(--space-4);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    font-size: var(--text-sm);
+    font-weight: 650;
+  }
+
+  .week-navigation__controls a {
+    color: var(--color-green);
+    transition:
+      border-color var(--transition-fast),
+      background-color var(--transition-fast),
+      color var(--transition-fast);
+  }
+
+  .week-navigation__controls a:hover {
+    border-color: var(--color-green);
+    background: var(--color-green);
+    color: white;
+  }
+
+  .week-navigation__disabled {
+    color: var(--color-ink-faint);
+  }
+
+  .week-navigation select {
+    min-height: 2.75rem;
+    padding: 0 var(--space-6) 0 var(--space-4);
+    border: 1px solid var(--color-rule-dark);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 650;
+  }
+
+  .week-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: var(--space-6);
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .week-summary article {
+    min-width: 0;
+    padding: clamp(1.25rem, 3vw, 2rem);
+  }
+
+  .week-summary article + article {
+    border-left: 1px solid var(--color-rule);
+  }
+
+  .week-summary p {
+    margin-bottom: var(--space-3);
+    color: var(--color-green);
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .week-summary strong {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+  }
+
+  .week-summary span {
+    display: block;
+    overflow: hidden;
+    color: var(--color-ink-muted);
+    font-size: var(--text-sm);
+    line-height: 1.45;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .matchups-section {
+    padding-top: var(--space-8);
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-6);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--color-rule-dark);
+  }
+
+  .section-heading h2 {
+    margin: 0;
+    font-size: clamp(2.2rem, 4vw, 3.6rem);
+    letter-spacing: -0.045em;
+    line-height: 0.95;
+  }
+
+  .section-heading > p {
+    max-width: 29rem;
+    margin: 0;
+    color: var(--color-ink-muted);
+    font-size: var(--text-sm);
+    line-height: 1.55;
+    text-align: right;
+  }
+
+  .matchups-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(1.25rem, 3vw, 2rem);
+    padding-top: var(--space-6);
+  }
+
+  .matchups-grid > :global(article:last-child:nth-child(odd)) {
+    grid-column: 1 / -1;
+  }
+
+  .empty-state {
+    max-width: 50rem;
+    padding-block: var(--space-9);
+  }
+
+  .empty-state h2 {
+    margin-bottom: var(--space-4);
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+  }
+
+  .empty-state > p:last-child {
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: var(--text-xl);
+  }
+
+  @media (max-width: 900px) {
+    .matchups-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .matchups-grid > :global(article:last-child:nth-child(odd)) {
+      grid-column: auto;
+    }
+  }
+
+  @media (max-width: 780px) {
+    .page-header {
+      grid-template-columns: 1fr;
+      gap: var(--space-5);
+    }
+
+    .page-header__intro {
+      justify-self: start;
+    }
+
+    .week-navigation {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .week-navigation__controls {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .week-summary {
+      grid-template-columns: 1fr;
+    }
+
+    .week-summary article + article {
+      border-top: 1px solid var(--color-rule);
+      border-left: 0;
+    }
+
+    .section-heading {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .section-heading > p {
+      text-align: left;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .week-navigation__controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .week-navigation__controls label {
+      grid-column: 1 / -1;
+      grid-row: 1;
+    }
+
+    .week-navigation select {
+      width: 100%;
+    }
+
+    .week-navigation__controls a,
+    .week-navigation__disabled {
+      justify-content: center;
+    }
+  }
+</style>

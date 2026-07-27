@@ -1,4 +1,923 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
+import BaseLayout from "../layouts/BaseLayout.astro";
+import {
+  getAwardsWeekOptions,
+  getWeeklyAwardsResults,
+  type WeeklyTeamResult,
+} from "../lib/queries/awards";
+
+export const prerender = false;
+
+type Award = {
+  label: string;
+  title: string;
+  teamName: string;
+  opponentName: string | null;
+  primaryValue: string;
+  description: string;
+  tone:
+    | "positive"
+    | "negative"
+    | "neutral"
+    | "warning";
+};
+
+function formatPoints(value: number): string {
+  return value.toFixed(2);
+}
+
+function getHighest(
+  rows: WeeklyTeamResult[],
+  value: (row: WeeklyTeamResult) => number
+): WeeklyTeamResult | null {
+  return (
+    [...rows].sort(
+      (first, second) =>
+        value(second) - value(first)
+    )[0] ?? null
+  );
+}
+
+function getLowest(
+  rows: WeeklyTeamResult[],
+  value: (row: WeeklyTeamResult) => number
+): WeeklyTeamResult | null {
+  return (
+    [...rows].sort(
+      (first, second) =>
+        value(first) - value(second)
+    )[0] ?? null
+  );
+}
+
+const weekOptions =
+  await getAwardsWeekOptions();
+
+const requestedSeason = Number(
+  Astro.url.searchParams.get("season")
+);
+
+const requestedWeek = Number(
+  Astro.url.searchParams.get("week")
+);
+
+const requestedOption = weekOptions.find(
+  (option) =>
+    option.seasonYear === requestedSeason &&
+    option.week === requestedWeek
+);
+
+const selectedOption =
+  requestedOption ??
+  weekOptions.find(
+    (option) => option.isComplete
+  ) ??
+  weekOptions[0] ??
+  null;
+
+const results = selectedOption
+  ? await getWeeklyAwardsResults(
+      selectedOption.seasonYear,
+      selectedOption.week
+    )
+  : [];
+
+const winners = results.filter(
+  (result) => result.result === "W"
+);
+
+const losers = results.filter(
+  (result) => result.result === "L"
+);
+
+const uniqueMatchups = Array.from(
+  new Map(
+    results.map((result) => [
+      result.matchup_id,
+      result,
+    ])
+  ).values()
+);
+
+const highestScore = getHighest(
+  results,
+  (result) => result.points_for
+);
+
+const lowestScore = getLowest(
+  results,
+  (result) => result.points_for
+);
+
+const biggestBlowout = getHighest(
+  winners,
+  (result) => result.point_differential
+);
+
+const closestMatchup = getLowest(
+  uniqueMatchups,
+  (result) =>
+    Math.abs(result.point_differential)
+);
+
+const highestScoringLoss = getHighest(
+  losers,
+  (result) => result.points_for
+);
+
+const luckiestWin = getLowest(
+  winners,
+  (result) => result.points_for
+);
+
+const bestBench = getHighest(
+  results,
+  (result) => result.bench_points
+);
+
+const awards: Award[] = [];
+
+if (highestScore) {
+  awards.push({
+    label: "Performance of the Week",
+    title: "The Golden Box Score",
+    teamName: highestScore.team_name,
+    opponentName:
+      highestScore.opponent_team_name,
+    primaryValue: `${formatPoints(
+      highestScore.points_for
+    )} points`,
+    description:
+      highestScore.result === "W"
+        ? `The week's highest-scoring lineup delivered a win against ${highestScore.opponent_team_name ?? "the opposition"}.`
+        : `The week's highest score somehow was not enough to secure a victory.`,
+    tone: "positive",
+  });
+}
+
+if (lowestScore) {
+  awards.push({
+    label: "Low-Water Mark",
+    title: "The Paper Bag",
+    teamName: lowestScore.team_name,
+    opponentName:
+      lowestScore.opponent_team_name,
+    primaryValue: `${formatPoints(
+      lowestScore.points_for
+    )} points`,
+    description: `No team scored fewer points during Week ${selectedOption?.week ?? ""}.`,
+    tone: "negative",
+  });
+}
+
+if (biggestBlowout) {
+  awards.push({
+    label: "Largest Margin",
+    title: "The Steamroller",
+    teamName: biggestBlowout.team_name,
+    opponentName:
+      biggestBlowout.opponent_team_name,
+    primaryValue: `+${formatPoints(
+      biggestBlowout.point_differential
+    )}`,
+    description: `${biggestBlowout.opponent_team_name ?? "The opponent"} was buried beneath the largest scoring margin of the week.`,
+    tone: "positive",
+  });
+}
+
+if (closestMatchup) {
+  awards.push({
+    label: "Closest Finish",
+    title: "The Photo Finish",
+    teamName:
+      closestMatchup.result === "L"
+        ? closestMatchup.opponent_team_name ??
+          closestMatchup.team_name
+        : closestMatchup.team_name,
+    opponentName:
+      closestMatchup.result === "L"
+        ? closestMatchup.team_name
+        : closestMatchup.opponent_team_name,
+    primaryValue: `${formatPoints(
+      Math.abs(
+        closestMatchup.point_differential
+      )
+    )}-point margin`,
+    description:
+      "The week's narrowest matchup came down to the smallest handful of points.",
+    tone: "neutral",
+  });
+}
+
+if (highestScoringLoss) {
+  awards.push({
+    label: "Toughest Defeat",
+    title: "The Bad Beat",
+    teamName:
+      highestScoringLoss.team_name,
+    opponentName:
+      highestScoringLoss.opponent_team_name,
+    primaryValue: `${formatPoints(
+      highestScoringLoss.points_for
+    )} points`,
+    description: `${highestScoringLoss.team_name} posted the highest score among the week's losing teams.`,
+    tone: "warning",
+  });
+}
+
+if (luckiestWin) {
+  awards.push({
+    label: "Lowest Winning Score",
+    title: "The Escape Artist",
+    teamName: luckiestWin.team_name,
+    opponentName:
+      luckiestWin.opponent_team_name,
+    primaryValue: `${formatPoints(
+      luckiestWin.points_for
+    )} points`,
+    description:
+      "A win is a win, even when the scoreboard suggests it should not have been comfortable.",
+    tone: "warning",
+  });
+}
+
+if (bestBench) {
+  awards.push({
+    label: "Bench Production",
+    title: "The Clipboard All-Stars",
+    teamName: bestBench.team_name,
+    opponentName:
+      bestBench.opponent_team_name,
+    primaryValue: `${formatPoints(
+      bestBench.bench_points
+    )} bench points`,
+    description:
+      "The most productive group of players who spent the week watching from the sideline.",
+    tone: "neutral",
+  });
+}
+
+const seasons = Array.from(
+  new Set(
+    weekOptions.map(
+      (option) => option.seasonYear
+    )
+  )
+).sort((first, second) => second - first);
+
+const selectedSeasonOptions =
+  selectedOption
+    ? weekOptions.filter(
+        (option) =>
+          option.seasonYear ===
+          selectedOption.seasonYear
+      )
+    : [];
+
+console.log({
+  weekOptions,
+  selectedOption,
+  resultsCount: results.length,
+  results,
+});
 ---
-<BaseLayout title="Awards | The League Gazette"><div class="shell placeholder"><div class="eyebrow">Version 1</div><h1>Awards</h1><div class="card"><h2>Page foundation ready</h2><p>This route is included in the prototype so the information architecture and navigation can be tested immediately. The next development pass will connect the appropriate Sleeper endpoints and reusable editorial components.</p><a class="button green" href="/">Return to the front page</a></div></div></BaseLayout><style>.placeholder{padding-top:60px;max-width:850px}.placeholder h1{font:700 clamp(3.5rem,9vw,7rem)/.9 Georgia,serif;margin:8px 0 32px}.placeholder .card{padding:35px;border-top:6px solid var(--green)}.placeholder h2{font:700 1.8rem Georgia,serif}.placeholder p{line-height:1.7;color:#555;max-width:650px;margin-bottom:24px}</style>
+
+<BaseLayout
+  title="Weekly Awards | The League Gazette"
+  description="The best, worst, luckiest and most painful performances from each week of Far Far Away Football."
+>
+  <main class="awards-page site-shell">
+    <header class="awards-header">
+      <div>
+        <p class="eyebrow">
+          Far Far Away Football
+        </p>
+
+        <h1>Weekly Awards</h1>
+
+        <p class="awards-header__description">
+          Celebrating excellence, documenting
+          embarrassment and preserving every
+          questionable lineup decision for
+          posterity.
+        </p>
+      </div>
+
+      {
+        selectedOption && (
+          <div class="awards-header__edition">
+            <span>
+              Awards Edition
+            </span>
+
+            <strong>
+              Week {selectedOption.week}
+            </strong>
+
+            <small>
+              {selectedOption.seasonYear} Season
+            </small>
+          </div>
+        )
+      }
+    </header>
+
+    {
+      weekOptions.length > 0 &&
+        selectedOption && (
+          <section
+            class="awards-controls"
+            aria-label="Choose an Awards week"
+          >
+            <form method="get">
+              <label>
+                <span>Season</span>
+
+                <select
+                  id="awards-season"
+                  name="season"
+                >
+                  {
+                    seasons.map((season) => (
+                      <option
+                        value={season}
+                        selected={
+                          season ===
+                          selectedOption.seasonYear
+                        }
+                      >
+                        {season}
+                      </option>
+                    ))
+                  }
+                </select>
+              </label>
+
+              <label>
+                <span>Week</span>
+
+                <select
+                  id="awards-week"
+                  name="week"
+                >
+                  {
+                    selectedSeasonOptions.map(
+                      (option) => (
+                        <option
+                          value={option.week}
+                          selected={
+                            option.week ===
+                            selectedOption.week
+                          }
+                        >
+                          Week {option.week}
+                          {
+                            !option.isComplete
+                              ? " — Partial"
+                              : ""
+                          }
+                        </option>
+                      )
+                    )
+                  }
+                </select>
+              </label>
+
+              <button type="submit">
+                View awards
+              </button>
+            </form>
+          </section>
+        )
+    }
+
+    {
+      selectedOption &&
+        !selectedOption.isComplete && (
+          <aside class="partial-notice">
+            <strong>
+              Partial week
+            </strong>
+
+            <p>
+              This edition contains{" "}
+              {selectedOption.teamResults} team
+              results across{" "}
+              {selectedOption.matchupCount}{" "}
+              matchups. Awards may change when
+              additional results become available.
+            </p>
+          </aside>
+        )
+    }
+
+    {
+      awards.length > 0 ? (
+        <>
+          <section class="awards-intro">
+            <div>
+              <p class="eyebrow">
+                The Official Results
+              </p>
+
+              <h2>
+                Week {selectedOption?.week}’s
+                winners and losers
+              </h2>
+            </div>
+
+            <p>
+              Every award below is calculated
+              directly from the final weekly
+              results.
+            </p>
+          </section>
+
+          <section class="awards-grid">
+            {
+              awards.map(
+                (award, index) => (
+                  <article
+                    class:list={[
+                      "award-card",
+                      `award-card--${award.tone}`,
+                      {
+                        "award-card--featured":
+                          index === 0,
+                      },
+                    ]}
+                  >
+                    <div class="award-card__number">
+                      {String(index + 1).padStart(
+                        2,
+                        "0"
+                      )}
+                    </div>
+
+                    <div class="award-card__content">
+                      <p class="award-card__label">
+                        {award.label}
+                      </p>
+
+                      <h3>{award.title}</h3>
+
+                      <p class="award-card__team">
+                        {award.teamName}
+                      </p>
+
+                      <p class="award-card__value">
+                        {award.primaryValue}
+                      </p>
+
+                      <p class="award-card__description">
+                        {award.description}
+                      </p>
+
+                      {
+                        award.opponentName && (
+                          <p class="award-card__matchup">
+                            vs.{" "}
+                            {award.opponentName}
+                          </p>
+                        )
+                      }
+                    </div>
+                  </article>
+                )
+              )
+            }
+          </section>
+        </>
+      ) : (
+        <section class="empty-state">
+          <p class="eyebrow">
+            Awards Desk
+          </p>
+
+          <h2>
+            No results are available yet.
+          </h2>
+
+          <p>
+            Weekly honors will appear after
+            matchup results have been synced.
+          </p>
+
+          <a href="/">
+            Return to the front page
+          </a>
+        </section>
+      )
+    }
+  </main>
+
+  <script>
+    const seasonSelect =
+      document.querySelector<HTMLSelectElement>(
+        "#awards-season"
+      );
+
+    seasonSelect?.addEventListener(
+      "change",
+      () => {
+        const url = new URL(
+          window.location.href
+        );
+
+        url.searchParams.set(
+          "season",
+          seasonSelect.value
+        );
+
+        url.searchParams.delete("week");
+
+        window.location.href =
+          url.toString();
+      }
+    );
+  </script>
+</BaseLayout>
+
+<style>
+  .awards-page {
+    padding-top: clamp(2.5rem, 6vw, 5rem);
+    padding-bottom: var(--space-9);
+  }
+
+  .awards-header {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr)
+      auto;
+    align-items: end;
+    gap: var(--space-7);
+    padding-bottom: clamp(2rem, 5vw, 4rem);
+    border-bottom: 3px double
+      var(--color-rule-dark);
+  }
+
+  .awards-header h1 {
+    max-width: 10ch;
+    margin: 0 0 var(--space-5);
+    font-size: clamp(3.75rem, 10vw, 8rem);
+    letter-spacing: -0.065em;
+    line-height: 0.85;
+    overflow-wrap: anywhere;
+  }
+
+  .awards-header__description {
+    max-width: 47rem;
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.2rem, 2.5vw, 1.65rem);
+    line-height: 1.45;
+  }
+
+  .awards-header__edition {
+    display: grid;
+    min-width: 12rem;
+    padding: var(--space-5);
+    border: 1px solid var(--color-rule-dark);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    text-align: center;
+  }
+
+  .awards-header__edition span,
+  .awards-header__edition small {
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .awards-header__edition strong {
+    margin-block: var(--space-2);
+    font-family: var(--font-editorial);
+    font-size: 2rem;
+    letter-spacing: -0.035em;
+  }
+
+  .awards-controls {
+    padding-block: var(--space-6);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .awards-controls form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: var(--space-3);
+  }
+
+  .awards-controls label {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .awards-controls label span {
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .awards-controls select,
+  .awards-controls button {
+    min-height: 2.75rem;
+    padding-inline: var(--space-4);
+    border: 1px solid var(--color-rule-dark);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    font-size: var(--text-sm);
+  }
+
+  .awards-controls button {
+    border-color: var(--color-green);
+    background: var(--color-green);
+    color: white;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .partial-notice {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid
+      color-mix(
+        in srgb,
+        var(--color-green) 35%,
+        var(--color-rule)
+      );
+    border-radius: var(--radius-md);
+    background:
+      color-mix(
+        in srgb,
+        var(--color-green) 5%,
+        var(--color-surface)
+      );
+  }
+
+  .partial-notice strong {
+    flex: 0 0 auto;
+    color: var(--color-green);
+  }
+
+  .partial-notice p {
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+    line-height: 1.55;
+  }
+
+  .awards-intro {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-7);
+    padding-top: var(--space-8);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid
+      var(--color-rule-dark);
+  }
+
+  .awards-intro h2 {
+    max-width: 15ch;
+    margin: 0;
+    font-size: clamp(2.4rem, 5vw, 4.25rem);
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+  }
+
+  .awards-intro > p {
+    max-width: 25rem;
+    margin: 0;
+    color: var(--color-ink-muted);
+    line-height: 1.6;
+  }
+
+  .awards-grid {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+    padding-top: var(--space-6);
+  }
+
+  .award-card {
+    --award-accent: var(--color-green);
+
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-5);
+    min-width: 0;
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-top: 4px solid var(--award-accent);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    transition:
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  .award-card:hover {
+    border-color: var(--color-rule-dark);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-2px);
+  }
+
+  .award-card--negative {
+    --award-accent: #8d3d34;
+  }
+
+  .award-card--warning {
+    --award-accent: #9a681e;
+  }
+
+  .award-card--neutral {
+    --award-accent: var(--color-ink-muted);
+  }
+
+  .award-card--featured {
+    grid-column: 1 / -1;
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: clamp(2rem, 5vw, 3.75rem);
+  }
+
+  .award-card__number {
+    color: var(--award-accent);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .award-card__content {
+    min-width: 0;
+  }
+
+  .award-card__label {
+    margin: 0 0 var(--space-3);
+    color: var(--award-accent);
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    font-weight: 700;
+    letter-spacing: 0.065em;
+    text-transform: uppercase;
+  }
+
+  .award-card h3 {
+    margin: 0 0 var(--space-5);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    letter-spacing: -0.05em;
+    line-height: 0.92;
+    overflow-wrap: anywhere;
+  }
+
+  .award-card--featured h3 {
+    max-width: 12ch;
+    font-size: clamp(3rem, 7vw, 6rem);
+  }
+
+  .award-card__team {
+    margin: 0 0 var(--space-2);
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.35rem, 2.5vw, 2rem);
+    font-weight: 700;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  .award-card__value {
+    margin: 0 0 var(--space-4);
+    color: var(--award-accent);
+    font-size: clamp(1.1rem, 2vw, 1.35rem);
+    font-weight: 800;
+  }
+
+  .award-card__description {
+    max-width: 42rem;
+    margin: 0;
+    color: var(--color-ink-soft);
+    line-height: 1.65;
+  }
+
+  .award-card__matchup {
+    margin: var(--space-5) 0 0;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    font-weight: 650;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+  }
+
+  .empty-state {
+    max-width: 48rem;
+    margin-top: var(--space-8);
+    padding: clamp(2rem, 5vw, 4rem);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .empty-state h2 {
+    margin-bottom: var(--space-4);
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+  }
+
+  .empty-state p {
+    color: var(--color-ink-soft);
+    line-height: 1.65;
+  }
+
+  .empty-state a {
+    display: inline-flex;
+    margin-top: var(--space-4);
+    color: var(--color-green);
+    font-weight: 750;
+  }
+
+  @media (max-width: 800px) {
+    .awards-header {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+
+    .awards-header__edition {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .awards-intro {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .awards-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .award-card--featured {
+      grid-column: auto;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .awards-header h1 {
+      width: 100%;
+      max-width: 100%;
+      font-size: clamp(3.1rem, 16vw, 5rem);
+      overflow-wrap: anywhere;
+    }
+
+    .awards-controls form,
+    .awards-controls label,
+    .awards-controls select,
+    .awards-controls button {
+      width: 100%;
+    }
+
+    .partial-notice {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .award-card,
+    .award-card--featured {
+      grid-template-columns: 1fr;
+    }
+
+    .award-card--featured h3 {
+      max-width: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .award-card {
+      transition: none;
+    }
+
+    .award-card:hover {
+      transform: none;
+    }
+  }
+</style>
