@@ -3,6 +3,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import LeadStory from "../components/home/LeadStory.astro";
 import SecondaryStory from "../components/home/SecondaryStory.astro";
 import { getHomepageArticles } from "../lib/queries/gazette";
+import LeagueOverview from "../components/home/LeagueOverview.astro";
+import { getSeasonStandings } from "../lib/queries/standings";
 
 const stories = await getHomepageArticles();
 
@@ -19,6 +21,13 @@ const currentYear = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
   timeZone: "America/Chicago",
 }).format(new Date());
+
+const sleeperLeagueId =
+  import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+
+const standings = sleeperLeagueId
+  ? await getSeasonStandings(sleeperLeagueId)
+  : [];
 ---
 
 <BaseLayout
@@ -118,6 +127,7 @@ const currentYear = new Intl.DateTimeFormat("en-US", {
         </section>
       )
     }
+    <LeagueOverview standings={standings} />
   </div>
 </BaseLayout>
 

@@ -1,0 +1,446 @@
+---
+import StandingsTable from "../StandingsTable.astro";
+import type { SeasonStanding } from "../../lib/queries/standings";
+
+interface Props {
+  standings: SeasonStanding[];
+}
+
+const { standings } = Astro.props;
+
+const leader = standings[0] ?? null;
+
+const highestScoringTeam =
+  standings.length > 0
+    ? [...standings].sort(
+        (a, b) =>
+          Number(b.points_for ?? 0) -
+          Number(a.points_for ?? 0)
+      )[0]
+    : null;
+
+const closestDifferentialTeam =
+  standings.length > 0
+    ? [...standings].sort(
+        (a, b) =>
+          Math.abs(Number(a.point_differential ?? 0)) -
+          Math.abs(Number(b.point_differential ?? 0))
+      )[0]
+    : null;
+
+const seasonYear =
+  standings.find(
+    (standing) =>
+      typeof standing.season_year === "number"
+  )?.season_year ?? null;
+
+function formatRecord(team: SeasonStanding | null): string {
+  if (!team) {
+    return "No record available";
+  }
+
+  const record = `${team.wins ?? 0}-${team.losses ?? 0}`;
+
+  return (team.ties ?? 0) > 0
+    ? `${record}-${team.ties}`
+    : record;
+}
+
+function formatPoints(value: number | null): string {
+  return Number(value ?? 0).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+---
+
+<section
+  class="league-overview"
+  aria-labelledby="league-overview-title"
+>
+  <div class="league-overview__heading">
+    <div>
+      <p class="eyebrow">
+        {seasonYear
+          ? `${seasonYear} Season`
+          : "League Data"}
+      </p>
+
+      <h2 id="league-overview-title">
+        League at a Glance
+      </h2>
+    </div>
+
+    <p>
+      The latest standings and season totals from Far Far
+      Away Football.
+    </p>
+  </div>
+
+  {
+    standings.length > 0 ? (
+      <div class="league-overview__grid">
+        <section
+          class="standings-panel"
+          aria-labelledby="homepage-standings-title"
+        >
+          <div class="panel-heading">
+            <div>
+              <p class="panel-heading__kicker">
+                Official Table
+              </p>
+
+              <h3 id="homepage-standings-title">
+                Top of the Standings
+              </h3>
+            </div>
+
+            <a href="/standings">
+              Full standings
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+
+          <StandingsTable
+            standings={standings}
+            compact
+            limit={5}
+          />
+        </section>
+
+        <aside
+          class="league-pulse"
+          aria-labelledby="league-pulse-title"
+        >
+          <div class="league-pulse__heading">
+            <p class="panel-heading__kicker">
+              Season Snapshot
+            </p>
+
+            <h3 id="league-pulse-title">
+              League Pulse
+            </h3>
+          </div>
+
+          <div class="league-pulse__items">
+            <article class="pulse-item">
+              <p class="pulse-item__label">
+                Current Leader
+              </p>
+
+              <p class="pulse-item__value">
+                {leader?.team_name ?? "—"}
+              </p>
+
+              <p class="pulse-item__detail">
+                {formatRecord(leader)} record
+              </p>
+            </article>
+
+            <article class="pulse-item">
+              <p class="pulse-item__label">
+                Most Points Scored
+              </p>
+
+              <p class="pulse-item__value">
+                {highestScoringTeam?.team_name ?? "—"}
+              </p>
+
+              <p class="pulse-item__detail">
+                {formatPoints(
+                  highestScoringTeam?.points_for ?? null
+                )}{" "}
+                points
+              </p>
+            </article>
+
+            <article class="pulse-item">
+              <p class="pulse-item__label">
+                Closest Point Margin
+              </p>
+
+              <p class="pulse-item__value">
+                {closestDifferentialTeam?.team_name ?? "—"}
+              </p>
+
+              <p class="pulse-item__detail">
+                {formatPoints(
+                  closestDifferentialTeam?.point_differential ??
+                    null
+                )}{" "}
+                differential
+              </p>
+            </article>
+          </div>
+
+          <nav
+            class="league-pulse__links"
+            aria-label="League pages"
+          >
+            <a href="/teams">
+              Teams
+              <span aria-hidden="true">→</span>
+            </a>
+
+            <a href="/stats">
+              Statistics
+              <span aria-hidden="true">→</span>
+            </a>
+
+            <a href="/awards">
+              Awards
+              <span aria-hidden="true">→</span>
+            </a>
+          </nav>
+        </aside>
+      </div>
+    ) : (
+      <div class="league-overview__empty">
+        <p>
+          League standings will appear here once season data
+          is available.
+        </p>
+      </div>
+    )
+  }
+</section>
+
+<style>
+  .league-overview {
+    padding-top: var(--space-9);
+    margin-top: var(--space-9);
+    border-top: 3px double var(--color-rule-dark);
+  }
+
+  .league-overview__heading {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(18rem, 30rem);
+    gap: clamp(2rem, 6vw, 6rem);
+    align-items: end;
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--color-rule-dark);
+  }
+
+  .league-overview__heading h2 {
+    margin: 0;
+    font-size: clamp(2.4rem, 5vw, 4.5rem);
+    letter-spacing: -0.05em;
+    line-height: 0.92;
+  }
+
+  .league-overview__heading > p {
+    justify-self: end;
+    max-width: 30rem;
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.05rem, 1.7vw, 1.25rem);
+    line-height: 1.45;
+  }
+
+  .league-overview__grid {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1.45fr)
+      minmax(18rem, 0.55fr);
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    padding-top: var(--space-6);
+  }
+
+  .standings-panel,
+  .league-pulse {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .panel-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .panel-heading__kicker {
+    margin-bottom: var(--space-2);
+    color: var(--color-green);
+    font-family: var(--font-data);
+    font-size: 0.63rem;
+    font-weight: 600;
+    letter-spacing: 0.075em;
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+
+  .panel-heading h3,
+  .league-pulse__heading h3 {
+    margin: 0;
+    font-size: clamp(1.65rem, 3vw, 2.4rem);
+    letter-spacing: -0.04em;
+    line-height: 0.98;
+  }
+
+  .panel-heading a {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .panel-heading a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.25rem;
+  }
+
+  .standings-panel :global(.standings-table) {
+    padding-inline: clamp(0.35rem, 1.5vw, 1rem);
+  }
+
+  .league-pulse {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .league-pulse__heading {
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .league-pulse__items {
+    display: grid;
+  }
+
+  .pulse-item {
+    padding: clamp(1.25rem, 3vw, 1.75rem);
+  }
+
+  .pulse-item + .pulse-item {
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .pulse-item__label {
+    margin-bottom: var(--space-2);
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.065em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+
+  .pulse-item__value {
+    margin-bottom: var(--space-2);
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.35rem, 2.5vw, 1.9rem);
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    line-height: 1;
+  }
+
+  .pulse-item__detail {
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    letter-spacing: 0.025em;
+    line-height: 1.5;
+    text-transform: uppercase;
+  }
+
+  .league-pulse__links {
+    display: grid;
+    margin-top: auto;
+    border-top: 1px solid var(--color-rule-dark);
+  }
+
+  .league-pulse__links a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 1rem clamp(1.25rem, 3vw, 1.75rem);
+    color: var(--color-ink);
+    font-size: var(--text-sm);
+    font-weight: 650;
+    transition:
+      color var(--transition-fast),
+      background-color var(--transition-fast);
+  }
+
+  .league-pulse__links a + a {
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .league-pulse__links a:hover {
+    background: var(--color-green-faint);
+    color: var(--color-green);
+  }
+
+  .league-overview__empty {
+    padding: var(--space-7);
+    margin-top: var(--space-6);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    text-align: center;
+  }
+
+  .league-overview__empty p {
+    margin: 0;
+    color: var(--color-ink-muted);
+    font-family: var(--font-editorial);
+    font-size: var(--text-lg);
+  }
+
+  @media (max-width: 960px) {
+    .league-overview__grid {
+      grid-template-columns: 1fr;
+    }
+
+    .league-pulse__items {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .pulse-item + .pulse-item {
+      border-top: 0;
+      border-left: 1px solid var(--color-rule);
+    }
+  }
+
+  @media (max-width: 780px) {
+    .league-overview__heading {
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+    }
+
+    .league-overview__heading > p {
+      justify-self: start;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .panel-heading {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .league-pulse__items {
+      grid-template-columns: 1fr;
+    }
+
+    .pulse-item + .pulse-item {
+      border-top: 1px solid var(--color-rule);
+      border-left: 0;
+    }
+  }
+</style>
