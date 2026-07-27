@@ -1,6 +1,6 @@
 import { _ as createRenderInstruction, g as addAttribute, i as renderComponent, m as maybeRenderHead, s as renderSlot, u as renderTemplate, w as createAstro } from "./server_B_hu0jgv.mjs";
 import { t as createComponent } from "./compiler_uT6rBWMH.mjs";
-import { t as $$BaseLayout } from "./BaseLayout_DK-mMSlK.mjs";
+import { t as $$BaseLayout } from "./BaseLayout_DfnYwikd.mjs";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
 var __exportAll = (all, no_symbols) => {

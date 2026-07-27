@@ -12,18 +12,27 @@ import SiteNav from "../components/site/SiteNav.astro";
 interface Props {
   title?: string;
   description?: string;
+  image?: string;
+  type?: "website" | "article";
+  noindex?: boolean;
 }
 
 const {
   title = "The League Gazette",
   description =
     "News, analysis and nonsense from the Far Far Away Fantasy Football League.",
+  image = "/images/home-feature.png",
+  type = "website",
+  noindex = false,
 } = Astro.props;
 
 const fullTitle =
   title === "The League Gazette"
     ? title
     : `${title} | The League Gazette`;
+
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+const socialImageUrl = new URL(image, Astro.site);
 ---
 
 <!doctype html>
@@ -36,11 +45,41 @@ const fullTitle =
       content="width=device-width, initial-scale=1"
     />
 
+    <title>{fullTitle}</title>
+
     <meta name="description" content={description} />
 
-    <meta name="theme-color" content="#f4f1e9" />
+    {
+      noindex && (
+        <meta
+          name="robots"
+          content="noindex, nofollow"
+        />
+      )
+    }
 
-    <title>{fullTitle}</title>
+    <link rel="canonical" href={canonicalUrl} />
+
+    <meta property="og:site_name" content="The League Gazette" />
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={socialImageUrl} />
+    <meta
+      property="og:image:alt"
+      content="The League Gazette"
+    />
+
+    <meta
+      name="twitter:card"
+      content="summary_large_image"
+    />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImageUrl} />
+
+    <meta name="theme-color" content="#f4f1e9" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
