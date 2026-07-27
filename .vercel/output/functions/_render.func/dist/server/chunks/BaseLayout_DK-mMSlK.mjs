@@ -31,20 +31,16 @@ var $$SiteNav = createComponent(($$result, $$props, $$slots) => {
 			href: "/standings"
 		},
 		{
-			label: "Matchups",
-			href: "/matchups"
-		},
-		{
 			label: "Teams",
 			href: "/teams"
 		},
 		{
-			label: "Power Rankings",
-			href: "/power-rankings"
+			label: "Awards",
+			href: "/awards"
 		},
 		{
-			label: "League History",
-			href: "/history"
+			label: "Stats",
+			href: "/stats"
 		}
 	];
 	function isCurrentPage(href) {
