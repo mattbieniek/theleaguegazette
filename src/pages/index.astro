@@ -14,6 +14,11 @@ const leadStory =
 const secondaryStories = stories
   .filter((story) => story.id !== leadStory?.id)
   .slice(0, 2);
+
+const currentYear = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  timeZone: "America/Chicago",
+}).format(new Date());
 ---
 
 <BaseLayout
@@ -21,109 +26,139 @@ const secondaryStories = stories
 >
   <div class="site-shell">
     <section
-      class="front-page-header"
+      class="front-page-intro"
       aria-labelledby="front-page-title"
     >
-      <div>
-        <p class="eyebrow">Latest Edition</p>
+      <div class="front-page-intro__heading">
+        <p class="eyebrow">
+          The {currentYear} Season
+        </p>
 
-        <h2 id="front-page-title">
+        <h1 id="front-page-title">
           Around the League
-        </h2>
+        </h1>
       </div>
 
-      <p class="front-page-header__description">
-        Reporting, analysis and deeply unnecessary commentary from Far Far
-        Away Football.
-      </p>
+      <div class="front-page-intro__description">
+        <p>
+          Reporting, analysis and deeply unnecessary commentary from
+          Far Far Away Football.
+        </p>
+
+        <a href="/gazette">
+          Browse the Gazette
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
     </section>
 
     {
       leadStory ? (
-        <LeadStory story={leadStory} />
+        <section
+          class="top-stories"
+          aria-labelledby="top-stories-title"
+        >
+          <h2 id="top-stories-title" class="sr-only">
+            Top stories
+          </h2>
+
+          <div class="top-stories__lead">
+            <LeadStory story={leadStory} />
+          </div>
+
+          {
+            secondaryStories.length > 0 && (
+              <aside
+                class="top-stories__rail"
+                aria-label="More top stories"
+              >
+                <div class="top-stories__rail-heading">
+                  <p>Latest Headlines</p>
+
+                  <span>
+                    {secondaryStories.length}
+                    {secondaryStories.length === 1
+                      ? " story"
+                      : " stories"}
+                  </span>
+                </div>
+
+                <div class="top-stories__rail-list">
+                  {
+                    secondaryStories.map((story, index) => (
+                      <SecondaryStory
+                        story={story}
+                        position={index + 1}
+                      />
+                    ))
+                  }
+                </div>
+
+                <a
+                  class="top-stories__archive-link"
+                  href="/gazette"
+                >
+                  View all stories
+                  <span aria-hidden="true">→</span>
+                </a>
+              </aside>
+            )
+          }
+        </section>
       ) : (
         <section class="empty-state">
           <p class="eyebrow">Latest Edition</p>
-          <h1>No stories have been published yet.</h1>
+
+          <h2>No stories have been published yet.</h2>
+
+          <p>
+            Published Gazette stories will appear here once they are
+            available.
+          </p>
         </section>
       )
     }
-
-    <section
-      class="secondary-section"
-      aria-labelledby="latest-headlines-title"
-    >
-      <div class="secondary-section__heading">
-        <h2 id="latest-headlines-title">
-          Latest Headlines
-        </h2>
-
-        <a href="/gazette">
-          View all stories
-          <span aria-hidden="true">→</span>
-        </a>
-      </div>
-
-      <div class="secondary-story-grid">
-        {
-          secondaryStories.map((story) => (
-            <SecondaryStory story={story} />
-          ))
-        }
-      </div>
-    </section>
   </div>
 </BaseLayout>
 
 <style>
-  .front-page-header {
+  .front-page-intro {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 32rem);
-    gap: var(--space-6);
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(18rem, 31rem);
+    gap: clamp(2rem, 6vw, 6rem);
     align-items: end;
-    padding-bottom: var(--space-5);
+    padding-bottom: var(--space-6);
     border-bottom: 3px double var(--color-rule-dark);
   }
 
-  .front-page-header h2 {
-    margin-bottom: 0;
-    font-size: clamp(2rem, 4vw, 3.5rem);
-    letter-spacing: -0.035em;
+  .front-page-intro__heading {
+    min-width: 0;
   }
 
-  .front-page-header__description {
-    justify-self: end;
-    max-width: 32rem;
+  .front-page-intro__heading h1 {
     margin-bottom: 0;
+    font-size: clamp(2.75rem, 6vw, 5.35rem);
+    letter-spacing: -0.05em;
+    line-height: 0.9;
+  }
+
+  .front-page-intro__description {
+    justify-self: end;
+    max-width: 31rem;
+  }
+
+  .front-page-intro__description p {
+    margin-bottom: var(--space-4);
     color: var(--color-ink-soft);
     font-family: var(--font-editorial);
-    font-size: var(--text-lg);
-    line-height: 1.4;
-    text-align: right;
+    font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+    line-height: 1.45;
   }
 
-  .secondary-section {
-    padding-top: var(--space-7);
-    border-top: 3px double var(--color-rule-dark);
-  }
-
-  .secondary-section__heading {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-5);
-    margin-bottom: var(--space-6);
-  }
-
-  .secondary-section__heading h2 {
-    margin-bottom: 0;
-    font-size: clamp(2rem, 4vw, 3.2rem);
-    letter-spacing: -0.035em;
-  }
-
-  .secondary-section__heading a {
+  .front-page-intro__description a {
     display: inline-flex;
-    flex-shrink: 0;
     align-items: center;
     gap: var(--space-2);
     color: var(--color-green);
@@ -131,39 +166,185 @@ const secondaryStories = stories
     font-weight: 700;
   }
 
-  .secondary-section__heading a:hover {
+  .front-page-intro__description a:hover {
     text-decoration: underline;
     text-underline-offset: 0.25rem;
   }
 
-  .secondary-story-grid {
+  .top-stories {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns:
+      minmax(0, 1.55fr)
+      minmax(20rem, 0.72fr);
     gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: stretch;
+    padding-top: var(--space-6);
   }
 
-  .secondary-story-grid > :global(article) + :global(article) {
-    padding-left: clamp(2rem, 5vw, 4.5rem);
+  .top-stories__lead {
+    min-width: 0;
+  }
+
+  .top-stories__lead :global(.lead-story) {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+    align-items: start;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .top-stories__lead :global(.lead-story__image-frame) {
+    border-radius: var(--radius-lg);
+  }
+
+  .top-stories__lead :global(.lead-story__image-frame::after) {
+    border-radius: inherit;
+  }
+
+  .top-stories__lead :global(.lead-story__content) {
+    max-width: 55rem;
+  }
+
+  .top-stories__lead :global(.lead-story__headline) {
+    max-width: 14ch;
+    font-size: clamp(3rem, 6vw, 5.9rem);
+  }
+
+  .top-stories__rail {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    padding-left: clamp(1.5rem, 3vw, 2.75rem);
     border-left: 1px solid var(--color-rule);
   }
 
-  @media (max-width: 900px) {
-    .front-page-header {
+  .top-stories__rail-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--color-rule-dark);
+  }
+
+  .top-stories__rail-heading p {
+    margin-bottom: 0;
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: var(--text-xl);
+    font-weight: 650;
+    line-height: 1;
+  }
+
+  .top-stories__rail-heading span {
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .top-stories__rail-list {
+    display: grid;
+  }
+
+  .top-stories__rail-list
+    > :global(article) {
+    padding-block: var(--space-5);
+  }
+
+  .top-stories__rail-list
+    > :global(article)
+    + :global(article) {
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .top-stories__archive-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-top: var(--space-4);
+    margin-top: auto;
+    border-top: 1px solid var(--color-rule-dark);
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .top-stories__archive-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.25rem;
+  }
+
+  .empty-state {
+    max-width: 48rem;
+    padding-block: var(--space-9);
+  }
+
+  .empty-state h2 {
+    max-width: 14ch;
+    margin-bottom: var(--space-5);
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+  }
+
+  .empty-state > p:last-child {
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: var(--text-xl);
+  }
+
+  @media (max-width: 1060px) {
+    .top-stories {
       grid-template-columns: 1fr;
+    }
+
+    .top-stories__rail {
+      padding-top: var(--space-7);
+      padding-left: 0;
+      border-top: 3px double var(--color-rule-dark);
+      border-left: 0;
+    }
+
+    .top-stories__rail-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-6);
+    }
+
+    .top-stories__rail-list
+      > :global(article)
+      + :global(article) {
+      padding-left: var(--space-6);
+      border-top: 0;
+      border-left: 1px solid var(--color-rule);
+    }
+
+    .top-stories__archive-link {
+      margin-top: var(--space-2);
+    }
+  }
+
+  @media (max-width: 780px) {
+    .front-page-intro {
+      grid-template-columns: 1fr;
+      gap: var(--space-5);
       align-items: start;
     }
 
-    .front-page-header__description {
+    .front-page-intro__description {
       justify-self: start;
-      text-align: left;
     }
 
-    .secondary-story-grid {
+    .top-stories__rail-list {
       grid-template-columns: 1fr;
+      gap: 0;
     }
 
-    .secondary-story-grid > :global(article) + :global(article) {
-      padding-top: var(--space-6);
+    .top-stories__rail-list
+      > :global(article)
+      + :global(article) {
       padding-left: 0;
       border-top: 1px solid var(--color-rule);
       border-left: 0;
@@ -171,21 +352,18 @@ const secondaryStories = stories
   }
 
   @media (max-width: 560px) {
-    .secondary-section__heading {
+    .front-page-intro__heading h1 {
+      font-size: clamp(2.7rem, 14vw, 4.2rem);
+    }
+
+    .top-stories__lead :global(.lead-story__headline) {
+      font-size: clamp(2.7rem, 13vw, 4.3rem);
+    }
+
+    .top-stories__rail-heading {
       align-items: flex-start;
       flex-direction: column;
-      gap: var(--space-3);
+      gap: var(--space-2);
     }
-  }
-
-  .empty-state {
-    padding-block: var(--space-8);
-  }
-
-  .empty-state h1 {
-    max-width: 14ch;
-    font-size: clamp(2.5rem, 6vw, 5rem);
-    letter-spacing: -0.05em;
-    line-height: 0.95;
   }
 </style>
