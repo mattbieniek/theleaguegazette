@@ -7,7 +7,7 @@ import { buildWeeklyAwards } from "../lib/gazette/awards";
 
 export const prerender = false;
 
-const { weekOptions, seasons, selectedOption, selectedSeasonOptions, results } =
+const { seasons, selectedOption, selectedSeasonOptions, results } =
     await getAwardsPageData({
         season: Astro.url.searchParams.get("season"),
         week: Astro.url.searchParams.get("week"),

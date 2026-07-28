@@ -2,6 +2,11 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import StandingsTable from "../../components/StandingsTable.astro";
 import { getSeasonStandings } from "../../lib/queries/standings";
+import { getHistoricalResults } from "../../lib/queries/records";
+import {
+  buildFranchiseHistory,
+  formatFranchiseRecord,
+} from "../../lib/gazette/franchises";
 import { teams } from "../../data/teams";
 
 type Team = (typeof teams)[number];
@@ -29,6 +34,15 @@ const sleeperLeagueId =
 const standings = sleeperLeagueId
   ? await getSeasonStandings(sleeperLeagueId)
   : [];
+
+const historicalResults = await getHistoricalResults(
+  sleeperLeagueId
+);
+
+const franchiseHistory = buildFranchiseHistory(
+  historicalResults,
+  team
+);
 
 const teamStanding = standings.find(
   (standing) =>
@@ -153,7 +167,10 @@ function formatPoints(value: number | null): string {
     </div>
   </section>
 
-  <div class="site-shell team-profile">
+  <div
+    class="site-shell team-profile"
+    style={`--team-color: ${team.primary}; --secondary-color: ${team.secondary};`}
+  >
     <main class="team-profile__main">
       <section aria-labelledby="season-snapshot-title">
         <div class="section-heading">
@@ -195,6 +212,121 @@ function formatPoints(value: number | null): string {
           </div>
         </dl>
       </section>
+
+      {
+        franchiseHistory && (
+          <section
+            class="franchise-history"
+            aria-labelledby="franchise-history-title"
+          >
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Historical Ledger</p>
+                <h2 id="franchise-history-title">
+                  Franchise History
+                </h2>
+              </div>
+
+              <p>
+                Completed results recorded under the franchise’s
+                current and previous identities.
+              </p>
+            </div>
+
+            <dl class="career-summary">
+              <div>
+                <dt>All-Time Record</dt>
+                <dd>
+                  {formatFranchiseRecord(
+                    franchiseHistory.wins,
+                    franchiseHistory.losses,
+                    franchiseHistory.ties
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Career Points</dt>
+                <dd>{formatPoints(franchiseHistory.pointsFor)}</dd>
+              </div>
+              <div>
+                <dt>Weekly Average</dt>
+                <dd>{formatPoints(franchiseHistory.averageScore)}</dd>
+              </div>
+              <div>
+                <dt>Championships</dt>
+                <dd>{franchiseHistory.championships}</dd>
+              </div>
+            </dl>
+
+            <div class="franchise-records">
+              {franchiseHistory.performances.map((performance) => (
+                <article>
+                  <p>{performance.label}</p>
+                  <strong>{performance.value}</strong>
+                  <span>
+                    {performance.opponentName
+                      ? `vs. ${performance.opponentName} · `
+                      : ""}
+                    {performance.seasonYear} · Week {performance.week}
+                  </span>
+                </article>
+              ))}
+            </div>
+
+            <div class="season-history">
+              <div class="season-history__heading">
+                <h3>Season by Season</h3>
+                <a href="/history">
+                  League history <span aria-hidden="true">→</span>
+                </a>
+              </div>
+
+              <div class="season-history__scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Season</th>
+                      <th>Finish</th>
+                      <th>Record</th>
+                      <th>PF</th>
+                      <th>PA</th>
+                      <th>Average</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {franchiseHistory.seasons.map((season) => (
+                      <tr>
+                        <td>
+                          <a href={`/history/${season.year}`}>
+                            {season.year}
+                          </a>
+                        </td>
+                        <td>
+                          {season.champion
+                            ? "Champion"
+                            : season.runnerUp
+                              ? "Runner-up"
+                              : "—"}
+                        </td>
+                        <td>
+                          {formatFranchiseRecord(
+                            season.wins,
+                            season.losses,
+                            season.ties
+                          )}
+                        </td>
+                        <td>{formatPoints(season.pointsFor)}</td>
+                        <td>{formatPoints(season.pointsAgainst)}</td>
+                        <td>{formatPoints(season.averageScore)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )
+      }
 
       <section
         class="franchise-summary"
@@ -325,18 +457,6 @@ function formatPoints(value: number | null): string {
             </div>
           </article>
 
-          <article>
-            <span aria-hidden="true">03</span>
-
-            <div>
-              <h3>Franchise History</h3>
-
-              <p>
-                Past seasons, records, rivalries and notable
-                league moments.
-              </p>
-            </div>
-          </article>
         </div>
       </section>
     </main>
@@ -543,6 +663,7 @@ function formatPoints(value: number | null): string {
   }
 
   .franchise-summary,
+  .franchise-history,
   .coming-next {
     margin-top: var(--space-8);
   }
@@ -636,6 +757,152 @@ function formatPoints(value: number | null): string {
     color: var(--color-ink-soft);
     font-size: var(--text-sm);
     line-height: 1.55;
+  }
+
+  .career-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: var(--space-5) 0 0;
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .career-summary > div {
+    min-width: 0;
+    padding: clamp(1.2rem, 3vw, 1.8rem);
+  }
+
+  .career-summary > div + div {
+    border-left: 1px solid var(--color-rule);
+  }
+
+  .career-summary dt,
+  .franchise-records p {
+    margin-bottom: var(--space-2);
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.59rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .career-summary dd {
+    margin: 0;
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.35rem, 2.8vw, 2rem);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .franchise-records {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+  }
+
+  .franchise-records article {
+    min-width: 0;
+    padding: clamp(1.2rem, 3vw, 1.8rem);
+    border: 1px solid var(--color-rule);
+    border-top: 3px solid var(--team-color);
+    border-radius: var(--radius-lg);
+    background:
+      linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--team-color) 6%, transparent),
+        transparent 58%
+      ),
+      var(--color-surface);
+  }
+
+  .franchise-records strong {
+    display: block;
+    margin-bottom: var(--space-2);
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .franchise-records span {
+    color: var(--color-ink-muted);
+    font-size: var(--text-sm);
+    line-height: 1.45;
+  }
+
+  .season-history {
+    margin-top: var(--space-5);
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .season-history__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .season-history__heading h3 {
+    margin: 0;
+    font-size: var(--text-xl);
+  }
+
+  .season-history__heading a {
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .season-history__scroll {
+    overflow-x: auto;
+  }
+
+  .season-history table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .season-history th,
+  .season-history td {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--color-rule);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .season-history th {
+    color: var(--color-ink-muted);
+    font-size: 0.56rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .season-history th:first-child,
+  .season-history td:first-child {
+    text-align: left;
+  }
+
+  .season-history td:first-child a {
+    color: var(--color-green);
+    font-weight: 700;
+  }
+
+  .season-history tbody tr:last-child td {
+    border-bottom: 0;
   }
 
   .coming-next__grid {
@@ -788,6 +1055,18 @@ function formatPoints(value: number | null): string {
       grid-template-columns: 1fr;
     }
 
+    .career-summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .career-summary > div:nth-child(3) {
+      border-left: 0;
+    }
+
+    .career-summary > div:nth-child(n + 3) {
+      border-top: 1px solid var(--color-rule);
+    }
+
     .franchise-summary__performance {
       border-top: 1px solid var(--color-rule);
       border-left: 0;
@@ -806,6 +1085,21 @@ function formatPoints(value: number | null): string {
 
     .franchise-summary__identity {
       grid-template-columns: 1fr;
+    }
+
+    .career-summary,
+    .franchise-records {
+      grid-template-columns: 1fr;
+    }
+
+    .career-summary > div + div {
+      border-top: 1px solid var(--color-rule);
+      border-left: 0;
+    }
+
+    .season-history__heading {
+      align-items: flex-start;
+      flex-direction: column;
     }
 
     .franchise-summary__identity > div:nth-child(even) {

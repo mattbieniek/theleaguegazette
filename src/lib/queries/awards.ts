@@ -194,11 +194,6 @@ export async function getAwardsWeekOptions(): Promise<
 
       return second.week - first.week;
     });
-
-    console.log("Awards week query", {
-  data,
-  error,
-});
 }
 
 export async function getWeeklyAwardsResults(
