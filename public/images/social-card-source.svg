@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f4f1e9"/>
+  <circle cx="1040" cy="108" r="250" fill="#edf3f0"/>
+  <circle cx="1090" cy="590" r="310" fill="#ece8de" opacity=".55"/>
+  <path d="M70 62h1060M70 568h1060" stroke="#9d9a91" stroke-width="2"/>
+  <path d="M70 70h1060M70 560h1060" stroke="#cec9bd" stroke-width="1"/>
+
+  <text x="72" y="122" fill="#173f32" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="21" font-weight="700" letter-spacing="4">THE OFFICIAL PUBLICATION OF FAR FAR AWAY FOOTBALL</text>
+
+  <text x="68" y="252" fill="#17201b" font-family="Newsreader, Georgia, serif" font-size="104" font-weight="700" letter-spacing="-5">The League</text>
+  <text x="68" y="350" fill="#17201b" font-family="Newsreader, Georgia, serif" font-size="104" font-weight="700" letter-spacing="-5">Gazette</text>
+
+  <path d="M72 394h410" stroke="#173f32" stroke-width="5"/>
+  <path d="M72 404h290" stroke="#cec9bd" stroke-width="2"/>
+
+  <text x="72" y="468" fill="#465149" font-family="Inter, Arial, sans-serif" font-size="29">News, analysis and nonsense from around the league.</text>
+  <text x="72" y="526" fill="#667069" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="18" font-weight="600" letter-spacing="3">ESTABLISHED 2022  ·  HOUSTON, TEXAS</text>
+</svg>

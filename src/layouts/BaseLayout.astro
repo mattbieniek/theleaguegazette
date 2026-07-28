@@ -26,8 +26,8 @@ const {
   title = "The League Gazette",
   description =
     "News, analysis and nonsense from the Far Far Away Fantasy Football League.",
-  image = "/images/home-feature.webp",
-  imageAlt = "The League Gazette",
+  image = "/images/social-card.jpg",
+  imageAlt = "The League Gazette — the official publication of Far Far Away Football",
   type = "website",
   publishedTime = null,
   modifiedTime = null,
@@ -42,6 +42,7 @@ const fullTitle =
 
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 const socialImageUrl = new URL(image, Astro.site);
+const usesDefaultSocialCard = image === "/images/social-card.jpg";
 
 const siteUrl = new URL("/", Astro.site);
 const publicationId = new URL("/#publication", Astro.site).toString();
@@ -175,6 +176,13 @@ const serializedStructuredData = JSON.stringify(structuredData).replace(/</g, "\
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={socialImageUrl} />
+    {usesDefaultSocialCard && (
+      <>
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+      </>
+    )}
     <meta
       property="og:image:alt"
       content={imageAlt}
@@ -202,8 +210,12 @@ const serializedStructuredData = JSON.stringify(structuredData).replace(/</g, "\
     <meta name="twitter:image:alt" content={imageAlt} />
 
     <meta name="theme-color" content="#f4f1e9" />
+    <meta name="application-name" content="The League Gazette" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
 
     <script is:inline type="application/ld+json" set:html={serializedStructuredData}></script>
   </head>
