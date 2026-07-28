@@ -1,0 +1,137 @@
+---
+import type { RecentResult } from "../../lib/gazette/recentForm";
+
+interface Props {
+  game: RecentResult;
+  teamName: string;
+  latest?: boolean;
+}
+
+const { game, teamName, latest = false } = Astro.props;
+
+function formatPoints(value: number): string {
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+const resultLabel = game.result === "W" ? "Win" : game.result === "L" ? "Loss" : "Tie";
+---
+
+<article class:list={["result-card", `result-card--${game.result.toLowerCase()}`, latest && "result-card--latest"]}>
+  <div class="result-card__week">
+    <span>Week</span>
+    <strong>{game.week}</strong>
+  </div>
+
+  <div class="result-card__score">
+    <div>
+      <span>{teamName}</span>
+      <strong>{formatPoints(game.pointsFor)}</strong>
+    </div>
+    <div>
+      <span>{game.opponentName}</span>
+      <strong>{formatPoints(game.pointsAgainst)}</strong>
+    </div>
+  </div>
+
+  <div class="result-card__outcome">
+    <span>{resultLabel}</span>
+    <strong>{formatPoints(game.margin)}</strong>
+    <small>point margin</small>
+  </div>
+
+  <a href={`/matchups?week=${game.week}`} aria-label={`View Week ${game.week} matchups`}>
+    <span>View matchup</span>
+    <span aria-hidden="true">→</span>
+  </a>
+</article>
+
+<style>
+  .result-card {
+    --result-color: var(--color-ink-muted);
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr) 7rem auto;
+    align-items: stretch;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-left: 4px solid var(--result-color);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+  .result-card--w { --result-color: var(--color-green); }
+  .result-card--l { --result-color: #9f3e35; }
+  .result-card--t { --result-color: #8a6827; }
+  .result-card--latest { box-shadow: var(--shadow-card); }
+
+  .result-card__week,
+  .result-card__outcome {
+    display: grid;
+    align-content: center;
+    padding: var(--space-4);
+  }
+  .result-card__week { justify-items: center; border-right: 1px solid var(--color-rule); }
+  .result-card__week span,
+  .result-card__outcome span,
+  .result-card__outcome small {
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.52rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .result-card__week strong {
+    margin-top: var(--space-1);
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: 1.8rem;
+    line-height: 1;
+  }
+
+  .result-card__score {
+    display: grid;
+    align-content: center;
+    min-width: 0;
+    padding: var(--space-3) var(--space-5);
+  }
+  .result-card__score > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: var(--space-4); }
+  .result-card__score > div + div { padding-top: var(--space-2); margin-top: var(--space-2); border-top: 1px solid var(--color-rule); }
+  .result-card__score span { min-width: 0; color: var(--color-ink-soft); font-size: var(--text-sm); font-weight: 650; overflow-wrap: anywhere; }
+  .result-card__score strong { color: var(--color-ink); font-family: var(--font-data); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+  .result-card__score > div:first-child strong { color: var(--result-color); }
+
+  .result-card__outcome { min-width: 7rem; border-left: 1px solid var(--color-rule); }
+  .result-card__outcome > span { color: var(--result-color); }
+  .result-card__outcome strong { margin-block: var(--space-1); color: var(--color-ink); font-family: var(--font-editorial); font-size: 1.45rem; line-height: 1; }
+
+  .result-card > a {
+    display: grid;
+    min-width: 7.5rem;
+    place-content: center;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border-left: 1px solid var(--color-rule);
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-align: center;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+  }
+  .result-card > a:hover { background: var(--color-green); color: white; }
+
+  @media (max-width: 700px) {
+    .result-card { grid-template-columns: 4rem minmax(0, 1fr) auto; }
+    .result-card__outcome { display: none; }
+    .result-card > a { min-width: 3.5rem; padding-inline: var(--space-3); }
+    .result-card > a span:first-child { display: none; }
+  }
+  @media (max-width: 460px) {
+    .result-card { grid-template-columns: 3.5rem minmax(0, 1fr); }
+    .result-card > a { grid-column: 1 / -1; min-height: 2.75rem; grid-auto-flow: column; border-top: 1px solid var(--color-rule); border-left: 0; }
+    .result-card > a span:first-child { display: inline; }
+    .result-card__score { padding-inline: var(--space-4); }
+  }
+</style>

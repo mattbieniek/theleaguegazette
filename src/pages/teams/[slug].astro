@@ -2,6 +2,7 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import StandingsTable from "../../components/StandingsTable.astro";
 import PlayerCard from "../../components/teams/PlayerCard.astro";
+import RecentResultCard from "../../components/teams/RecentResultCard.astro";
 import { getSeasonStandings } from "../../lib/queries/standings";
 import { getHistoricalResults } from "../../lib/queries/records";
 import { getTeamRoster } from "../../lib/queries/rosters";
@@ -9,6 +10,10 @@ import {
   buildFranchiseHistory,
   formatFranchiseRecord,
 } from "../../lib/gazette/franchises";
+import {
+  buildTeamRecentForm,
+  formatStreak,
+} from "../../lib/gazette/recentForm";
 import { teams } from "../../data/teams";
 
 type Team = (typeof teams)[number];
@@ -61,6 +66,11 @@ const starterCount = roster?.players.filter((player) => player.isStarter).length
 const reserveCount = roster?.players.filter((player) => player.isReserve).length ?? 0;
 
 const franchiseHistory = buildFranchiseHistory(
+  historicalResults,
+  team
+);
+
+const recentForm = buildTeamRecentForm(
   historicalResults,
   team
 );
@@ -233,6 +243,80 @@ function formatPoints(value: number | null): string {
           </div>
         </dl>
       </section>
+
+      {
+        recentForm && (
+          <section
+            class="recent-form"
+            aria-labelledby="recent-form-title"
+          >
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Last Five</p>
+                <h2 id="recent-form-title">Recent Form</h2>
+              </div>
+
+              <p>
+                The franchise’s latest completed results from the
+                {` ${recentForm.seasonYear} season`}.
+              </p>
+            </div>
+
+            <div class="form-overview">
+              <div class="form-strip" aria-label="Last five results">
+                {recentForm.games.map((game) => (
+                  <a
+                    class:list={[`is-${game.result.toLowerCase()}`]}
+                    href={`/matchups?week=${game.week}`}
+                    aria-label={`Week ${game.week}: ${game.result}`}
+                  >
+                    {game.result}
+                  </a>
+                ))}
+              </div>
+
+              <dl>
+                <div>
+                  <dt>Recent Record</dt>
+                  <dd>
+                    {recentForm.wins}-{recentForm.losses}
+                    {recentForm.ties > 0 ? `-${recentForm.ties}` : ""}
+                  </dd>
+                </div>
+                <div><dt>Average Score</dt><dd>{formatPoints(recentForm.averageScore)}</dd></div>
+                <div><dt>Current Run</dt><dd>{formatStreak(recentForm)}</dd></div>
+              </dl>
+            </div>
+
+            <div class="recent-results">
+              {recentForm.games.map((game, index) => (
+                <RecentResultCard
+                  game={game}
+                  teamName={team.name}
+                  latest={index === 0}
+                />
+              ))}
+            </div>
+
+            <div class="recent-highlights">
+              <article>
+                <p>Best Recent Score</p>
+                <strong>{formatPoints(recentForm.bestPerformance.pointsFor)}</strong>
+                <span>
+                  Week {recentForm.bestPerformance.week} vs. {recentForm.bestPerformance.opponentName}
+                </span>
+              </article>
+              <article>
+                <p>Closest Recent Finish</p>
+                <strong>{formatPoints(recentForm.closestGame.margin)}</strong>
+                <span>
+                  Week {recentForm.closestGame.week} vs. {recentForm.closestGame.opponentName}
+                </span>
+              </article>
+            </div>
+          </section>
+        )
+      }
 
       {
         franchiseHistory && (
@@ -488,38 +572,6 @@ function formatPoints(value: number | null): string {
         </div>
       </section>
 
-      <section
-        class="coming-next"
-        aria-labelledby="coming-next-title"
-      >
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">
-              Profile Expansion
-            </p>
-
-            <h2 id="coming-next-title">
-              More to Come
-            </h2>
-          </div>
-        </div>
-
-        <div class="coming-next__grid">
-          <article>
-            <span aria-hidden="true">01</span>
-
-            <div>
-              <h3>Recent Results</h3>
-
-              <p>
-                Weekly scores, opponents and the team’s recent
-                form.
-              </p>
-            </div>
-          </article>
-
-        </div>
-      </section>
     </main>
 
     <aside
@@ -726,9 +778,84 @@ function formatPoints(value: number | null): string {
   .franchise-summary,
   .franchise-history,
   .active-roster,
-  .coming-next {
+  .recent-form {
     margin-top: var(--space-8);
   }
+
+  .form-overview {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: stretch;
+    margin-top: var(--space-5);
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .form-strip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-5);
+    border-right: 1px solid var(--color-rule);
+    background: linear-gradient(145deg, color-mix(in srgb, var(--team-color) 7%, transparent), transparent 70%);
+  }
+
+  .form-strip a {
+    display: grid;
+    width: 2.6rem;
+    height: 2.6rem;
+    place-items: center;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    font-weight: 750;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+  }
+
+  .form-strip a:hover { color: white; }
+  .form-strip .is-w { color: var(--color-green); }
+  .form-strip .is-l { color: #9f3e35; }
+  .form-strip .is-t { color: #8a6827; }
+  .form-strip .is-w:hover { background: var(--color-green); }
+  .form-strip .is-l:hover { background: #9f3e35; }
+  .form-strip .is-t:hover { background: #8a6827; }
+
+  .form-overview dl {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+  }
+
+  .form-overview dl > div {
+    min-width: 0;
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .form-overview dl > div + div { border-left: 1px solid var(--color-rule); }
+  .form-overview dt,.form-overview dd { margin: 0; }
+  .form-overview dt { margin-bottom: var(--space-2); color: var(--color-ink-muted); font-family: var(--font-data); font-size: 0.54rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; }
+  .form-overview dd { color: var(--color-ink); font-family: var(--font-editorial); font-size: clamp(1.15rem, 2.4vw, 1.6rem); font-weight: 680; line-height: 1.05; overflow-wrap: anywhere; }
+
+  .recent-results { display: grid; gap: var(--space-3); padding-top: var(--space-5); }
+
+  .recent-highlights {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: var(--space-5);
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .recent-highlights article { min-width: 0; padding: var(--space-5); }
+  .recent-highlights article + article { border-left: 1px solid var(--color-rule); }
+  .recent-highlights p { margin: 0 0 var(--space-2); color: var(--color-ink-muted); font-family: var(--font-data); font-size: 0.56rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; }
+  .recent-highlights strong { display: block; margin-bottom: var(--space-2); color: var(--team-color); font-family: var(--font-editorial); font-size: clamp(1.8rem, 4vw, 2.75rem); letter-spacing: -0.04em; line-height: 1; }
+  .recent-highlights span { color: var(--color-ink-soft); font-size: var(--text-sm); line-height: 1.45; }
 
   .roster-summary {
     display: grid;
@@ -1080,47 +1207,6 @@ function formatPoints(value: number | null): string {
     border-bottom: 0;
   }
 
-  .coming-next__grid {
-    display: grid;
-    margin-top: var(--space-5);
-    overflow: hidden;
-    border: 1px solid var(--color-rule);
-    border-radius: var(--radius-lg);
-    background: var(--color-surface);
-  }
-
-  .coming-next article {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: var(--space-5);
-    padding: clamp(1.25rem, 3vw, 2rem);
-  }
-
-  .coming-next article + article {
-    border-top: 1px solid var(--color-rule);
-  }
-
-  .coming-next article > span {
-    color: var(--color-ink-faint);
-    font-family: var(--font-data);
-    font-size: 0.7rem;
-    letter-spacing: 0.06em;
-  }
-
-  .coming-next h3 {
-    margin-bottom: var(--space-2);
-    font-size: clamp(1.3rem, 2.5vw, 1.75rem);
-    letter-spacing: -0.025em;
-  }
-
-  .coming-next p {
-    max-width: 42rem;
-    margin: 0;
-    color: var(--color-ink-soft);
-    font-size: var(--text-sm);
-    line-height: 1.55;
-  }
-
   .sidebar-heading {
     padding-bottom: var(--space-4);
     border-bottom: 1px solid var(--color-rule-dark);
@@ -1262,6 +1348,9 @@ function formatPoints(value: number | null): string {
     .roster-groups {
       grid-template-columns: 1fr;
     }
+
+    .form-overview { grid-template-columns: 1fr; }
+    .form-strip { border-right: 0; border-bottom: 1px solid var(--color-rule); }
   }
 
   @media (max-width: 520px) {
@@ -1309,5 +1398,10 @@ function formatPoints(value: number | null): string {
       border-top: 1px solid var(--color-rule);
       border-left: 0;
     }
+
+    .form-overview dl { grid-template-columns: 1fr; }
+    .form-overview dl > div + div { border-top: 1px solid var(--color-rule); border-left: 0; }
+    .recent-highlights { grid-template-columns: 1fr; }
+    .recent-highlights article + article { border-top: 1px solid var(--color-rule); border-left: 0; }
   }
 </style>
