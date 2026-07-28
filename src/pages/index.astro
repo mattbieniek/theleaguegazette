@@ -4,7 +4,13 @@ import LeadStory from "../components/home/LeadStory.astro";
 import SecondaryStory from "../components/home/SecondaryStory.astro";
 import { getHomepageArticles } from "../lib/queries/gazette";
 import LeagueOverview from "../components/home/LeagueOverview.astro";
+import LeagueNotebook from "../components/home/LeagueNotebook.astro";
 import { getSeasonStandings } from "../lib/queries/standings";
+import { getAwardsPageData } from "../lib/queries/awards";
+import { buildWeeklyAwards } from "../lib/gazette/awards";
+import { getHistoricalResults } from "../lib/queries/records";
+import { buildLeagueRecords } from "../lib/gazette/records";
+import { seasonHistoryMetadata } from "../data/seasonHistory";
 
 const stories = await getHomepageArticles();
 
@@ -28,6 +34,22 @@ const sleeperLeagueId =
 const standings = sleeperLeagueId
   ? await getSeasonStandings(sleeperLeagueId)
   : [];
+
+const awardsData = await getAwardsPageData();
+const weeklyAwards = awardsData.selectedOption
+  ? buildWeeklyAwards(
+      awardsData.results,
+      awardsData.selectedOption.week
+    )
+  : [];
+
+const historicalResults = await getHistoricalResults(
+  sleeperLeagueId
+);
+const leagueRecords = buildLeagueRecords(historicalResults);
+const reigningSeason = [...seasonHistoryMetadata]
+  .filter((season) => season.champion)
+  .sort((first, second) => second.year - first.year)[0] ?? null;
 ---
 
 <BaseLayout
@@ -128,6 +150,13 @@ const standings = sleeperLeagueId
       )
     }
     <LeagueOverview standings={standings} />
+    <LeagueNotebook
+      featuredAward={weeklyAwards[0] ?? null}
+      awardWeek={awardsData.selectedOption?.week ?? null}
+      awardSeason={awardsData.selectedOption?.seasonYear ?? null}
+      featuredRecord={leagueRecords[0] ?? null}
+      reigningSeason={reigningSeason}
+    />
   </div>
 </BaseLayout>
 

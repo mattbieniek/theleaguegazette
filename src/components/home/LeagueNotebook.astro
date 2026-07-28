@@ -1,0 +1,328 @@
+---
+import type { WeeklyAward } from "../../lib/gazette/awards";
+import type { LeagueRecord } from "../../lib/gazette/records";
+import type { SeasonHistoryMetadata } from "../../data/seasonHistory";
+
+interface Props {
+  featuredAward: WeeklyAward | null;
+  awardWeek: number | null;
+  awardSeason: number | null;
+  featuredRecord: LeagueRecord | null;
+  reigningSeason: SeasonHistoryMetadata | null;
+}
+
+const {
+  featuredAward,
+  awardWeek,
+  awardSeason,
+  featuredRecord,
+  reigningSeason,
+} = Astro.props;
+---
+
+<section class="league-notebook" aria-labelledby="league-notebook-title">
+  <div class="league-notebook__heading">
+    <div>
+      <p class="eyebrow">Beyond the Headlines</p>
+      <h2 id="league-notebook-title">League Notebook</h2>
+    </div>
+
+    <p>
+      Weekly honors, all-time records and the names already written into league
+      history.
+    </p>
+  </div>
+
+  <div class="league-notebook__grid">
+    {featuredAward ? (
+      <article class="notebook-card notebook-card--award">
+        <div class="notebook-card__topline">
+          <span aria-hidden="true">{featuredAward.symbol}</span>
+          <p>{featuredAward.label}</p>
+          <small>
+            {awardSeason} · Week {awardWeek}
+          </small>
+        </div>
+
+        <div class="notebook-card__body">
+          <div>
+            <h3>{featuredAward.title}</h3>
+            <p class="notebook-card__team">{featuredAward.teamName}</p>
+            <strong>{featuredAward.primaryValue}</strong>
+            <p class="notebook-card__description">
+              {featuredAward.description}
+            </p>
+          </div>
+
+          {featuredAward.opponentName && (
+            <div class="notebook-score">
+              <div>
+                <span>{featuredAward.teamName}</span>
+                <strong>{featuredAward.teamScore.toFixed(2)}</strong>
+              </div>
+              <div>
+                <span>{featuredAward.opponentName}</span>
+                <strong>{featuredAward.opponentScore?.toFixed(2)}</strong>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <a href={`/awards?season=${awardSeason}&week=${awardWeek}`}>
+          View the weekly awards <span aria-hidden="true">→</span>
+        </a>
+      </article>
+    ) : (
+      <article class="notebook-card notebook-card--award notebook-card--empty">
+        <p class="eyebrow">Weekly Awards</p>
+        <h3>Honors resume with the next completed week.</h3>
+        <a href="/awards">Visit the Awards desk <span aria-hidden="true">→</span></a>
+      </article>
+    )}
+
+    <div class="league-notebook__rail">
+      {featuredRecord && (
+        <article class="notebook-card notebook-card--record">
+          <div class="notebook-card__topline">
+            <span aria-hidden="true">{featuredRecord.symbol}</span>
+            <p>Record Watch</p>
+            <small>{featuredRecord.seasonYear}</small>
+          </div>
+
+          <h3>{featuredRecord.title}</h3>
+          <p class="notebook-card__team">{featuredRecord.teamName}</p>
+          <strong>{featuredRecord.value}</strong>
+          <p class="notebook-card__description">
+            The all-time mark still standing atop the completed matchup archive.
+          </p>
+
+          <a href="/records">
+            Open the Record Book <span aria-hidden="true">→</span>
+          </a>
+        </article>
+      )}
+
+      {reigningSeason && (
+        <article class="notebook-card notebook-card--champion">
+          <div class="notebook-card__topline">
+            <span aria-hidden="true">★</span>
+            <p>Reigning Champion</p>
+            <small>{reigningSeason.year}</small>
+          </div>
+
+          <h3>{reigningSeason.champion ?? "Champion unconfirmed"}</h3>
+          {reigningSeason.runnerUp && (
+            <p class="notebook-card__description">
+              Defeated {reigningSeason.runnerUp} in the championship.
+            </p>
+          )}
+
+          <a href={`/history/${reigningSeason.year}`}>
+            Revisit the season <span aria-hidden="true">→</span>
+          </a>
+        </article>
+      )}
+    </div>
+  </div>
+</section>
+
+<style>
+  .league-notebook {
+    padding-top: var(--space-9);
+    margin-top: var(--space-9);
+    border-top: 3px double var(--color-rule-dark);
+  }
+
+  .league-notebook__heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 30rem);
+    align-items: end;
+    gap: clamp(2rem, 6vw, 6rem);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--color-rule-dark);
+  }
+
+  .league-notebook__heading h2 {
+    margin: 0;
+    font-size: clamp(2.4rem, 5vw, 4.5rem);
+    letter-spacing: -0.05em;
+    line-height: 0.92;
+  }
+
+  .league-notebook__heading > p {
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.05rem, 1.7vw, 1.25rem);
+    line-height: 1.45;
+  }
+
+  .league-notebook__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(20rem, 0.65fr);
+    gap: var(--space-5);
+    padding-top: var(--space-6);
+  }
+
+  .league-notebook__rail {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .notebook-card {
+    --notebook-accent: var(--color-green);
+    display: flex;
+    min-width: 0;
+    overflow: hidden;
+    flex-direction: column;
+    padding: clamp(1.4rem, 3vw, 2.25rem);
+    border: 1px solid var(--color-rule);
+    border-top: 4px solid var(--notebook-accent);
+    border-radius: var(--radius-lg);
+    background:
+      linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--notebook-accent) 5%, transparent),
+        transparent 52%
+      ),
+      var(--color-surface);
+  }
+
+  .notebook-card--award {
+    justify-content: space-between;
+    background:
+      radial-gradient(circle at 88% 14%, var(--color-green-faint), transparent 34%),
+      var(--color-surface);
+  }
+
+  .notebook-card--record { --notebook-accent: #9a681e; }
+  .notebook-card--champion { --notebook-accent: var(--color-ink-muted); }
+
+  .notebook-card__topline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+    color: var(--notebook-accent);
+  }
+
+  .notebook-card__topline > span {
+    display: grid;
+    width: 2rem;
+    aspect-ratio: 1;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-weight: 800;
+  }
+
+  .notebook-card__topline p,
+  .notebook-card__topline small {
+    margin: 0;
+    font-family: var(--font-data);
+    font-size: 0.59rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .notebook-card__topline small {
+    margin-left: auto;
+    color: var(--color-ink-muted);
+  }
+
+  .notebook-card__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.72fr);
+    align-items: end;
+    gap: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .notebook-card h3 {
+    max-width: 12ch;
+    margin-bottom: var(--space-4);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    letter-spacing: -0.05em;
+    line-height: 0.94;
+    overflow-wrap: normal;
+  }
+
+  .notebook-card--award h3 {
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    line-height: 0.88;
+  }
+
+  .notebook-card__team {
+    margin-bottom: var(--space-2);
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.35rem, 2.8vw, 2.1rem);
+    font-weight: 700;
+    line-height: 1.05;
+  }
+
+  .notebook-card > strong,
+  .notebook-card__body > div > strong {
+    display: block;
+    margin-bottom: var(--space-4);
+    color: var(--notebook-accent);
+    font-size: clamp(1.05rem, 2vw, 1.35rem);
+  }
+
+  .notebook-card__description {
+    max-width: 40rem;
+    margin: 0;
+    color: var(--color-ink-soft);
+    line-height: 1.55;
+  }
+
+  .notebook-score {
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-surface) 88%, var(--notebook-accent) 12%);
+  }
+
+  .notebook-score > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+
+  .notebook-score > div + div { border-top: 1px solid var(--color-rule); }
+  .notebook-score span { min-width: 0; color: var(--color-ink-soft); font-weight: 650; overflow-wrap: anywhere; }
+  .notebook-score strong { font-family: var(--font-data); font-size: 0.8rem; }
+
+  .notebook-card > a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-top: var(--space-4);
+    margin-top: var(--space-6);
+    border-top: 1px solid var(--color-rule);
+    color: var(--color-green);
+    font-weight: 750;
+  }
+
+  .notebook-card--empty { min-height: 22rem; }
+
+  @media (max-width: 1050px) {
+    .league-notebook__grid { grid-template-columns: 1fr; }
+    .league-notebook__rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 780px) {
+    .league-notebook__heading { grid-template-columns: 1fr; gap: var(--space-4); }
+    .notebook-card__body { grid-template-columns: 1fr; }
+    .notebook-score { max-width: 36rem; }
+  }
+
+  @media (max-width: 620px) {
+    .league-notebook__rail { grid-template-columns: 1fr; }
+    .notebook-card--award h3 { font-size: clamp(2.8rem, 14vw, 4.5rem); }
+  }
+</style>
