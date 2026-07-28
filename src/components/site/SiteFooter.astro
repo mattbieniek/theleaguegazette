@@ -4,6 +4,16 @@ const currentYear = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Chicago",
 }).format(new Date());
 
+const currentPath = Astro.url.pathname;
+
+function isCurrentPage(href: string): boolean {
+  if (href.includes("#")) return false;
+  const pathname = href.split("#")[0] || "/";
+  return pathname === "/"
+    ? currentPath === "/"
+    : currentPath === pathname || currentPath.startsWith(`${pathname}/`);
+}
+
 const navigationGroups = [
   {
     label: "Publication",
@@ -29,6 +39,7 @@ const navigationGroups = [
       { label: "Season Archive", href: "/history#seasons" },
       { label: "Record Book", href: "/records" },
       { label: "Draft Archive", href: "/draft" },
+      { label: "Transactions", href: "/transactions" },
     ],
   },
 ];
@@ -54,6 +65,10 @@ const navigationGroups = [
         <p class="site-footer__tagline">
           News, analysis and nonsense from around the league.
         </p>
+
+        <p class="site-footer__edition">
+          Established 2022 <span aria-hidden="true">·</span> Houston, Texas
+        </p>
       </div>
 
       <nav class="site-footer__navigation" aria-label="Footer navigation">
@@ -66,7 +81,13 @@ const navigationGroups = [
             <ul>
               {group.links.map((link) => (
                 <li>
-                  <a href={link.href}>{link.label}</a>
+                  <a
+                    class:list={[isCurrentPage(link.href) && "is-current"]}
+                    href={link.href}
+                    aria-current={isCurrentPage(link.href) ? "page" : undefined}
+                  >
+                    {link.label}
+                  </a>
                 </li>
               ))}
             </ul>
@@ -85,6 +106,10 @@ const navigationGroups = [
         <a href="https://sleeper.com" rel="external">Sleeper</a>.
         The League Gazette is not affiliated with the NFL.
       </p>
+
+      <a class="site-footer__admin" href="/admin/login">
+        Editorial login
+      </a>
     </div>
   </div>
 </footer>
@@ -170,6 +195,19 @@ const navigationGroups = [
     line-height: 1.45;
   }
 
+  .site-footer__edition {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: var(--space-5) 0 0;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+  }
+
   .site-footer__navigation {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -210,10 +248,17 @@ const navigationGroups = [
     text-underline-offset: 0.22rem;
   }
 
+  .site-footer__navigation a.is-current {
+    color: var(--color-green);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.22rem;
+  }
+
   .site-footer__bottom {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
     align-items: flex-start;
-    justify-content: space-between;
     gap: var(--space-6);
     padding-top: var(--space-5);
     border-top: 1px solid var(--color-rule);
@@ -230,13 +275,31 @@ const navigationGroups = [
     text-transform: uppercase;
   }
 
-  .site-footer__bottom p:last-child {
+  .site-footer__bottom p:nth-child(2) {
     text-align: right;
   }
 
   .site-footer__bottom a {
     color: var(--color-green);
     font-weight: 700;
+  }
+
+  .site-footer__admin {
+    flex: 0 0 auto;
+    color: var(--color-ink-muted) !important;
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+    font-weight: 600 !important;
+    letter-spacing: 0.045em;
+    line-height: 1.6;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .site-footer__admin:hover {
+    color: var(--color-green) !important;
+    text-decoration: underline;
+    text-underline-offset: 0.22rem;
   }
 
   @media (max-width: 960px) {
@@ -248,6 +311,14 @@ const navigationGroups = [
     .site-footer__navigation {
       max-width: 48rem;
     }
+
+    .site-footer__bottom {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .site-footer__admin {
+      grid-column: 1 / -1;
+    }
   }
 
   @media (max-width: 650px) {
@@ -257,12 +328,17 @@ const navigationGroups = [
     }
 
     .site-footer__bottom {
+      display: flex;
       flex-direction: column;
       gap: var(--space-3);
     }
 
-    .site-footer__bottom p:last-child {
+    .site-footer__bottom p:nth-child(2) {
       text-align: left;
+    }
+
+    .site-footer__admin {
+      margin-top: var(--space-2);
     }
   }
 
