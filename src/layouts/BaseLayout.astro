@@ -8,6 +8,7 @@ import "../styles/global.css";
 
 import Masthead from "../components/site/Masthead.astro";
 import SiteNav from "../components/site/SiteNav.astro";
+import SiteFooter from "../components/site/SiteFooter.astro";
 
 interface Props {
   title?: string;
@@ -95,6 +96,8 @@ const socialImageUrl = new URL(image, Astro.site);
     <main id="main-content" class="page-main">
       <slot />
     </main>
+
+    <SiteFooter />
   </body>
 </html>
 
