@@ -6,6 +6,7 @@ import { getHomepageArticles } from "../lib/queries/gazette";
 import LeagueOverview from "../components/home/LeagueOverview.astro";
 import LeagueNotebook from "../components/home/LeagueNotebook.astro";
 import LeagueWire from "../components/home/LeagueWire.astro";
+import WeeklyScoreboard from "../components/home/WeeklyScoreboard.astro";
 import { getSeasonStandings } from "../lib/queries/standings";
 import { getAwardsPageData } from "../lib/queries/awards";
 import { buildWeeklyAwards } from "../lib/gazette/awards";
@@ -14,6 +15,7 @@ import { buildLeagueRecords } from "../lib/gazette/records";
 import { seasonHistoryMetadata } from "../data/seasonHistory";
 import { getTransactionArchive } from "../lib/queries/transactions";
 import { getHomepageTransactionHighlights } from "../lib/gazette/transactionHighlights";
+import { getSeasonMatchups } from "../lib/queries/matchups";
 
 const stories = await getHomepageArticles();
 
@@ -37,6 +39,19 @@ const sleeperLeagueId =
 const standings = sleeperLeagueId
   ? await getSeasonStandings(sleeperLeagueId)
   : [];
+
+const matchupWeeks = sleeperLeagueId
+  ? await getSeasonMatchups(sleeperLeagueId)
+  : [];
+const fullSlateSize = matchupWeeks.reduce(
+  (largest, matchupWeek) => Math.max(largest, matchupWeek.matchups.length),
+  0
+);
+const homepageMatchupWeek = [...matchupWeeks]
+  .reverse()
+  .find((matchupWeek) => matchupWeek.matchups.length === fullSlateSize) ??
+  matchupWeeks.at(-1) ??
+  null;
 
 const awardsData = await getAwardsPageData();
 const weeklyAwards = awardsData.selectedOption
@@ -155,6 +170,7 @@ const transactionHighlights = getHomepageTransactionHighlights(
         </section>
       )
     }
+    <WeeklyScoreboard matchupWeek={homepageMatchupWeek} />
     <LeagueOverview standings={standings} />
     <LeagueWire transactions={transactionHighlights} />
     <LeagueNotebook
