@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import HistoryNav from "../components/history/HistoryNav.astro";
 import { getHistoricalResults } from "../lib/queries/records";
 import { buildLeagueRecords } from "../lib/gazette/records";
 
@@ -21,6 +22,8 @@ const remainingRecords = records.slice(1);
   description="The greatest, closest and most improbable performances in Far Far Away Football history."
 >
   <main class="records-page site-shell">
+    <HistoryNav />
+
     <header class="records-header">
       <div>
         <p class="eyebrow">The Historical Archive</p>

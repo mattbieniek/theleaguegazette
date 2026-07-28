@@ -1,0 +1,113 @@
+---
+const currentPath = Astro.url.pathname;
+
+const links = [
+  {
+    label: "History Home",
+    href: "/history",
+    current: currentPath === "/history",
+  },
+  {
+    label: "Seasons",
+    href: "/history#seasons",
+    current: currentPath.startsWith("/history/"),
+  },
+  {
+    label: "Record Book",
+    href: "/records",
+    current: currentPath === "/records",
+  },
+];
+---
+
+<nav class="history-nav" aria-label="League history">
+  <p>Historical Archive</p>
+
+  <ul>
+    {links.map((link) => (
+      <li>
+        <a
+          class:list={[link.current && "is-current"]}
+          href={link.href}
+          aria-current={link.current ? "page" : undefined}
+        >
+          {link.label}
+        </a>
+      </li>
+    ))}
+  </ul>
+</nav>
+
+<style>
+  .history-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+    padding-block: var(--space-4);
+    margin-bottom: clamp(2rem, 5vw, 4rem);
+    border-top: 1px solid var(--color-rule);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .history-nav p {
+    flex: 0 0 auto;
+    margin: 0;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.59rem;
+    font-weight: 650;
+    letter-spacing: 0.065em;
+    text-transform: uppercase;
+  }
+
+  .history-nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .history-nav a {
+    display: inline-flex;
+    min-height: 2.35rem;
+    align-items: center;
+    padding-inline: var(--space-4);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    transition:
+      border-color var(--transition-fast),
+      background-color var(--transition-fast),
+      color var(--transition-fast);
+  }
+
+  .history-nav a:hover,
+  .history-nav a.is-current {
+    border-color: var(--color-green);
+    background: var(--color-green-faint);
+    color: var(--color-green);
+  }
+
+  @media (max-width: 650px) {
+    .history-nav {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .history-nav ul {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .history-nav a {
+      padding-inline: var(--space-3);
+    }
+  }
+</style>

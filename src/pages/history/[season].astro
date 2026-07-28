@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import HistoryNav from "../../components/history/HistoryNav.astro";
 import { teams as leagueTeams } from "../../data/teams";
 import { getHistoricalResults } from "../../lib/queries/records";
 import { buildLeagueSeasonHistory } from "../../lib/gazette/history";
@@ -43,6 +44,8 @@ const championProfile = getTeamProfile(season.champion);
   description={`Champion, standings and defining performances from the ${season.year} Far Far Away Football season.`}
 >
   <main class="season-page site-shell">
+    <HistoryNav />
+
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="/history">League History</a>
       <span aria-hidden="true">/</span>
