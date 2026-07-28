@@ -1,0 +1,554 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getHistoricalResults } from "../lib/queries/records";
+import { buildLeagueRecords } from "../lib/gazette/records";
+
+export const prerender = false;
+
+const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+const results = await getHistoricalResults(sleeperLeagueId);
+const records = buildLeagueRecords(results);
+const seasons = [...new Set(results.map((result) => result.season_year))]
+  .sort((first, second) => second - first);
+const matchupCount = new Set(results.map((result) => result.matchup_id)).size;
+
+const featuredRecord = records[0] ?? null;
+const remainingRecords = records.slice(1);
+---
+
+<BaseLayout
+  title="League Record Book"
+  description="The greatest, closest and most improbable performances in Far Far Away Football history."
+>
+  <main class="records-page site-shell">
+    <header class="records-header">
+      <div>
+        <p class="eyebrow">The Historical Archive</p>
+        <h1>League Record Book</h1>
+        <p class="records-header__description">
+          The definitive ledger of scoring extremes, narrow escapes and
+          unforgettable weekly performances across Far Far Away Football.
+        </p>
+      </div>
+
+      <dl class="archive-summary">
+        <div>
+          <dt>Seasons</dt>
+          <dd>{seasons.length}</dd>
+        </div>
+        <div>
+          <dt>Matchups</dt>
+          <dd>{matchupCount}</dd>
+        </div>
+        <div>
+          <dt>Coverage</dt>
+          <dd>
+            {seasons.length > 0
+              ? `${seasons.at(-1)}–${seasons[0]}`
+              : "—"}
+          </dd>
+        </div>
+      </dl>
+    </header>
+
+    {featuredRecord ? (
+      <>
+        <section class="record-feature" aria-labelledby="record-feature-title">
+          <div class="record-feature__copy">
+            <div class="record-kicker">
+              <span aria-hidden="true">{featuredRecord.symbol}</span>
+              <p>{featuredRecord.label}</p>
+              <small>Record 01</small>
+            </div>
+
+            <h2 id="record-feature-title">{featuredRecord.title}</h2>
+            <p class="record-feature__team">{featuredRecord.teamName}</p>
+            <p class="record-feature__value">{featuredRecord.value}</p>
+            <p class="record-feature__description">
+              {featuredRecord.description}
+            </p>
+          </div>
+
+          <div class="record-score">
+            <div class="record-score__edition">
+              <span>{featuredRecord.seasonYear} Season</span>
+              <strong>Week {featuredRecord.week}</strong>
+            </div>
+
+            <div class="record-score__row record-score__row--holder">
+              <span>{featuredRecord.teamName}</span>
+              <strong>{featuredRecord.teamScore.toFixed(2)}</strong>
+            </div>
+
+            {featuredRecord.opponentName && (
+              <div class="record-score__row">
+                <span>{featuredRecord.opponentName}</span>
+                <strong>{featuredRecord.opponentScore?.toFixed(2)}</strong>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section class="record-index" aria-labelledby="record-index-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Official Ledger</p>
+              <h2 id="record-index-title">The Records</h2>
+            </div>
+            <p>
+              Calculated from completed regular-season and playoff matchups in
+              the synchronized league archive.
+            </p>
+          </div>
+
+          <div class="records-grid">
+            {remainingRecords.map((record, index) => (
+              <article class:list={["record-card", `record-card--${record.tone}`]}>
+                <div class="record-kicker">
+                  <span aria-hidden="true">{record.symbol}</span>
+                  <p>{record.label}</p>
+                  <small>Record {String(index + 2).padStart(2, "0")}</small>
+                </div>
+
+                <h3>{record.title}</h3>
+                <div class="record-card__rule" aria-hidden="true"></div>
+                <p class="record-card__team">{record.teamName}</p>
+                <p class="record-card__value">{record.value}</p>
+                <p class="record-card__description">{record.description}</p>
+
+                <div class="record-card__result">
+                  <div>
+                    <span>{record.teamName}</span>
+                    <strong>{record.teamScore.toFixed(2)}</strong>
+                  </div>
+                  {record.opponentName && (
+                    <div>
+                      <span>{record.opponentName}</span>
+                      <strong>{record.opponentScore?.toFixed(2)}</strong>
+                    </div>
+                  )}
+                </div>
+
+                <footer>
+                  <span>{record.seasonYear} Season · Week {record.week}</span>
+                  {record.tiedPerformances > 1 && (
+                    <span>{record.tiedPerformances} tied performances</span>
+                  )}
+                </footer>
+              </article>
+            ))}
+          </div>
+        </section>
+      </>
+    ) : (
+      <section class="empty-state">
+        <p class="eyebrow">Historical Archive</p>
+        <h2>No completed matchups are available yet.</h2>
+        <p>
+          League records will appear after historical matchup results have been
+          synchronized.
+        </p>
+      </section>
+    )}
+  </main>
+</BaseLayout>
+
+<style>
+  .records-page {
+    padding-top: clamp(2.5rem, 6vw, 5rem);
+    padding-bottom: var(--space-9);
+  }
+
+  .records-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 27rem);
+    align-items: end;
+    gap: clamp(2rem, 6vw, 6rem);
+    padding-bottom: clamp(2rem, 5vw, 4rem);
+    border-bottom: 3px double var(--color-rule-dark);
+  }
+
+  .records-header h1 {
+    max-width: 11ch;
+    margin: 0 0 var(--space-5);
+    font-size: clamp(3.6rem, 9vw, 7.5rem);
+    letter-spacing: -0.065em;
+    line-height: 0.86;
+    overflow-wrap: normal;
+  }
+
+  .records-header__description {
+    max-width: 48rem;
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.2rem, 2.4vw, 1.65rem);
+    line-height: 1.45;
+  }
+
+  .archive-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .archive-summary div {
+    min-width: 0;
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .archive-summary div + div {
+    border-left: 1px solid var(--color-rule);
+  }
+
+  .archive-summary dt,
+  .archive-summary dd {
+    margin: 0;
+  }
+
+  .archive-summary dt {
+    margin-bottom: var(--space-2);
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .archive-summary dd {
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.2rem, 2.4vw, 1.8rem);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .record-feature {
+    --record-accent: var(--color-green);
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(19rem, 0.75fr);
+    align-items: end;
+    gap: clamp(2rem, 6vw, 5rem);
+    padding: clamp(2rem, 5vw, 4rem);
+    margin-top: var(--space-7);
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-top: 5px solid var(--record-accent);
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(circle at 90% 18%, var(--color-green-faint), transparent 30%),
+      var(--color-surface);
+  }
+
+  .record-kicker {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+    color: var(--record-accent, var(--color-green));
+  }
+
+  .record-kicker > span {
+    display: grid;
+    width: 2.25rem;
+    aspect-ratio: 1;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-weight: 800;
+  }
+
+  .record-kicker p,
+  .record-kicker small {
+    margin: 0;
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    font-weight: 700;
+    letter-spacing: 0.065em;
+    text-transform: uppercase;
+  }
+
+  .record-kicker small {
+    margin-left: auto;
+    color: var(--color-ink-muted);
+  }
+
+  .record-feature h2 {
+    max-width: 11ch;
+    margin-bottom: var(--space-5);
+    font-size: clamp(3.3rem, 7vw, 6.5rem);
+    letter-spacing: -0.06em;
+    line-height: 0.88;
+    overflow-wrap: normal;
+  }
+
+  .record-feature__team,
+  .record-card__team {
+    margin-bottom: var(--space-2);
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-weight: 700;
+    line-height: 1.04;
+  }
+
+  .record-feature__team {
+    font-size: clamp(1.8rem, 4vw, 3rem);
+  }
+
+  .record-feature__value,
+  .record-card__value {
+    color: var(--record-accent, var(--color-green));
+    font-weight: 800;
+  }
+
+  .record-feature__value {
+    margin-bottom: var(--space-4);
+    font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+  }
+
+  .record-feature__description,
+  .record-card__description {
+    color: var(--color-ink-soft);
+    line-height: 1.6;
+  }
+
+  .record-feature__description {
+    max-width: 42rem;
+    margin: 0;
+  }
+
+  .record-score,
+  .record-card__result {
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-surface) 88%, var(--record-accent) 12%);
+  }
+
+  .record-score__edition {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-rule);
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .record-score__row,
+  .record-card__result > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+
+  .record-score__row + .record-score__row,
+  .record-card__result > div + div {
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .record-score__row--holder {
+    background: var(--color-green-faint);
+  }
+
+  .record-score__row span,
+  .record-card__result span {
+    min-width: 0;
+    color: var(--color-ink-soft);
+    font-weight: 650;
+    overflow-wrap: anywhere;
+  }
+
+  .record-score__row strong,
+  .record-card__result strong {
+    font-family: var(--font-data);
+    font-size: 0.8rem;
+  }
+
+  .record-index {
+    padding-top: var(--space-9);
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-6);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--color-rule-dark);
+  }
+
+  .section-heading h2 {
+    margin: 0;
+    font-size: clamp(2.4rem, 5vw, 4.25rem);
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+  }
+
+  .section-heading > p {
+    max-width: 31rem;
+    margin: 0;
+    color: var(--color-ink-muted);
+    line-height: 1.55;
+    text-align: right;
+  }
+
+  .records-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+    padding-top: var(--space-6);
+  }
+
+  .record-card {
+    --record-accent: var(--color-green);
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-top: 4px solid var(--record-accent);
+    border-radius: var(--radius-lg);
+    background:
+      linear-gradient(145deg, color-mix(in srgb, var(--record-accent) 5%, transparent), transparent 50%),
+      var(--color-surface);
+  }
+
+  .record-card--red { --record-accent: #8d3d34; }
+  .record-card--gold { --record-accent: #9a681e; }
+  .record-card--slate { --record-accent: var(--color-ink-muted); }
+
+  .record-card h3 {
+    min-height: 1.9em;
+    margin-bottom: var(--space-5);
+    font-size: clamp(2rem, 4vw, 3.35rem);
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+    overflow-wrap: normal;
+  }
+
+  .record-card__rule {
+    width: 5rem;
+    height: 2px;
+    margin-top: calc(var(--space-3) * -1);
+    margin-bottom: var(--space-5);
+    background: linear-gradient(90deg, var(--record-accent), transparent);
+  }
+
+  .record-card__team {
+    min-height: 2.1em;
+    font-size: clamp(1.4rem, 2.8vw, 2rem);
+  }
+
+  .record-card__value {
+    margin-bottom: var(--space-4);
+    font-size: clamp(1.1rem, 2vw, 1.4rem);
+  }
+
+  .record-card__description {
+    flex: 1;
+    margin: 0 0 var(--space-5);
+  }
+
+  .record-card__result {
+    width: 100%;
+    margin-top: auto;
+  }
+
+  .record-card footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding-top: var(--space-4);
+    margin-top: var(--space-4);
+    border-top: 1px solid var(--color-rule);
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.59rem;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+  }
+
+  .empty-state {
+    max-width: 48rem;
+    padding: var(--space-8);
+    margin-top: var(--space-8);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  @media (max-width: 1000px) {
+    .records-header,
+    .record-feature {
+      grid-template-columns: 1fr;
+    }
+
+    .archive-summary {
+      max-width: 42rem;
+    }
+
+    .record-score {
+      max-width: 36rem;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .section-heading {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .section-heading > p {
+      text-align: left;
+    }
+
+    .records-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .record-card h3,
+    .record-card__team {
+      min-height: 0;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .records-header h1 {
+      max-width: 100%;
+      font-size: clamp(3rem, 15vw, 4.7rem);
+    }
+
+    .archive-summary {
+      grid-template-columns: 1fr;
+    }
+
+    .archive-summary div + div {
+      border-top: 1px solid var(--color-rule);
+      border-left: 0;
+    }
+
+    .record-feature,
+    .record-card {
+      padding: var(--space-5);
+    }
+
+    .record-feature h2 {
+      max-width: 100%;
+      font-size: clamp(2.8rem, 14vw, 4.5rem);
+    }
+  }
+</style>
