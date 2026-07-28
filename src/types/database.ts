@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_users: {
@@ -31,6 +56,172 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      draft_picks: {
+        Row: {
+          created_at: string
+          draft_id: string
+          draft_slot: number | null
+          fantasy_team_id: string | null
+          id: string
+          is_keeper: boolean
+          manager_provider_id: string | null
+          metadata: Json
+          pick_number: number
+          player_name: string
+          player_provider_id: string | null
+          position: string | null
+          pro_team: string | null
+          provider_pick_id: string
+          raw_data: Json
+          roster_id: number | null
+          round: number
+          round_pick: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          draft_id: string
+          draft_slot?: number | null
+          fantasy_team_id?: string | null
+          id?: string
+          is_keeper?: boolean
+          manager_provider_id?: string | null
+          metadata?: Json
+          pick_number: number
+          player_name: string
+          player_provider_id?: string | null
+          position?: string | null
+          pro_team?: string | null
+          provider_pick_id: string
+          raw_data?: Json
+          roster_id?: number | null
+          round: number
+          round_pick: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          draft_id?: string
+          draft_slot?: number | null
+          fantasy_team_id?: string | null
+          id?: string
+          is_keeper?: boolean
+          manager_provider_id?: string | null
+          metadata?: Json
+          pick_number?: number
+          player_name?: string
+          player_provider_id?: string | null
+          position?: string | null
+          pro_team?: string | null
+          provider_pick_id?: string
+          raw_data?: Json
+          roster_id?: number | null
+          round?: number
+          round_pick?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_picks_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_picks_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "fantasy_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_picks_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_standings"
+            referencedColumns: ["fantasy_team_id"]
+          },
+        ]
+      }
+      drafts: {
+        Row: {
+          created_at: string
+          draft_type: string | null
+          id: string
+          last_synced_at: string
+          league_id: string | null
+          metadata: Json
+          name: string | null
+          provider: string
+          provider_draft_id: string
+          raw_data: Json
+          rounds: number | null
+          season_id: string | null
+          season_year: number
+          settings: Json
+          starts_at: string | null
+          status: string | null
+          team_count: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          draft_type?: string | null
+          id?: string
+          last_synced_at?: string
+          league_id?: string | null
+          metadata?: Json
+          name?: string | null
+          provider: string
+          provider_draft_id: string
+          raw_data?: Json
+          rounds?: number | null
+          season_id?: string | null
+          season_year: number
+          settings?: Json
+          starts_at?: string | null
+          status?: string | null
+          team_count?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          draft_type?: string | null
+          id?: string
+          last_synced_at?: string
+          league_id?: string | null
+          metadata?: Json
+          name?: string | null
+          provider?: string
+          provider_draft_id?: string
+          raw_data?: Json
+          rounds?: number | null
+          season_id?: string | null
+          season_year?: number
+          settings?: Json
+          starts_at?: string | null
+          status?: string | null
+          team_count?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drafts_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drafts_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fantasy_teams: {
         Row: {
@@ -986,6 +1177,63 @@ export type Database = {
         }
         Relationships: []
       }
+      public_gazette_articles: {
+        Row: {
+          author_name: string | null
+          body: Json | null
+          category: string | null
+          created_at: string | null
+          effective_status: string | null
+          headline: string | null
+          homepage_order: number | null
+          id: string | null
+          image_alt: string | null
+          image_url: string | null
+          is_featured: boolean | null
+          published_at: string | null
+          published_from_schedule: boolean | null
+          slug: string | null
+          summary: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          author_name?: string | null
+          body?: Json | null
+          category?: string | null
+          created_at?: string | null
+          effective_status?: never
+          headline?: string | null
+          homepage_order?: number | null
+          id?: string | null
+          image_alt?: string | null
+          image_url?: string | null
+          is_featured?: boolean | null
+          published_at?: string | null
+          published_from_schedule?: never
+          slug?: string | null
+          summary?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          author_name?: string | null
+          body?: Json | null
+          category?: string | null
+          created_at?: string | null
+          effective_status?: never
+          headline?: string | null
+          homepage_order?: number | null
+          id?: string | null
+          image_alt?: string | null
+          image_url?: string | null
+          is_featured?: boolean | null
+          published_at?: string | null
+          published_from_schedule?: never
+          slug?: string | null
+          summary?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       season_standings: {
         Row: {
           average_points: number | null
@@ -1283,6 +1531,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

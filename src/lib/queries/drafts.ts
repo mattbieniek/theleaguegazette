@@ -65,6 +65,84 @@ function getStaticTeam(teamName: string | null): Team | null {
   ) ?? null;
 }
 
+async function getStoredDrafts(): Promise<DraftEdition[] | null> {
+  const { data, error } = await supabase
+    .from("drafts")
+    .select(`
+      provider_draft_id,
+      season_year,
+      name,
+      provider,
+      status,
+      draft_type,
+      rounds,
+      team_count,
+      draft_picks (
+        pick_number,
+        round,
+        round_pick,
+        draft_slot,
+        roster_id,
+        player_provider_id,
+        player_name,
+        position,
+        pro_team,
+        is_keeper,
+        fantasy_teams (
+          team_name
+        )
+      )
+    `)
+    .order("season_year", { ascending: false })
+    .order("pick_number", {
+      referencedTable: "draft_picks",
+      ascending: true,
+    });
+
+  if (error) {
+    console.warn("Stored draft archive unavailable; using Sleeper fallback.", error.message);
+    return null;
+  }
+
+  if (!data || data.length === 0) {
+    return null;
+  }
+
+  return data.map((draft): DraftEdition => {
+    const teamCount = draft.team_count ?? 0;
+    const picks = (draft.draft_picks ?? []).map((pick): DraftPick => {
+      const teamName = pick.fantasy_teams?.team_name ?? null;
+
+      return {
+        pickNumber: pick.pick_number,
+        round: pick.round,
+        roundPick: pick.round_pick,
+        draftSlot: pick.draft_slot,
+        rosterId: pick.roster_id,
+        playerId: pick.player_provider_id,
+        playerName: pick.player_name,
+        position: pick.position,
+        proTeam: pick.pro_team,
+        isKeeper: pick.is_keeper,
+        fantasyTeamName: teamName,
+        fantasyTeam: getStaticTeam(teamName),
+      };
+    });
+
+    return {
+      providerDraftId: draft.provider_draft_id,
+      seasonYear: draft.season_year,
+      name: draft.name ?? `${draft.season_year} Draft`,
+      provider: draft.provider,
+      status: draft.status ?? "unknown",
+      draftType: draft.draft_type ?? "unknown",
+      rounds: draft.rounds ?? Math.max(0, ...picks.map((pick) => pick.round)),
+      teamCount: teamCount || new Set(picks.map((pick) => pick.rosterId)).size,
+      picks,
+    };
+  });
+}
+
 async function getRosterTeamMap(sleeperLeagueId: string) {
   const { data } = await supabase
     .from("fantasy_teams")
@@ -127,9 +205,11 @@ async function getSleeperDrafts(sleeperLeagueId: string): Promise<DraftEdition[]
 }
 
 export async function getDraftArchive(sleeperLeagueId: string): Promise<DraftEdition[]> {
-  // Sleeper is the immediate source. The migration and sync function persist the
-  // same provider-neutral shape for future ESPN and historical imports.
+  const storedDrafts = await getStoredDrafts();
+  if (storedDrafts) {
+    return storedDrafts;
+  }
+
   const drafts = await getSleeperDrafts(sleeperLeagueId);
   return drafts.sort((a, b) => b.seasonYear - a.seasonYear);
 }
-
