@@ -4,5 +4,5 @@ import vercel from '@astrojs/vercel';
 export default defineConfig({
   output: 'static',
   adapter: vercel(),
-  site: 'https://far-far-away-football.vercel.app'
+  site: 'https://theleaguegazette.org'
 });
