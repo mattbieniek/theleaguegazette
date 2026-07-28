@@ -1,0 +1,66 @@
+---
+import type { TeamDraftClass } from "../../lib/gazette/teamDrafts";
+
+interface Props {
+  draftClass: TeamDraftClass;
+  featured?: boolean;
+}
+
+const { draftClass, featured = false } = Astro.props;
+---
+
+<article class:list={["team-draft-class", featured && "team-draft-class--featured"]}>
+  <header>
+    <div>
+      <p>{featured ? "Latest Draft Class" : "Archived Class"}</p>
+      <h3>{draftClass.seasonYear}</h3>
+    </div>
+
+    <dl>
+      <div><dt>Draft Slot</dt><dd>{draftClass.draftSlot ?? "—"}</dd></div>
+      <div><dt>Selections</dt><dd>{draftClass.picks.length}</dd></div>
+    </dl>
+  </header>
+
+  <ol>
+    {draftClass.picks.map((pick) => (
+      <li>
+        <span class="pick-number">{pick.round}.{String(pick.roundPick).padStart(2, "0")}</span>
+        <span class="position-mark">{pick.position ?? "—"}</span>
+        <div class="player">
+          <strong>{pick.playerName}</strong>
+          <span>{pick.proTeam || "Free Agent"}{pick.isKeeper ? " · Keeper" : ""}</span>
+        </div>
+        <span class="overall-pick">No. {pick.pickNumber}</span>
+      </li>
+    ))}
+  </ol>
+</article>
+
+<style>
+  .team-draft-class { min-width:0; overflow:hidden; border:1px solid var(--color-rule); border-radius:var(--radius-lg); background:var(--color-surface); }
+  header { display:flex; align-items:end; justify-content:space-between; gap:var(--space-5); padding:var(--space-5); border-bottom:1px solid var(--color-rule); background:linear-gradient(145deg,color-mix(in srgb,var(--team-color) 9%,transparent),transparent 70%); }
+  header p,dt { margin:0; color:var(--color-ink-muted); font-family:var(--font-data); font-size:.56rem; font-weight:650; letter-spacing:.065em; text-transform:uppercase; }
+  header h3 { margin:var(--space-2) 0 0; color:var(--team-color); font-size:clamp(2.1rem,4vw,3.2rem); letter-spacing:-.045em; line-height:.9; }
+  header dl { display:flex; gap:var(--space-5); margin:0; }
+  header dl>div { text-align:right; }
+  dd { margin:var(--space-1) 0 0; color:var(--color-ink); font-family:var(--font-editorial); font-size:1.35rem; font-weight:700; }
+  ol { padding:0; margin:0; list-style:none; }
+  li { display:grid; grid-template-columns:3rem 2.5rem minmax(0,1fr) auto; align-items:center; gap:var(--space-4); min-width:0; padding:var(--space-4) var(--space-5); }
+  li+li { border-top:1px solid var(--color-rule); }
+  .pick-number,.overall-pick,.position-mark,.player>span { font-family:var(--font-data); font-size:.59rem; font-weight:650; letter-spacing:.04em; text-transform:uppercase; }
+  .pick-number { color:var(--team-color); }
+  .position-mark { display:grid; width:2.35rem; height:2.35rem; place-items:center; border:1px solid color-mix(in srgb,var(--team-color) 30%,var(--color-rule)); border-radius:50%; color:var(--team-color); }
+  .player { min-width:0; }
+  .player strong { display:block; color:var(--color-ink); font-family:var(--font-editorial); font-size:clamp(1.05rem,2vw,1.3rem); line-height:1.05; overflow-wrap:anywhere; }
+  .player>span { display:block; margin-top:var(--space-1); color:var(--color-ink-muted); }
+  .overall-pick { color:var(--color-ink-muted); white-space:nowrap; }
+
+  @media (max-width:560px) {
+    header { align-items:flex-start; flex-direction:column; }
+    header dl { width:100%; justify-content:space-between; }
+    header dl>div { text-align:left; }
+    li { grid-template-columns:2.5rem minmax(0,1fr) auto; gap:var(--space-3); padding-inline:var(--space-4); }
+    .position-mark { display:none; }
+  }
+</style>

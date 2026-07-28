@@ -3,9 +3,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import StandingsTable from "../../components/StandingsTable.astro";
 import PlayerCard from "../../components/teams/PlayerCard.astro";
 import RecentResultCard from "../../components/teams/RecentResultCard.astro";
+import TeamDraftClass from "../../components/teams/TeamDraftClass.astro";
 import { getSeasonStandings } from "../../lib/queries/standings";
 import { getHistoricalResults } from "../../lib/queries/records";
 import { getTeamRoster } from "../../lib/queries/rosters";
+import { getDraftArchive } from "../../lib/queries/drafts";
 import {
   buildFranchiseHistory,
   formatFranchiseRecord,
@@ -14,6 +16,7 @@ import {
   buildTeamRecentForm,
   formatStreak,
 } from "../../lib/gazette/recentForm";
+import { buildTeamDraftHistory } from "../../lib/gazette/teamDrafts";
 import { teams } from "../../data/teams";
 
 type Team = (typeof teams)[number];
@@ -50,6 +53,10 @@ const roster = sleeperLeagueId
   ? await getTeamRoster(sleeperLeagueId, team.name)
   : null;
 
+const draftArchive = sleeperLeagueId
+  ? await getDraftArchive(sleeperLeagueId)
+  : [];
+
 const primaryPositions = ["QB", "RB", "WR", "TE", "K", "DEF"];
 const rosterGroups = [...primaryPositions, "Other"]
   .map((position) => ({
@@ -72,6 +79,11 @@ const franchiseHistory = buildFranchiseHistory(
 
 const recentForm = buildTeamRecentForm(
   historicalResults,
+  team
+);
+
+const draftHistory = buildTeamDraftHistory(
+  draftArchive,
   team
 );
 
@@ -486,6 +498,44 @@ function formatPoints(value: number | null): string {
         )}
       </section>
 
+      {
+        draftHistory && (
+          <section
+            class="team-draft-history"
+            aria-labelledby="team-draft-history-title"
+          >
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">War Room Ledger</p>
+                <h2 id="team-draft-history-title">Draft History</h2>
+              </div>
+
+              <p>
+                Every recorded selection made under the franchise’s
+                current and previous identities.
+              </p>
+            </div>
+
+            <dl class="draft-history-summary">
+              <div><dt>Draft Classes</dt><dd>{draftHistory.seasonsDrafted}</dd></div>
+              <div><dt>Total Selections</dt><dd>{draftHistory.totalPicks}</dd></div>
+              <div><dt>Archive Span</dt><dd>{draftHistory.earliestSeason}–{draftHistory.latestSeason}</dd></div>
+            </dl>
+
+            <div class="draft-class-list">
+              {draftHistory.classes.map((draftClass, index) => (
+                <TeamDraftClass draftClass={draftClass} featured={index === 0} />
+              ))}
+            </div>
+
+            <a class="draft-archive-link" href="/draft">
+              Explore the complete draft archive
+              <span aria-hidden="true">→</span>
+            </a>
+          </section>
+        )
+      }
+
       <section
         class="franchise-summary"
         aria-labelledby="franchise-summary-title"
@@ -778,8 +828,74 @@ function formatPoints(value: number | null): string {
   .franchise-summary,
   .franchise-history,
   .active-roster,
-  .recent-form {
+  .recent-form,
+  .team-draft-history {
     margin-top: var(--space-8);
+  }
+
+  .draft-history-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: var(--space-5) 0 0;
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .draft-history-summary > div {
+    min-width: 0;
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .draft-history-summary > div + div {
+    border-left: 1px solid var(--color-rule);
+  }
+
+  .draft-history-summary dt,
+  .draft-history-summary dd {
+    margin: 0;
+  }
+
+  .draft-history-summary dt {
+    margin-bottom: var(--space-2);
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.56rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .draft-history-summary dd {
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.45rem, 3vw, 2.15rem);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .draft-class-list {
+    display: grid;
+    gap: var(--space-5);
+    padding-top: var(--space-5);
+  }
+
+  .draft-archive-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-block: var(--space-4);
+    border-bottom: 1px solid var(--color-rule);
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .draft-archive-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.25rem;
   }
 
   .form-overview {
@@ -1351,6 +1467,15 @@ function formatPoints(value: number | null): string {
 
     .form-overview { grid-template-columns: 1fr; }
     .form-strip { border-right: 0; border-bottom: 1px solid var(--color-rule); }
+
+    .draft-history-summary {
+      grid-template-columns: 1fr;
+    }
+
+    .draft-history-summary > div + div {
+      border-top: 1px solid var(--color-rule);
+      border-left: 0;
+    }
   }
 
   @media (max-width: 520px) {
