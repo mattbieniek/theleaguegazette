@@ -118,8 +118,14 @@ const canonicalUrl = new URL(
 ---
 
 <BaseLayout
-  title={`${story.headline} | The League Gazette`}
+  title={story.headline}
   description={story.summary}
+  image={story.image_url ?? "/images/homepage/article-placeholder.jpg"}
+  imageAlt={story.image_alt ?? story.headline}
+  type="article"
+  publishedTime={story.published_at}
+  modifiedTime={story.updated_at}
+  author={story.author_name}
 >
   <article class="article-page">
     <header class="article-header site-shell">
