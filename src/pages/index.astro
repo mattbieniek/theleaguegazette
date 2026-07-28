@@ -5,12 +5,15 @@ import SecondaryStory from "../components/home/SecondaryStory.astro";
 import { getHomepageArticles } from "../lib/queries/gazette";
 import LeagueOverview from "../components/home/LeagueOverview.astro";
 import LeagueNotebook from "../components/home/LeagueNotebook.astro";
+import LeagueWire from "../components/home/LeagueWire.astro";
 import { getSeasonStandings } from "../lib/queries/standings";
 import { getAwardsPageData } from "../lib/queries/awards";
 import { buildWeeklyAwards } from "../lib/gazette/awards";
 import { getHistoricalResults } from "../lib/queries/records";
 import { buildLeagueRecords } from "../lib/gazette/records";
 import { seasonHistoryMetadata } from "../data/seasonHistory";
+import { getTransactionArchive } from "../lib/queries/transactions";
+import { getHomepageTransactionHighlights } from "../lib/gazette/transactionHighlights";
 
 const stories = await getHomepageArticles();
 
@@ -50,6 +53,9 @@ const leagueRecords = buildLeagueRecords(historicalResults);
 const reigningSeason = [...seasonHistoryMetadata]
   .filter((season) => season.champion)
   .sort((first, second) => second.year - first.year)[0] ?? null;
+const transactionHighlights = getHomepageTransactionHighlights(
+  await getTransactionArchive()
+);
 ---
 
 <BaseLayout
@@ -150,6 +156,7 @@ const reigningSeason = [...seasonHistoryMetadata]
       )
     }
     <LeagueOverview standings={standings} />
+    <LeagueWire transactions={transactionHighlights} />
     <LeagueNotebook
       featuredAward={weeklyAwards[0] ?? null}
       awardWeek={awardsData.selectedOption?.week ?? null}

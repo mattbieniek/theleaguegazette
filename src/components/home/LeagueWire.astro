@@ -1,0 +1,37 @@
+---
+import TransactionHighlight from "../transactions/TransactionHighlight.astro";
+import type { LeagueTransaction } from "../../lib/queries/transactions";
+
+interface Props { transactions: LeagueTransaction[]; }
+const { transactions } = Astro.props;
+---
+
+{transactions.length > 0 && (
+  <section class="league-wire" aria-labelledby="league-wire-title">
+    <header>
+      <div>
+        <p class="eyebrow">Transaction Desk</p>
+        <h2 id="league-wire-title">League Wire</h2>
+      </div>
+      <div class="league-wire__intro">
+        <p>The latest consequential moves from waiver rooms, free agency and the trade block.</p>
+        <a href="/transactions">Open the full ledger <span aria-hidden="true">→</span></a>
+      </div>
+    </header>
+    <div class="league-wire__grid">
+      {transactions.map((transaction) => <TransactionHighlight transaction={transaction} />)}
+    </div>
+  </section>
+)}
+
+<style>
+  .league-wire { padding-top:var(--space-9); margin-top:var(--space-9); border-top:3px double var(--color-rule-dark); }
+  .league-wire>header { display:grid; grid-template-columns:minmax(0,1fr) minmax(18rem,30rem); align-items:end; gap:clamp(2rem,6vw,6rem); padding-bottom:var(--space-5); border-bottom:1px solid var(--color-rule-dark); }
+  .league-wire h2 { margin:0; font-size:clamp(2.4rem,5vw,4.5rem); letter-spacing:-.05em; line-height:.92; }
+  .league-wire__intro { justify-self:end; max-width:30rem; }
+  .league-wire__intro p { margin:0 0 var(--space-3); color:var(--color-ink-soft); font-family:var(--font-editorial); font-size:clamp(1.05rem,1.7vw,1.25rem); line-height:1.45; }
+  .league-wire__intro a { color:var(--color-green); font-size:var(--text-sm); font-weight:700; }
+  .league-wire__grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--space-5); padding-top:var(--space-6); }
+  @media (max-width:960px) { .league-wire__grid { grid-template-columns:1fr; } }
+  @media (max-width:780px) { .league-wire>header { grid-template-columns:1fr; gap:var(--space-4); } .league-wire__intro { justify-self:start; } }
+</style>

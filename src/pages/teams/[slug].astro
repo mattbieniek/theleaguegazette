@@ -4,10 +4,15 @@ import StandingsTable from "../../components/StandingsTable.astro";
 import PlayerCard from "../../components/teams/PlayerCard.astro";
 import RecentResultCard from "../../components/teams/RecentResultCard.astro";
 import TeamDraftClass from "../../components/teams/TeamDraftClass.astro";
+import TransactionHighlight from "../../components/transactions/TransactionHighlight.astro";
 import { getSeasonStandings } from "../../lib/queries/standings";
 import { getHistoricalResults } from "../../lib/queries/records";
 import { getTeamRoster } from "../../lib/queries/rosters";
 import { getDraftArchive } from "../../lib/queries/drafts";
+import {
+  getTransactionArchive,
+  type LeagueTransaction,
+} from "../../lib/queries/transactions";
 import {
   buildFranchiseHistory,
   formatFranchiseRecord,
@@ -17,26 +22,34 @@ import {
   formatStreak,
 } from "../../lib/gazette/recentForm";
 import { buildTeamDraftHistory } from "../../lib/gazette/teamDrafts";
+import { getTeamTransactionHighlights } from "../../lib/gazette/transactionHighlights";
 import { teams } from "../../data/teams";
 
 type Team = (typeof teams)[number];
 
 interface Props {
   team: Team;
+  teamTransactions: LeagueTransaction[];
 }
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
+  const transactionArchive = await getTransactionArchive();
+
   return teams.map((team) => ({
     params: {
       slug: team.slug,
     },
     props: {
       team,
+      teamTransactions: getTeamTransactionHighlights(
+        transactionArchive,
+        team
+      ),
     },
   }));
 }
 
-const { team } = Astro.props as Props;
+const { team, teamTransactions } = Astro.props as Props;
 
 const sleeperLeagueId =
   import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
@@ -326,6 +339,43 @@ function formatPoints(value: number | null): string {
                 </span>
               </article>
             </div>
+          </section>
+        )
+      }
+
+      {
+        teamTransactions.length > 0 && (
+          <section
+            class="recent-moves"
+            aria-labelledby="recent-moves-title"
+          >
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Front Office Activity</p>
+                <h2 id="recent-moves-title">Recent Moves</h2>
+              </div>
+
+              <p>
+                The latest completed transactions involving this franchise.
+              </p>
+            </div>
+
+            <div class="recent-moves__grid">
+              {teamTransactions.map((transaction) => (
+                <TransactionHighlight
+                  transaction={transaction}
+                  contextTeamName={team.name}
+                />
+              ))}
+            </div>
+
+            <a
+              class="transaction-archive-link"
+              href={`/transactions?team=${team.slug}&week=all`}
+            >
+              View every {team.name} transaction
+              <span aria-hidden="true">→</span>
+            </a>
           </section>
         )
       }
@@ -829,8 +879,34 @@ function formatPoints(value: number | null): string {
   .franchise-history,
   .active-roster,
   .recent-form,
+  .recent-moves,
   .team-draft-history {
     margin-top: var(--space-8);
+  }
+
+  .recent-moves__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+    padding-top: var(--space-5);
+  }
+
+  .transaction-archive-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-block: var(--space-4);
+    margin-top: var(--space-3);
+    border-bottom: 1px solid var(--color-rule);
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .transaction-archive-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.25rem;
   }
 
   .draft-history-summary {
@@ -1414,6 +1490,10 @@ function formatPoints(value: number | null): string {
 
     .section-heading > p {
       text-align: left;
+    }
+
+    .recent-moves__grid {
+      grid-template-columns: 1fr;
     }
 
     .stats-grid {

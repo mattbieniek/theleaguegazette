@@ -1,0 +1,112 @@
+---
+import type { LeagueTransaction } from "../../lib/queries/transactions";
+import { teams } from "../../data/teams";
+
+interface Props {
+  transaction: LeagueTransaction;
+  contextTeamName?: string;
+}
+
+const { transaction, contextTeamName } = Astro.props;
+
+const normalizedContext = contextTeamName?.trim().toLowerCase() ?? null;
+const participantNames = transaction.participants
+  .map((participant) => participant.teamName)
+  .filter((name): name is string => Boolean(name));
+const primaryTeamName = contextTeamName ?? participantNames[0] ?? "League transaction";
+const primaryTeam = teams.find((team) =>
+  [team.name, team.legacyName].some(
+    (name) => name.trim().toLowerCase() === primaryTeamName.trim().toLowerCase()
+  )
+);
+
+const relevantAssets = normalizedContext
+  ? transaction.assets.filter((asset) =>
+      [asset.fromTeamName, asset.toTeamName].some(
+        (name) => name?.trim().toLowerCase() === normalizedContext
+      )
+    )
+  : transaction.assets;
+const featuredAssets = relevantAssets.slice(0, 3);
+const remainingAssets = Math.max(0, relevantAssets.length - featuredAssets.length);
+
+const typeLabel = transaction.type === "free_agent"
+  ? "Free Agent"
+  : transaction.type === "waiver"
+    ? "Waiver Claim"
+    : transaction.type === "trade"
+      ? "Trade"
+      : transaction.type.replaceAll("_", " ");
+
+const headline = transaction.type === "trade"
+  ? `${participantNames.slice(0, 2).join(" and ") || primaryTeamName} strike a deal`
+  : `${primaryTeamName} ${transaction.type === "waiver" ? "wins a waiver claim" : "makes a roster move"}`;
+
+function assetLabel(asset: (typeof transaction.assets)[number]): string {
+  if (asset.assetType === "draft_pick") {
+    return `${asset.draftSeason ?? "Future"} Round ${asset.draftRound ?? "—"} pick`;
+  }
+  if (asset.assetType === "faab") return `${asset.amount ?? 0} FAAB`;
+  return asset.playerName ?? "Player move";
+}
+
+function assetDirection(asset: (typeof transaction.assets)[number]): string {
+  if (!normalizedContext) return asset.movementType === "drop" ? "−" : asset.movementType === "transfer" ? "↔" : "+";
+  if (asset.toTeamName?.trim().toLowerCase() === normalizedContext) return "+";
+  if (asset.fromTeamName?.trim().toLowerCase() === normalizedContext) return "−";
+  return "↔";
+}
+
+const archiveHref = `/transactions?season=${transaction.seasonYear}&week=${transaction.week}&type=${transaction.type}`;
+---
+
+<article class="transaction-highlight">
+  <div class="transaction-highlight__topline">
+    <span>{typeLabel}</span>
+    <time datetime={transaction.occurredAt ?? undefined}>
+      {transaction.seasonYear} · Week {transaction.week}
+    </time>
+  </div>
+
+  <div class="transaction-highlight__identity">
+    {primaryTeam && (
+      <img src={primaryTeam.logo} alt="" width="48" height="48" loading="lazy" />
+    )}
+    <h3>{headline}</h3>
+  </div>
+
+  {featuredAssets.length > 0 && (
+    <ul class="transaction-highlight__assets">
+      {featuredAssets.map((asset) => (
+        <li>
+          <span aria-hidden="true">{assetDirection(asset)}</span>
+          <strong>{assetLabel(asset)}</strong>
+          {asset.position && <small>{asset.position}{asset.proTeam ? ` · ${asset.proTeam}` : ""}</small>}
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <a href={archiveHref}>
+    {remainingAssets > 0 ? `View ${remainingAssets} more move${remainingAssets === 1 ? "" : "s"}` : "View in the ledger"}
+    <span aria-hidden="true">→</span>
+  </a>
+</article>
+
+<style>
+  .transaction-highlight { display:flex; min-width:0; min-height:100%; flex-direction:column; overflow:hidden; border:1px solid var(--color-rule); border-radius:var(--radius-lg); background:linear-gradient(145deg,var(--color-green-faint),transparent 48%),var(--color-surface); }
+  .transaction-highlight__topline { display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); padding:.85rem var(--space-4); border-bottom:1px solid var(--color-rule); color:var(--color-ink-muted); font-family:var(--font-data); font-size:.56rem; font-weight:650; letter-spacing:.06em; text-transform:uppercase; }
+  .transaction-highlight__topline>span { color:var(--color-green); }
+  .transaction-highlight__identity { display:flex; align-items:center; gap:var(--space-3); padding:var(--space-5) var(--space-5) var(--space-4); }
+  .transaction-highlight__identity img { width:3rem; height:3rem; flex:0 0 auto; object-fit:contain; }
+  .transaction-highlight h3 { min-width:0; margin:0; font-size:clamp(1.45rem,2.8vw,2rem); letter-spacing:-.035em; line-height:1; overflow-wrap:anywhere; }
+  .transaction-highlight__assets { display:grid; padding:0 var(--space-5); margin:0 0 var(--space-4); list-style:none; }
+  .transaction-highlight__assets li { display:grid; grid-template-columns:1.5rem minmax(0,1fr) auto; align-items:baseline; gap:var(--space-2); padding-block:.65rem; border-top:1px solid var(--color-rule); }
+  .transaction-highlight__assets li>span { color:var(--color-green); font-family:var(--font-data); font-weight:750; }
+  .transaction-highlight__assets strong { min-width:0; color:var(--color-ink-soft); font-size:var(--text-sm); overflow-wrap:anywhere; }
+  .transaction-highlight__assets small { color:var(--color-ink-muted); font-family:var(--font-data); font-size:.56rem; text-transform:uppercase; }
+  .transaction-highlight>a { display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); padding:var(--space-4) var(--space-5); margin-top:auto; border-top:1px solid var(--color-rule); color:var(--color-green); font-size:var(--text-sm); font-weight:700; }
+  .transaction-highlight>a:hover { text-decoration:underline; text-underline-offset:.25rem; }
+  @media (max-width:520px) { .transaction-highlight__assets li { grid-template-columns:1.25rem minmax(0,1fr); } .transaction-highlight__assets small { grid-column:2; } }
+</style>
+

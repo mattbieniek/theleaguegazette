@@ -3,6 +3,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import HistoryNav from "../components/history/HistoryNav.astro";
 import TransactionCard from "../components/transactions/TransactionCard.astro";
 import { getTransactionArchive } from "../lib/queries/transactions";
+import { teams } from "../data/teams";
+import { transactionInvolvesTeam } from "../lib/gazette/transactionHighlights";
 
 export const prerender = false;
 
@@ -12,6 +14,8 @@ const requestedSeason = Number(Astro.url.searchParams.get("season"));
 const selectedSeason = seasons.includes(requestedSeason) ? requestedSeason : seasons[0] ?? null;
 const requestedType = Astro.url.searchParams.get("type") ?? "all";
 const selectedType = ["all", "trade", "waiver", "free_agent"].includes(requestedType) ? requestedType : "all";
+const requestedTeam = Astro.url.searchParams.get("team") ?? "all";
+const selectedTeam = teams.find((team) => team.slug === requestedTeam) ?? null;
 const requestedWeekValue = Astro.url.searchParams.get("week");
 const requestedWeek = Number(requestedWeekValue);
 
@@ -26,7 +30,8 @@ const selectedWeek = requestedWeekValue === "all"
     : weeks[0] ?? null;
 const transactions = seasonTransactions.filter((transaction) =>
   (selectedType === "all" || transaction.type === selectedType) &&
-  (selectedWeek === null || transaction.week === selectedWeek)
+  (selectedWeek === null || transaction.week === selectedWeek) &&
+  (!selectedTeam || transactionInvolvesTeam(transaction, selectedTeam))
 );
 
 const groupedTransactions = [...transactions.reduce((groups, transaction) => {
@@ -94,6 +99,17 @@ const playerMoves = seasonTransactions.reduce(
               <select name="week">
                 <option value="all" selected={selectedWeek === null}>All weeks</option>
                 {weeks.map((week) => <option value={week} selected={week === selectedWeek}>Week {week}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Team</span>
+              <select name="team">
+                <option value="all" selected={!selectedTeam}>All teams</option>
+                {teams.map((team) => (
+                  <option value={team.slug} selected={team.slug === selectedTeam?.slug}>
+                    {team.name}
+                  </option>
+                ))}
               </select>
             </label>
             <button type="submit">View activity</button>
