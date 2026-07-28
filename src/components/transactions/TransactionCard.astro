@@ -47,7 +47,7 @@ function formatDate(value: string | null): string | null {
       const team = profile(participant.teamName);
       return (
         <div style={team ? `--participant-color: ${team.primary}` : undefined}>
-          {team && <img src={team.logo} alt="" width="44" height="44" loading="lazy" />}
+          {team && <img src={team.logo} alt="" width="44" height="44" loading="lazy" decoding="async" />}
           <span>{participant.teamName ?? `Roster ${participant.rosterId}`}</span>
         </div>
       );

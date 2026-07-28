@@ -18,7 +18,7 @@ export const leadStory: HomepageStory = {
     "Optimism is high, projections are meaningless and every manager remains convinced this is finally the year everything goes according to plan.",
   author: "The Gazette Staff",
   publishedAt: "2026-07-25",
-  image: "/images/homepage/lead-story-placeholder.jpg",
+  image: "/images/homepage/lead-story-placeholder.webp",
   imageAlt:
     "Fantasy football draft materials arranged on a table before the season",
   body: [
@@ -37,7 +37,7 @@ export const secondaryStories: HomepageStory[] = [
       "The first rankings of the year feature familiar contenders, suspicious optimism and several managers preparing formal objections.",
     author: "The Gazette Staff",
     publishedAt: "2026-07-24",
-    image: "/images/homepage/power-rankings-placeholder.jpg",
+    image: "/images/homepage/power-rankings-placeholder.webp",
     imageAlt: "A handwritten fantasy football rankings sheet",
     body: [
       "The preseason power rankings have arrived, despite the inconvenient fact that no meaningful football has yet been played.",
@@ -53,7 +53,7 @@ export const secondaryStories: HomepageStory[] = [
       "From first-round reaches to late-round grudges, these are the decisions most likely to shape the season before Week 1 begins.",
     author: "The Gazette Staff",
     publishedAt: "2026-07-23",
-    image: "/images/homepage/draft-night-placeholder.jpg",
+    image: "/images/homepage/draft-night-placeholder.webp",
     imageAlt: "A fantasy football draft board with player names",
     body: [
       "Draft night has a way of turning careful preparation into immediate panic.",

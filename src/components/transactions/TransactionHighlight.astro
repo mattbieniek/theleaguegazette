@@ -70,7 +70,7 @@ const archiveHref = `/transactions?season=${transaction.seasonYear}&week=${trans
 
   <div class="transaction-highlight__identity">
     {primaryTeam && (
-      <img src={primaryTeam.logo} alt="" width="48" height="48" loading="lazy" />
+      <img src={primaryTeam.logo} alt="" width="48" height="48" loading="lazy" decoding="async" />
     )}
     <h3>{headline}</h3>
   </div>
@@ -109,4 +109,3 @@ const archiveHref = `/transactions?season=${transaction.seasonYear}&week=${trans
   .transaction-highlight>a:hover { text-decoration:underline; text-underline-offset:.25rem; }
   @media (max-width:520px) { .transaction-highlight__assets li { grid-template-columns:1.25rem minmax(0,1fr); } .transaction-highlight__assets small { grid-column:2; } }
 </style>
-

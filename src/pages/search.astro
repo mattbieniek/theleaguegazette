@@ -93,11 +93,12 @@ function highlighted(value: string) {
                 <article>
                   <a class="story-result__image" href={`/gazette/${story.slug}`}>
                     <img
-                      src={story.image_url ?? "/images/homepage/article-placeholder.jpg"}
+                      src={story.image_url ?? "/images/homepage/lead-story-placeholder.webp"}
                       alt={story.image_alt ?? ""}
                       width="360"
                       height="240"
                       loading="lazy"
+                      decoding="async"
                     />
                   </a>
                   <div>
@@ -120,7 +121,7 @@ function highlighted(value: string) {
             <div class="team-results">
               {results.teams.map((team) => (
                 <a href={`/teams/${team.slug}`} style={`--team-color:${team.primary};`}>
-                  <img src={team.logo} alt="" width="64" height="64" loading="lazy" />
+                  <img src={team.logo} alt="" width="64" height="64" loading="lazy" decoding="async" />
                   <div>
                     <span>Owned by {highlighted(team.owner).map((part) => part.match ? <mark>{part.text}</mark> : part.text)}</span>
                     <strong>{highlighted(team.name).map((part) => part.match ? <mark>{part.text}</mark> : part.text)}</strong>
@@ -218,4 +219,3 @@ function highlighted(value: string) {
   @media (max-width:560px) { .search-header h1 { max-width:100%; font-size:clamp(3rem,15vw,4.8rem); } .search-form__control { grid-template-columns:auto minmax(0,1fr); border-radius:var(--radius-lg); } .search-form button { grid-column:1/-1; min-height:3rem; } .destination-grid,.page-results { grid-template-columns:1fr; } .story-results article { grid-template-columns:1fr; } .story-result__image { aspect-ratio:16/9; } }
   @media (prefers-reduced-motion:reduce) { .destination-grid>a,.page-results>a { transition:none; } .destination-grid>a:hover,.page-results>a:hover { transform:none; } }
 </style>
-

@@ -18,12 +18,13 @@ const { story } = Astro.props;
     <div class="lead-story__image-frame">
       <img
         class="lead-story__image"
-        src={story.image_url ?? "/images/homepage/article-placeholder.jpg"}
+        src={story.image_url ?? "/images/homepage/lead-story-placeholder.webp"}
         alt={story.image_alt ?? ""}
         width="1600"
         height="1000"
         loading="eager"
         fetchpriority="high"
+        decoding="async"
       />
     </div>
   </a>

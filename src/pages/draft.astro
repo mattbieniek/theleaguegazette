@@ -147,7 +147,7 @@ function positionClass(position: string | null): string {
                         <div class="pick-team">
                           {pick.fantasyTeam ? (
                             <>
-                              <img src={pick.fantasyTeam.logo} alt="" width="40" height="40" loading="lazy" />
+                              <img src={pick.fantasyTeam.logo} alt="" width="40" height="40" loading="lazy" decoding="async" />
                               <a href={`/teams/${pick.fantasyTeam.slug}`}>{pick.fantasyTeamName}</a>
                             </>
                           ) : (
@@ -174,7 +174,7 @@ function positionClass(position: string | null): string {
               return (
                 <article style={profile ? `--team-color: ${profile.primary}` : undefined}>
                   <header>
-                    {profile && <img src={profile.logo} alt="" width="54" height="54" loading="lazy" />}
+                    {profile && <img src={profile.logo} alt="" width="54" height="54" loading="lazy" decoding="async" />}
                     <div><p>Draft Slot {picks[0]?.draftSlot ?? "—"}</p><h3>{teamName}</h3></div>
                   </header>
                   <ol>

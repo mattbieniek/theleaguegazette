@@ -108,7 +108,7 @@ const featuredTeams = featuredMatchup
               <div class:list={["featured-team", team.isWinner && "featured-team--winner"]}>
                 <div class="featured-team__identity">
                   {profile && (
-                    <img src={profile.logo} alt="" width="72" height="72" loading="lazy" />
+                    <img src={profile.logo} alt="" width="72" height="72" loading="lazy" decoding="async" />
                   )}
                   <div>
                     <span>{team.isWinner ? "Winner" : team.isTie ? "Tie" : "Final"}</span>
@@ -145,7 +145,7 @@ const featuredTeams = featuredMatchup
                   return (
                     <div class:list={[team.isWinner && "is-winner"]}>
                       <span class="scoreboard-row__team">
-                        {profile && <img src={profile.logo} alt="" width="32" height="32" loading="lazy" />}
+                        {profile && <img src={profile.logo} alt="" width="32" height="32" loading="lazy" decoding="async" />}
                         {profile ? <a href={`/teams/${profile.slug}`}>{team.teamName}</a> : team.teamName}
                       </span>
                       <strong>{formatPoints(team.points)}</strong>

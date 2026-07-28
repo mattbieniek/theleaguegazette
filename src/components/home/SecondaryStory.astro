@@ -24,12 +24,13 @@ const {
         class="secondary-story__image"
         src={
           story.image_url ??
-          "/images/homepage/article-placeholder.jpg"
+          "/images/homepage/lead-story-placeholder.webp"
         }
         alt={story.image_alt ?? ""}
         width="1000"
         height="700"
         loading="lazy"
+        decoding="async"
       />
     </div>
   </a>
