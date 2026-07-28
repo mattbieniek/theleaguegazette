@@ -24,7 +24,7 @@
 			"dest": "_render"
 		},
 		{
-			"src": "^/gazette/([^/]+?)/?$",
+			"src": "^/awards/?$",
 			"dest": "_render"
 		},
 		{

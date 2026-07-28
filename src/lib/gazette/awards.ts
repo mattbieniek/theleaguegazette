@@ -10,10 +10,13 @@ export type WeeklyAwardTone =
 
 export type WeeklyAward = {
   id: string;
+  symbol: string;
   label: string;
   title: string;
   teamName: string;
   opponentName: string | null;
+  teamScore: number;
+  opponentScore: number | null;
   primaryValue: string;
   description: string;
   tone: WeeklyAwardTone;
@@ -129,11 +132,14 @@ export function buildWeeklyAwards(
   if (highestScore) {
     awards.push({
       id: "performance-of-the-week",
+      symbol: "★",
       label: "Performance of the Week",
       title: "The Golden Box Score",
       teamName: highestScore.team_name,
       opponentName:
         highestScore.opponent_team_name,
+      teamScore: highestScore.points_for,
+opponentScore: highestScore.points_against,
       primaryValue: `${formatPoints(
         highestScore.points_for
       )} points`,
@@ -148,11 +154,14 @@ export function buildWeeklyAwards(
   if (lowestScore) {
     awards.push({
       id: "lowest-score",
+      symbol: "↓",
       label: "Low-Water Mark",
       title: "The Paper Bag",
       teamName: lowestScore.team_name,
       opponentName:
         lowestScore.opponent_team_name,
+      teamScore: lowestScore.points_for,
+opponentScore: lowestScore.points_against,
       primaryValue: `${formatPoints(
         lowestScore.points_for
       )} points`,
@@ -164,12 +173,15 @@ export function buildWeeklyAwards(
   if (biggestBlowout) {
     awards.push({
       id: "biggest-blowout",
+      symbol: "+",
       label: "Largest Margin",
       title: "The Steamroller",
       teamName:
         biggestBlowout.team_name,
       opponentName:
         biggestBlowout.opponent_team_name,
+      teamScore: biggestBlowout.points_for,
+opponentScore: biggestBlowout.points_against,
       primaryValue: `+${formatPoints(
         biggestBlowout.point_differential
       )}`,
@@ -190,12 +202,25 @@ export function buildWeeklyAwards(
         ? closestMatchup.team_name
         : closestMatchup.opponent_team_name;
 
+    const winningScore =
+  closestMatchup.result === "L"
+    ? closestMatchup.points_against
+    : closestMatchup.points_for;
+
+const losingScore =
+  closestMatchup.result === "L"
+    ? closestMatchup.points_for
+    : closestMatchup.points_against;
+
     awards.push({
       id: "closest-matchup",
+      symbol: "Δ",
       label: "Closest Finish",
       title: "The Photo Finish",
       teamName: winningTeamName,
       opponentName: losingTeamName,
+      teamScore: winningScore,
+opponentScore: losingScore,
       primaryValue: `${formatPoints(
         Math.abs(
           closestMatchup.point_differential
@@ -210,12 +235,15 @@ export function buildWeeklyAwards(
   if (highestScoringLoss) {
     awards.push({
       id: "highest-scoring-loss",
+      symbol: "!",
       label: "Toughest Defeat",
       title: "The Bad Beat",
       teamName:
         highestScoringLoss.team_name,
       opponentName:
         highestScoringLoss.opponent_team_name,
+      teamScore: highestScoringLoss.points_for,
+opponentScore: highestScoringLoss.points_against,
       primaryValue: `${formatPoints(
         highestScoringLoss.points_for
       )} points`,
@@ -227,12 +255,15 @@ export function buildWeeklyAwards(
   if (lowestScoringWin) {
     awards.push({
       id: "lowest-scoring-win",
+      symbol: "↗",
       label: "Lowest Winning Score",
       title: "The Escape Artist",
       teamName:
         lowestScoringWin.team_name,
       opponentName:
         lowestScoringWin.opponent_team_name,
+      teamScore: lowestScoringWin.points_for,
+opponentScore: lowestScoringWin.points_against,
       primaryValue: `${formatPoints(
         lowestScoringWin.points_for
       )} points`,
@@ -244,11 +275,14 @@ export function buildWeeklyAwards(
   if (bestBench) {
     awards.push({
       id: "best-bench",
+      symbol: "B",
       label: "Bench Production",
       title: "The Clipboard All-Stars",
       teamName: bestBench.team_name,
       opponentName:
         bestBench.opponent_team_name,
+      teamScore: bestBench.points_for,
+opponentScore: bestBench.points_against,
       primaryValue: `${formatPoints(
         bestBench.bench_points
       )} bench points`,
@@ -257,5 +291,19 @@ export function buildWeeklyAwards(
     });
   }
 
-  return awards;
+  const awardOrder: Record<string, number> = {
+  "performance-of-the-week": 1,
+  "biggest-blowout": 2,
+  "closest-matchup": 3,
+  "lowest-score": 4,
+  "highest-scoring-loss": 5,
+  "lowest-scoring-win": 6,
+  "best-bench": 7,
+};
+
+return awards.sort(
+  (first, second) =>
+    (awardOrder[first.id] ?? 999) -
+    (awardOrder[second.id] ?? 999)
+);
 }

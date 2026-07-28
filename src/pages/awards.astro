@@ -1,674 +1,1006 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 
-import {
-  getAwardsPageData,
-} from "../lib/queries/awards";
+import { getAwardsPageData } from "../lib/queries/awards";
 
-import {
-  buildWeeklyAwards,
-} from "../lib/gazette/awards";
+import { buildWeeklyAwards } from "../lib/gazette/awards";
 
 export const prerender = false;
 
-const {
-  weekOptions,
-  seasons,
-  selectedOption,
-  selectedSeasonOptions,
-  results,
-} = await getAwardsPageData({
-  season: Astro.url.searchParams.get(
-    "season"
-  ),
-  week: Astro.url.searchParams.get(
-    "week"
-  ),
-});
+const { weekOptions, seasons, selectedOption, selectedSeasonOptions, results } =
+    await getAwardsPageData({
+        season: Astro.url.searchParams.get("season"),
+        week: Astro.url.searchParams.get("week"),
+    });
 
 const awards = selectedOption
-  ? buildWeeklyAwards(
-      results,
-      selectedOption.week
-    )
-  : [];
+    ? buildWeeklyAwards(results, selectedOption.week)
+    : [];
 ---
 
 <BaseLayout
-  title="Weekly Awards | The League Gazette"
-  description="The best, worst, luckiest and most painful performances from each week of Far Far Away Football."
+    title="Weekly Awards | The League Gazette"
+    description="The best, worst, luckiest and most painful performances from each week of Far Far Away Football."
 >
-  <main class="awards-page site-shell">
-    <header class="awards-header">
-      <div>
-        <p class="eyebrow">
-          Far Far Away Football
-        </p>
-
-        <h1>Weekly Awards</h1>
-
-        <p class="awards-header__description">
-          Celebrating excellence, documenting
-          embarrassment and preserving every
-          questionable lineup decision for
-          posterity.
-        </p>
-      </div>
-
-      {
-        selectedOption && (
-          <div class="awards-header__edition">
-            <span>
-              Awards Edition
-            </span>
-
-            <strong>
-              Week {selectedOption.week}
-            </strong>
-
-            <small>
-              {selectedOption.seasonYear} Season
-            </small>
-          </div>
-        )
-      }
-    </header>
-
-    {
-        selectedOption && (
-          <section
-            class="awards-controls"
-            aria-label="Choose an Awards week"
-          >
-            <form method="get">
-              <label>
-                <span>Season</span>
-
-                <select
-                  id="awards-season"
-                  name="season"
-                >
-                  {
-                    seasons.map((season) => (
-                      <option
-                        value={season}
-                        selected={
-                          season ===
-                          selectedOption.seasonYear
-                        }
-                      >
-                        {season}
-                      </option>
-                    ))
-                  }
-                </select>
-              </label>
-
-              <label>
-                <span>Week</span>
-
-                <select
-                  id="awards-week"
-                  name="week"
-                >
-                  {
-                    selectedSeasonOptions.map(
-                      (option) => (
-                        <option
-                          value={option.week}
-                          selected={
-                            option.week ===
-                            selectedOption.week
-                          }
-                        >
-                          Week {option.week}
-                          {
-                            !option.isComplete
-                              ? " — Partial"
-                              : ""
-                          }
-                        </option>
-                      )
-                    )
-                  }
-                </select>
-              </label>
-
-              <button type="submit">
-                View awards
-              </button>
-            </form>
-          </section>
-        )
-    }
-
-    {
-      selectedOption &&
-        !selectedOption.isComplete && (
-          <aside class="partial-notice">
-            <strong>
-              Partial week
-            </strong>
-
-            <p>
-              This edition contains{" "}
-              {selectedOption.teamResults} team
-              results across{" "}
-              {selectedOption.matchupCount}{" "}
-              matchups. Awards may change when
-              additional results become available.
-            </p>
-          </aside>
-        )
-    }
-
-    {
-      awards.length > 0 ? (
-        <>
-          <section class="awards-intro">
+    <main class="awards-page site-shell">
+        <header class="awards-header">
             <div>
-              <p class="eyebrow">
-                The Official Results
-              </p>
+                <p class="eyebrow">Far Far Away Football</p>
 
-              <h2>
-                Week {selectedOption?.week}’s
-                winners and losers
-              </h2>
+                <h1>Weekly Awards</h1>
+
+                <p class="awards-header__description">
+                    Celebrating excellence, documenting embarrassment and
+                    preserving every questionable lineup decision for posterity.
+                </p>
             </div>
 
-            <p>
-              Every award below is calculated
-              directly from the final weekly
-              results.
-            </p>
-          </section>
-
-          <section class="awards-grid">
             {
-              awards.map(
-                (award, index) => (
-                  <article
-                    class:list={[
-                      "award-card",
-                      `award-card--${award.tone}`,
-                      {
-                        "award-card--featured":
-                          index === 0,
-                      },
-                    ]}
-                  >
-                    <div class="award-card__number">
-                      {String(index + 1).padStart(
-                        2,
-                        "0"
-                      )}
+                selectedOption && (
+                    <div class="awards-header__edition">
+                        <span>Awards Edition</span>
+
+                        <strong>Week {selectedOption.week}</strong>
+
+                        <small>{selectedOption.seasonYear} Season</small>
                     </div>
-
-                    <div class="award-card__content">
-                      <p class="award-card__label">
-                        {award.label}
-                      </p>
-
-                      <h3>{award.title}</h3>
-
-                      <p class="award-card__team">
-                        {award.teamName}
-                      </p>
-
-                      <p class="award-card__value">
-                        {award.primaryValue}
-                      </p>
-
-                      <p class="award-card__description">
-                        {award.description}
-                      </p>
-
-                      {
-                        award.opponentName && (
-                          <p class="award-card__matchup">
-                            vs.{" "}
-                            {award.opponentName}
-                          </p>
-                        )
-                      }
-                    </div>
-                  </article>
                 )
-              )
             }
-          </section>
-        </>
-      ) : (
-        <section class="empty-state">
-          <p class="eyebrow">
-            Awards Desk
-          </p>
+        </header>
 
-          <h2>
-            No results are available yet.
-          </h2>
+        {
+            selectedOption && (
+                <section
+                    class="awards-controls"
+                    aria-label="Choose an Awards week"
+                >
+                    <form method="get">
+                        <label>
+                            <span>Season</span>
 
-          <p>
-            Weekly honors will appear after
-            matchup results have been synced.
-          </p>
+                            <select id="awards-season" name="season">
+                                {seasons.map((season) => (
+                                    <option
+                                        value={season}
+                                        selected={
+                                            season === selectedOption.seasonYear
+                                        }
+                                    >
+                                        {season}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
 
-          <a href="/">
-            Return to the front page
-          </a>
-        </section>
-      )
-    }
-  </main>
+                        <label>
+                            <span>Week</span>
 
-  <script>
-    const seasonSelect =
-      document.querySelector<HTMLSelectElement>(
-        "#awards-season"
-      );
+                            <select id="awards-week" name="week">
+                                {selectedSeasonOptions.map((option) => (
+                                    <option
+                                        value={option.week}
+                                        selected={
+                                            option.week === selectedOption.week
+                                        }
+                                    >
+                                        Week {option.week}
+                                        {!option.isComplete ? " — Partial" : ""}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
 
-    seasonSelect?.addEventListener(
-      "change",
-      () => {
-        const url = new URL(
-          window.location.href
-        );
+                        <button type="submit">View awards</button>
+                    </form>
+                </section>
+            )
+        }
 
-        url.searchParams.set(
-          "season",
-          seasonSelect.value
-        );
+        {
+            selectedOption && !selectedOption.isComplete && (
+                <aside class="partial-notice">
+                    <strong>Partial week</strong>
 
-        url.searchParams.delete("week");
+                    <p>
+                        This edition contains {selectedOption.teamResults} team
+                        results across {selectedOption.matchupCount} matchups.
+                        Awards may change when additional results become
+                        available.
+                    </p>
+                </aside>
+            )
+        }
 
-        window.location.href =
-          url.toString();
-      }
-    );
-  </script>
+        {
+            awards.length > 0 ? (
+                <>
+                    <section class="awards-intro">
+                        <div>
+                            <p class="eyebrow">The Official Results</p>
+
+                            <h2>
+                                Week {selectedOption?.week}’s winners and losers
+                            </h2>
+                        </div>
+
+                        <p>
+                            Every award below is calculated directly from the
+                            final weekly results.
+                        </p>
+                    </section>
+
+                    <section class="awards-grid">
+                        {awards.map((award, index) => (
+                            <article
+                                class:list={[
+                                    "award-card",
+                                    `award-card--${award.tone}`,
+                                    {
+                                        "award-card--hero":
+                                            award.id ===
+                                            "performance-of-the-week",
+
+                                        "award-card--secondary":
+                                            award.id === "biggest-blowout" ||
+                                            award.id === "closest-matchup",
+
+                                        "award-card--compact":
+                                            award.id !==
+                                                "performance-of-the-week" &&
+                                            award.id !== "biggest-blowout" &&
+                                            award.id !== "closest-matchup",
+                                    },
+                                ]}
+                            >
+                                <div
+                                    class="award-card__watermark"
+                                    aria-hidden="true"
+                                >
+                                    {award.symbol}
+                                </div>
+                                <div class="award-card__topline">
+                                    <span class="award-card__symbol">
+                                        {award.symbol}
+                                    </span>
+
+                                    <p class="award-card__label">
+                                        {award.label}
+                                    </p>
+
+                                    <span class="award-card__number">
+                                        {String(index + 1).padStart(2, "0")}
+                                    </span>
+                                </div>
+                                <div class="award-card__body">
+                                    <div class="award-card__story">
+                                        <h3>{award.title}</h3>
+
+                                        <div
+                                            class="award-card__rule"
+                                            aria-hidden="true"
+                                        />
+
+                                        <p class="award-card__team">
+                                            {award.teamName}
+                                        </p>
+
+                                        <p class="award-card__value">
+                                            {award.primaryValue}
+                                        </p>
+
+                                        <p class="award-card__description">
+                                            {award.description}
+                                        </p>
+                                    </div>
+
+                                    {award.opponentName && (
+                                        <div
+                                            class="award-score"
+                                            aria-label={`${award.teamName} ${award.teamScore.toFixed(
+                                                2,
+                                            )}, ${award.opponentName} ${award.opponentScore?.toFixed(
+                                                2,
+                                            )}`}
+                                        >
+                                            <div class="award-score__row">
+                                                <span>{award.teamName}</span>
+
+                                                <strong>
+                                                    {award.teamScore.toFixed(2)}
+                                                </strong>
+                                            </div>
+
+                                            <div class="award-score__row">
+                                                <span>
+                                                    {award.opponentName}
+                                                </span>
+
+                                                <strong>
+                                                    {award.opponentScore?.toFixed(
+                                                        2,
+                                                    )}
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </article>
+                        ))}
+                    </section>
+                </>
+            ) : (
+                <section class="empty-state">
+                    <p class="eyebrow">Awards Desk</p>
+
+                    <h2>No results are available yet.</h2>
+
+                    <p>
+                        Weekly honors will appear after matchup results have
+                        been synced.
+                    </p>
+
+                    <a href="/">Return to the front page</a>
+                </section>
+            )
+        }
+    </main>
+
+    <script>
+        const seasonSelect =
+            document.querySelector<HTMLSelectElement>("#awards-season");
+
+        seasonSelect?.addEventListener("change", () => {
+            const url = new URL(window.location.href);
+
+            url.searchParams.set("season", seasonSelect.value);
+
+            url.searchParams.delete("week");
+
+            window.location.href = url.toString();
+        });
+    </script>
 </BaseLayout>
 
 <style>
-  .awards-page {
-    padding-top: clamp(2.5rem, 6vw, 5rem);
-    padding-bottom: var(--space-9);
-  }
+    .awards-page {
+        padding-top: clamp(2.5rem, 6vw, 5rem);
+        padding-bottom: var(--space-9);
+    }
 
-  .awards-header {
-    display: grid;
-    grid-template-columns:
-      minmax(0, 1fr)
-      auto;
-    align-items: end;
-    gap: var(--space-7);
-    padding-bottom: clamp(2rem, 5vw, 4rem);
-    border-bottom: 3px double
-      var(--color-rule-dark);
-  }
-
-  .awards-header h1 {
-    max-width: 10ch;
-    margin: 0 0 var(--space-5);
-    font-size: clamp(3.75rem, 10vw, 8rem);
-    letter-spacing: -0.065em;
-    line-height: 0.85;
-    overflow-wrap: anywhere;
-  }
-
-  .awards-header__description {
-    max-width: 47rem;
-    margin: 0;
-    color: var(--color-ink-soft);
-    font-family: var(--font-editorial);
-    font-size: clamp(1.2rem, 2.5vw, 1.65rem);
-    line-height: 1.45;
-  }
-
-  .awards-header__edition {
-    display: grid;
-    min-width: 12rem;
-    padding: var(--space-5);
-    border: 1px solid var(--color-rule-dark);
-    border-radius: var(--radius-lg);
-    background: var(--color-surface);
-    text-align: center;
-  }
-
-  .awards-header__edition span,
-  .awards-header__edition small {
-    color: var(--color-ink-muted);
-    font-family: var(--font-data);
-    font-size: 0.61rem;
-    font-weight: 650;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .awards-header__edition strong {
-    margin-block: var(--space-2);
-    font-family: var(--font-editorial);
-    font-size: 2rem;
-    letter-spacing: -0.035em;
-  }
-
-  .awards-controls {
-    padding-block: var(--space-6);
-    border-bottom: 1px solid var(--color-rule);
-  }
-
-  .awards-controls form {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    gap: var(--space-3);
-  }
-
-  .awards-controls label {
-    display: grid;
-    gap: var(--space-2);
-  }
-
-  .awards-controls label span {
-    color: var(--color-ink-muted);
-    font-family: var(--font-data);
-    font-size: 0.61rem;
-    font-weight: 650;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .awards-controls select,
-  .awards-controls button {
-    min-height: 2.75rem;
-    padding-inline: var(--space-4);
-    border: 1px solid var(--color-rule-dark);
-    border-radius: 999px;
-    background: var(--color-surface);
-    color: var(--color-ink);
-    font: inherit;
-    font-size: var(--text-sm);
-  }
-
-  .awards-controls button {
-    border-color: var(--color-green);
-    background: var(--color-green);
-    color: white;
-    font-weight: 750;
-    cursor: pointer;
-  }
-
-  .partial-notice {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-4);
-    margin-top: var(--space-5);
-    padding: var(--space-4) var(--space-5);
-    border: 1px solid
-      color-mix(
-        in srgb,
-        var(--color-green) 35%,
-        var(--color-rule)
-      );
-    border-radius: var(--radius-md);
-    background:
-      color-mix(
-        in srgb,
-        var(--color-green) 5%,
-        var(--color-surface)
-      );
-  }
-
-  .partial-notice strong {
-    flex: 0 0 auto;
-    color: var(--color-green);
-  }
-
-  .partial-notice p {
-    margin: 0;
-    color: var(--color-ink-soft);
-    font-size: var(--text-sm);
-    line-height: 1.55;
-  }
-
-  .awards-intro {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: var(--space-7);
-    padding-top: var(--space-8);
-    padding-bottom: var(--space-5);
-    border-bottom: 1px solid
-      var(--color-rule-dark);
-  }
-
-  .awards-intro h2 {
-    max-width: 15ch;
-    margin: 0;
-    font-size: clamp(2.4rem, 5vw, 4.25rem);
-    letter-spacing: -0.05em;
-    line-height: 0.95;
-  }
-
-  .awards-intro > p {
-    max-width: 25rem;
-    margin: 0;
-    color: var(--color-ink-muted);
-    line-height: 1.6;
-  }
-
-  .awards-grid {
-    display: grid;
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-    gap: var(--space-5);
-    padding-top: var(--space-6);
-  }
-
-  .award-card {
-    --award-accent: var(--color-green);
-
-    position: relative;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: var(--space-5);
-    min-width: 0;
-    padding: clamp(1.5rem, 3vw, 2.25rem);
-    overflow: hidden;
-    border: 1px solid var(--color-rule);
-    border-top: 4px solid var(--award-accent);
-    border-radius: var(--radius-lg);
-    background: var(--color-surface);
-    transition:
-      border-color var(--transition-fast),
-      box-shadow var(--transition-fast),
-      transform var(--transition-fast);
-  }
-
-  .award-card:hover {
-    border-color: var(--color-rule-dark);
-    box-shadow: var(--shadow-card);
-    transform: translateY(-2px);
-  }
-
-  .award-card--negative {
-    --award-accent: #8d3d34;
-  }
-
-  .award-card--warning {
-    --award-accent: #9a681e;
-  }
-
-  .award-card--neutral {
-    --award-accent: var(--color-ink-muted);
-  }
-
-  .award-card--featured {
-    grid-column: 1 / -1;
-    grid-template-columns: auto minmax(0, 1fr);
-    padding: clamp(2rem, 5vw, 3.75rem);
-  }
-
-  .award-card__number {
-    color: var(--award-accent);
-    font-family: var(--font-data);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-  }
-
-  .award-card__content {
-    min-width: 0;
-  }
-
-  .award-card__label {
-    margin: 0 0 var(--space-3);
-    color: var(--award-accent);
-    font-family: var(--font-data);
-    font-size: 0.61rem;
-    font-weight: 700;
-    letter-spacing: 0.065em;
-    text-transform: uppercase;
-  }
-
-  .award-card h3 {
-    margin: 0 0 var(--space-5);
-    font-size: clamp(2rem, 4vw, 3.5rem);
-    letter-spacing: -0.05em;
-    line-height: 0.92;
-    overflow-wrap: anywhere;
-  }
-
-  .award-card--featured h3 {
-    max-width: 12ch;
-    font-size: clamp(3rem, 7vw, 6rem);
-  }
-
-  .award-card__team {
-    margin: 0 0 var(--space-2);
-    color: var(--color-ink);
-    font-family: var(--font-editorial);
-    font-size: clamp(1.35rem, 2.5vw, 2rem);
-    font-weight: 700;
-    line-height: 1.05;
-    overflow-wrap: anywhere;
-  }
-
-  .award-card__value {
-    margin: 0 0 var(--space-4);
-    color: var(--award-accent);
-    font-size: clamp(1.1rem, 2vw, 1.35rem);
-    font-weight: 800;
-  }
-
-  .award-card__description {
-    max-width: 42rem;
-    margin: 0;
-    color: var(--color-ink-soft);
-    line-height: 1.65;
-  }
-
-  .award-card__matchup {
-    margin: var(--space-5) 0 0;
-    color: var(--color-ink-muted);
-    font-family: var(--font-data);
-    font-size: 0.61rem;
-    font-weight: 650;
-    letter-spacing: 0.055em;
-    text-transform: uppercase;
-  }
-
-  .empty-state {
-    max-width: 48rem;
-    margin-top: var(--space-8);
-    padding: clamp(2rem, 5vw, 4rem);
-    border: 1px solid var(--color-rule);
-    border-radius: var(--radius-lg);
-    background: var(--color-surface);
-  }
-
-  .empty-state h2 {
-    margin-bottom: var(--space-4);
-    font-size: clamp(2.4rem, 5vw, 4rem);
-    letter-spacing: -0.05em;
-    line-height: 0.95;
-  }
-
-  .empty-state p {
-    color: var(--color-ink-soft);
-    line-height: 1.65;
-  }
-
-  .empty-state a {
-    display: inline-flex;
-    margin-top: var(--space-4);
-    color: var(--color-green);
-    font-weight: 750;
-  }
-
-  @media (max-width: 800px) {
     .awards-header {
-      grid-template-columns: 1fr;
-      align-items: start;
+        display: grid;
+        grid-template-columns:
+            minmax(0, 1fr)
+            auto;
+        align-items: end;
+        gap: var(--space-7);
+        padding-bottom: clamp(2rem, 5vw, 4rem);
+        border-bottom: 3px double var(--color-rule-dark);
+    }
+
+    .awards-header h1 {
+        max-width: 10ch;
+        margin: 0 0 var(--space-5);
+        font-size: clamp(3.75rem, 10vw, 8rem);
+        letter-spacing: -0.065em;
+        line-height: 0.85;
+        overflow-wrap: anywhere;
+    }
+
+    .awards-header__description {
+        max-width: 47rem;
+        margin: 0;
+        color: var(--color-ink-soft);
+        font-family: var(--font-editorial);
+        font-size: clamp(1.2rem, 2.5vw, 1.65rem);
+        line-height: 1.45;
     }
 
     .awards-header__edition {
-      width: 100%;
-      min-width: 0;
+        display: grid;
+        min-width: 12rem;
+        padding: var(--space-5);
+        border: 1px solid var(--color-rule-dark);
+        border-radius: var(--radius-lg);
+        background: var(--color-surface);
+        text-align: center;
     }
 
-    .awards-intro {
-      align-items: flex-start;
-      flex-direction: column;
+    .awards-header__edition span,
+    .awards-header__edition small {
+        color: var(--color-ink-muted);
+        font-family: var(--font-data);
+        font-size: 0.61rem;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
     }
 
-    .awards-grid {
-      grid-template-columns: 1fr;
+    .awards-header__edition strong {
+        margin-block: var(--space-2);
+        font-family: var(--font-editorial);
+        font-size: 2rem;
+        letter-spacing: -0.035em;
     }
 
-    .award-card--featured {
-      grid-column: auto;
-    }
-  }
-
-  @media (max-width: 520px) {
-    .awards-header h1 {
-      width: 100%;
-      max-width: 100%;
-      font-size: clamp(3.1rem, 16vw, 5rem);
-      overflow-wrap: anywhere;
+    .awards-controls {
+        padding-block: var(--space-6);
+        border-bottom: 1px solid var(--color-rule);
     }
 
-    .awards-controls form,
-    .awards-controls label,
+    .awards-controls form {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: var(--space-3);
+    }
+
+    .awards-controls label {
+        display: grid;
+        gap: var(--space-2);
+    }
+
+    .awards-controls label span {
+        color: var(--color-ink-muted);
+        font-family: var(--font-data);
+        font-size: 0.61rem;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
     .awards-controls select,
     .awards-controls button {
-      width: 100%;
+        min-height: 2.75rem;
+        padding-inline: var(--space-4);
+        border: 1px solid var(--color-rule-dark);
+        border-radius: 999px;
+        background: var(--color-surface);
+        color: var(--color-ink);
+        font: inherit;
+        font-size: var(--text-sm);
+    }
+
+    .awards-controls button {
+        border-color: var(--color-green);
+        background: var(--color-green);
+        color: white;
+        font-weight: 750;
+        cursor: pointer;
     }
 
     .partial-notice {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: var(--space-2);
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-4);
+        margin-top: var(--space-5);
+        padding: var(--space-4) var(--space-5);
+        border: 1px solid
+            color-mix(in srgb, var(--color-green) 35%, var(--color-rule));
+        border-radius: var(--radius-md);
+        background: color-mix(
+            in srgb,
+            var(--color-green) 5%,
+            var(--color-surface)
+        );
     }
 
-    .award-card,
-    .award-card--featured {
-      grid-template-columns: 1fr;
+    .partial-notice strong {
+        flex: 0 0 auto;
+        color: var(--color-green);
     }
 
-    .award-card--featured h3 {
-      max-width: 100%;
+    .partial-notice p {
+        margin: 0;
+        color: var(--color-ink-soft);
+        font-size: var(--text-sm);
+        line-height: 1.55;
     }
-  }
 
-  @media (prefers-reduced-motion: reduce) {
+    .awards-intro {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: var(--space-7);
+        padding-top: var(--space-8);
+        padding-bottom: var(--space-5);
+        border-bottom: 1px solid var(--color-rule-dark);
+    }
+
+    .awards-intro h2 {
+        max-width: 15ch;
+        margin: 0;
+        font-size: clamp(2.4rem, 5vw, 4.25rem);
+        letter-spacing: -0.05em;
+        line-height: 0.95;
+    }
+
+    .awards-intro > p {
+        max-width: 25rem;
+        margin: 0;
+        color: var(--color-ink-muted);
+        line-height: 1.6;
+    }
+
+    .awards-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: var(--space-5);
+        padding-top: var(--space-6);
+    }
+
     .award-card {
-      transition: none;
+        --award-accent: var(--color-green);
+
+        position: relative;
+        display: grid;
+        align-content: start;
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--color-rule);
+        border-top: 4px solid var(--award-accent);
+        border-radius: var(--radius-lg);
+
+        background:
+            linear-gradient(
+                135deg,
+                color-mix(in srgb, var(--award-accent) 4%, transparent),
+                transparent 42%
+            ),
+            var(--color-surface);
+
+        transition:
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            transform var(--transition-fast);
     }
 
     .award-card:hover {
-      transform: none;
+        border-color: var(--color-rule-dark);
+        box-shadow: var(--shadow-card);
+        transform: translateY(-2px);
     }
-  }
+
+    .award-card--negative {
+        --award-accent: #8d3d34;
+    }
+
+    .award-card--warning {
+        --award-accent: #9a681e;
+    }
+
+    .award-card--neutral {
+        --award-accent: var(--color-ink-muted);
+    }
+
+    .award-card--hero {
+        grid-column: 1 / -1;
+        padding: clamp(2rem, 5vw, 4rem);
+
+        background:
+            radial-gradient(
+                circle at 88% 25%,
+                color-mix(in srgb, var(--award-accent) 10%, transparent),
+                transparent 34%
+            ),
+            linear-gradient(
+                120deg,
+                color-mix(in srgb, var(--award-accent) 5%, transparent),
+                transparent 48%
+            ),
+            var(--color-surface);
+    }
+
+    .award-card--secondary {
+        grid-column: span 6;
+        padding: clamp(1.75rem, 3vw, 2.5rem);
+        background:
+            linear-gradient(
+                145deg,
+                color-mix(in srgb, var(--award-accent) 5%, transparent),
+                transparent 52%
+            ),
+            var(--color-surface);
+    }
+
+    /* Align the two secondary awards with each other. */
+    .award-card--secondary {
+        grid-template-rows: auto minmax(0, 1fr);
+        padding: clamp(1.75rem, 3vw, 2.5rem);
+    }
+
+    .award-card--secondary .award-card__body {
+        display: flex;
+        min-height: 0;
+        flex-direction: column;
+    }
+
+    .award-card--secondary .award-card__story {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+        flex-direction: column;
+    }
+
+    .award-card--secondary h3 {
+        min-height: 1.84em;
+    }
+
+    .award-card--secondary .award-card__team {
+        min-height: 2.1em;
+    }
+
+    .award-card--secondary .award-card__description {
+        flex: 1;
+    }
+
+    .award-card--secondary .award-score {
+        width: 100%;
+        margin-top: var(--space-5);
+        margin-bottom: 0;
+    }
+
+    .award-card--compact {
+        grid-column: span 3;
+        min-height: 25rem;
+        padding: clamp(1.2rem, 2vw, 1.6rem);
+    }
+
+    .award-card--compact .award-card__topline {
+        margin-bottom: var(--space-4);
+    }
+
+    .award-card--compact .award-card__team {
+        margin-bottom: var(--space-3);
+    }
+
+    .award-card--compact .award-score {
+        margin-bottom: var(--space-4);
+    }
+
+    .award-card--compact .award-card__description {
+        font-size: var(--text-sm);
+        line-height: 1.55;
+    }
+
+    /* Keep compact-card landmarks aligned across the row. */
+    .award-card--compact {
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .award-card--compact .award-card__body {
+        display: flex;
+        min-height: 0;
+        flex-direction: column;
+    }
+
+    .award-card--compact .award-card__story {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+        flex-direction: column;
+    }
+
+    /*
+ * Reserve two headline lines even when the title only
+ * occupies one line.
+ */
+    .award-card--compact h3 {
+        min-height: 1.84em;
+    }
+
+    /*
+ * Reserve two team-name lines so the value begins at
+ * the same height in every compact card.
+ */
+    .award-card--compact .award-card__team {
+        min-height: 2.1em;
+    }
+
+    /*
+ * Let the description consume the remaining flexible
+ * space. This pushes the score panel to the card bottom.
+ */
+    .award-card--compact .award-card__description {
+        flex: 1;
+    }
+
+    /* Override the generic top margin on score panels. */
+    .award-card--compact .award-score {
+        width: 100%;
+        margin-top: var(--space-5);
+        margin-bottom: 0;
+    }
+
+    .award-card__topline {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        margin-bottom: var(--space-5);
+    }
+
+    .award-card__symbol {
+        display: grid;
+        place-items: center;
+        width: 2rem;
+        height: 2rem;
+        flex: 0 0 auto;
+        border: 1px solid var(--award-accent);
+        border-radius: 999px;
+        color: var(--award-accent);
+        font-family: var(--font-data);
+        font-size: 0.82rem;
+        font-weight: 800;
+    }
+
+    .award-card__label {
+        margin: 0;
+        color: var(--award-accent);
+        font-family: var(--font-data);
+        font-size: 0.61rem;
+        font-weight: 700;
+        letter-spacing: 0.065em;
+        text-transform: uppercase;
+    }
+
+    .award-card__number {
+        margin-left: auto;
+        color: var(--color-ink-muted);
+        font-family: var(--font-data);
+        font-size: 0.61rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+    }
+
+    .award-card__content {
+        min-width: 0;
+    }
+
+    .award-card h3 {
+        margin: 0 0 var(--space-5);
+        font-size: clamp(2rem, 4vw, 3.4rem);
+        letter-spacing: -0.05em;
+        line-height: 0.92;
+        overflow-wrap: anywhere;
+    }
+
+    .award-card--hero h3 {
+        width: 100%;
+        max-width: 11ch;
+        font-size: clamp(3.5rem, 7vw, 7rem);
+        overflow-wrap: normal;
+        word-break: normal;
+        hyphens: none;
+    }
+
+    .award-card--compact h3 {
+        font-size: clamp(1.75rem, 3vw, 2.5rem);
+    }
+
+    .award-card__rule {
+        width: min(8rem, 38%);
+        height: 2px;
+        margin-top: calc(var(--space-3) * -1);
+        margin-bottom: var(--space-5);
+        background: linear-gradient(90deg, var(--award-accent), transparent);
+    }
+
+    .award-card--compact .award-card__rule {
+        width: 4rem;
+    }
+
+    .award-card__team {
+        margin: 0 0 var(--space-4);
+        color: var(--color-ink);
+        font-family: var(--font-editorial);
+        font-size: clamp(1.35rem, 2.5vw, 2rem);
+        font-weight: 700;
+        line-height: 1.05;
+        overflow-wrap: anywhere;
+    }
+
+    .award-card--hero .award-card__team {
+        font-size: clamp(2rem, 4vw, 3.25rem);
+    }
+
+    .award-score {
+        display: grid;
+        max-width: 36rem;
+        margin-top: var(--space-5);
+        margin-bottom: var(--space-5);
+        overflow: hidden;
+        border: 1px solid var(--color-rule);
+        border-radius: var(--radius-md);
+        background: color-mix(
+            in srgb,
+            var(--color-surface) 88%,
+            var(--award-accent) 12%
+        );
+    }
+
+    .award-card--hero .award-score {
+        margin-top: 0;
+        max-width: 100%;
+    }
+
+    .award-card--secondary .award-score,
+    .award-card--compact .award-score {
+        max-width: 100%;
+    }
+
+    .award-score__row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: var(--space-4);
+        min-height: 3.3rem;
+        padding: var(--space-3) var(--space-4);
+    }
+
+    .award-score__row + .award-score__row {
+        border-top: 1px solid var(--color-rule);
+    }
+
+    .award-score__row:first-child {
+        background: color-mix(in srgb, var(--award-accent) 7%, transparent);
+    }
+
+    .award-score__row span {
+        min-width: 0;
+        color: var(--color-ink-soft);
+        font-size: var(--text-sm);
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    .award-score__row strong {
+        color: var(--color-ink);
+        font-family: var(--font-data);
+        font-size: 0.83rem;
+    }
+
+    .award-score__row:first-child strong {
+        color: var(--award-accent);
+    }
+
+    .award-card__value {
+        margin: 0 0 var(--space-4);
+        color: var(--award-accent);
+        font-size: clamp(1.05rem, 2vw, 1.35rem);
+        font-weight: 800;
+    }
+
+    .award-card__description {
+        max-width: 42rem;
+        margin: 0;
+        color: var(--color-ink-soft);
+        line-height: 1.65;
+    }
+
+    .empty-state {
+        max-width: 48rem;
+        margin-top: var(--space-8);
+        padding: clamp(2rem, 5vw, 4rem);
+        border: 1px solid var(--color-rule);
+        border-radius: var(--radius-lg);
+        background: var(--color-surface);
+    }
+
+    .empty-state h2 {
+        margin-bottom: var(--space-4);
+        font-size: clamp(2.4rem, 5vw, 4rem);
+        letter-spacing: -0.05em;
+        line-height: 0.95;
+    }
+
+    .empty-state p {
+        color: var(--color-ink-soft);
+        line-height: 1.65;
+    }
+
+    .empty-state a {
+        display: inline-flex;
+        margin-top: var(--space-4);
+        color: var(--color-green);
+        font-weight: 750;
+    }
+
+    @media (max-width: 1050px) {
+        .award-card--compact {
+            grid-column: span 6;
+            min-height: 0;
+        }
+    }
+
+    @media (max-width: 800px) {
+        .awards-header {
+            grid-template-columns: 1fr;
+            align-items: start;
+        }
+
+        .awards-header__edition {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .awards-intro {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .award-card--hero,
+        .award-card--secondary,
+        .award-card--compact {
+            grid-column: 1 / -1;
+        }
+
+        .award-card__watermark {
+            display: none;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .awards-header h1 {
+            width: 100%;
+            max-width: 100%;
+            font-size: clamp(3.1rem, 16vw, 5rem);
+            overflow-wrap: anywhere;
+        }
+
+        .awards-controls form,
+        .awards-controls label,
+        .awards-controls select,
+        .awards-controls button {
+            width: 100%;
+        }
+
+        .partial-notice {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .award-card--hero,
+        .award-card--secondary,
+        .award-card--compact {
+            padding: var(--space-5);
+        }
+
+        .award-card--hero h3 {
+            width: 100%;
+            max-width: 100%;
+            font-size: clamp(2.75rem, 13vw, 4.5rem);
+            overflow-wrap: normal;
+            word-break: normal;
+            hyphens: none;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .award-card {
+            transition: none;
+        }
+
+        .award-card:hover {
+            transform: none;
+        }
+    }
+
+    .award-card__watermark {
+        position: absolute;
+        top: clamp(4.5rem, 8vw, 6.5rem);
+        right: clamp(1rem, 2.5vw, 2rem);
+        z-index: 0;
+        display: grid;
+        width: clamp(4.5rem, 8vw, 7rem);
+        aspect-ratio: 1;
+        place-items: center;
+        border: 1px solid
+            color-mix(in srgb, var(--award-accent) 22%, transparent);
+        border-radius: 50%;
+        color: var(--award-accent);
+        background: color-mix(in srgb, var(--award-accent) 4%, transparent);
+        font-family: var(--font-editorial);
+        font-size: clamp(2.5rem, 5vw, 4.25rem);
+        font-weight: 700;
+        line-height: 1;
+        opacity: 0.12;
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .award-card--secondary .award-card__watermark {
+        width: clamp(4rem, 7vw, 5.5rem);
+        font-size: clamp(2.25rem, 4vw, 3.25rem);
+    }
+
+    .award-card--compact .award-card__watermark {
+        top: 4.5rem;
+        right: 1rem;
+        width: 4rem;
+        font-size: 2.35rem;
+        opacity: 0.1;
+    }
+
+    .award-card__topline,
+    .award-card__content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .award-card__body,
+    .award-card__story {
+        min-width: 0;
+    }
+
+    .award-card__body {
+        display: block;
+    }
+
+    .award-card--hero .award-card__body {
+        display: grid;
+        grid-template-columns:
+            minmax(0, 1.25fr)
+            minmax(18rem, 0.75fr);
+        gap: clamp(2rem, 5vw, 4rem);
+        align-items: center;
+    }
+
+    .award-card--hero .award-score {
+        margin-bottom: 0;
+    }
+
+    @media (max-width: 1200px) {
+        .award-card--hero .award-card__body {
+            grid-template-columns: minmax(0, 1fr);
+            align-items: start;
+            gap: var(--space-6);
+        }
+
+        .award-card--hero .award-card__story {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+        }
+
+        .award-card--hero h3 {
+            width: 100%;
+            max-width: 12ch;
+            overflow-wrap: normal;
+            word-break: normal;
+            hyphens: none;
+        }
+
+        .award-card--hero .award-card__team {
+            width: 100%;
+            max-width: none;
+            overflow-wrap: normal;
+            word-break: normal;
+        }
+
+        .award-card--hero .award-card__description {
+            width: 100%;
+            max-width: 42rem;
+        }
+
+        .award-card--hero .award-score {
+            width: 100%;
+            max-width: 36rem;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+    }
+
+    @media (max-width: 800px) {
+        .award-card__watermark {
+            display: none;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .award-card--hero h3 {
+            max-width: 100%;
+            font-size: clamp(2.75rem, 13vw, 4.5rem);
+        }
+    }
 </style>
