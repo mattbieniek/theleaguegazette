@@ -1,0 +1,185 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { teams as leagueTeams } from "../../data/teams";
+import { getHistoricalResults } from "../../lib/queries/records";
+import { buildLeagueSeasonHistory } from "../../lib/gazette/history";
+import { formatTeamRecord } from "../../lib/gazette/statistics";
+
+export const prerender = false;
+
+const requestedYear = Number(Astro.params.season);
+const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+const results = await getHistoricalResults(sleeperLeagueId);
+const season = Number.isInteger(requestedYear)
+  ? buildLeagueSeasonHistory(results, requestedYear)
+  : null;
+
+if (!season) {
+  return Astro.redirect("/history");
+}
+
+function formatPoints(value: number): string {
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function getTeamProfile(teamName: string | null) {
+  if (!teamName) return null;
+  const normalized = teamName.trim().toLowerCase();
+  return leagueTeams.find(
+    (team) =>
+      team.name.trim().toLowerCase() === normalized ||
+      team.legacyName.trim().toLowerCase() === normalized
+  ) ?? null;
+}
+
+const championProfile = getTeamProfile(season.champion);
+---
+
+<BaseLayout
+  title={`${season.year} Season`}
+  description={`Champion, standings and defining performances from the ${season.year} Far Far Away Football season.`}
+>
+  <main class="season-page site-shell">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/history">League History</a>
+      <span aria-hidden="true">/</span>
+      <span>{season.year} Season</span>
+    </nav>
+
+    <header class="season-header">
+      <div>
+        <p class="eyebrow">Season Chronicle</p>
+        <h1>{season.year}</h1>
+        <p class="season-header__description">
+          The final ledger and defining performances from the {season.year}
+          Far Far Away Football campaign.
+        </p>
+      </div>
+      <dl class="season-summary">
+        <div><dt>Teams</dt><dd>{season.teamCount}</dd></div>
+        <div><dt>Matchups</dt><dd>{season.matchupCount}</dd></div>
+        <div><dt>Weeks</dt><dd>{season.firstWeek}–{season.lastWeek}</dd></div>
+      </dl>
+    </header>
+
+    <section class="champion" aria-labelledby="champion-title">
+      <div class="champion__mark" aria-hidden="true">★</div>
+      <div class="champion__copy">
+        <p class="eyebrow">League Champion</p>
+        <h2 id="champion-title">{season.champion ?? "Champion Unconfirmed"}</h2>
+        {season.runnerUp && <p>Defeated {season.runnerUp} in Week {season.championshipWeek}.</p>}
+        {season.notes && <small>{season.notes}</small>}
+      </div>
+      {championProfile && (
+        <a href={`/teams/${championProfile.slug}`}>View franchise <span aria-hidden="true">→</span></a>
+      )}
+    </section>
+
+    <section class="highlights" aria-labelledby="highlights-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">Defining Performances</p><h2 id="highlights-title">Season Highlights</h2></div>
+        <p>Scoring leaders and matchup extremes calculated from the completed season archive.</p>
+      </div>
+      <div class="highlights-grid">
+        {season.highlights.map((highlight) => (
+          <article>
+            <p>{highlight.label}</p>
+            <h3>{highlight.title}</h3>
+            <strong>{highlight.value}</strong>
+            <span>
+              {highlight.opponentName ? `vs. ${highlight.opponentName}` : `${season.year} season`}
+              {highlight.week > 0 ? ` · Week ${highlight.week}` : ""}
+            </span>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="performance" aria-labelledby="performance-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">Season Ledger</p><h2 id="performance-title">Performance Table</h2></div>
+        <a href={`/stats?season=${season.year}`}>Full season statistics <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="performance-table">
+        <div class="performance-table__scroll">
+          <table>
+            <thead><tr><th>Rank</th><th>Team</th><th>Record</th><th>PF</th><th>Average</th><th>PA</th><th>Margin</th></tr></thead>
+            <tbody>
+              {season.standings.map((team, index) => {
+                const profile = getTeamProfile(team.teamName);
+                return (
+                  <tr>
+                    <td>{index + 1}</td>
+                    <td class="team-name">
+                      {profile ? <a href={`/teams/${profile.slug}`}>{team.teamName}</a> : team.teamName}
+                    </td>
+                    <td>{formatTeamRecord(team)}</td>
+                    <td>{formatPoints(team.pointsFor)}</td>
+                    <td>{formatPoints(team.averageScore)}</td>
+                    <td>{formatPoints(team.pointsAgainst)}</td>
+                    <td class:list={[team.averageMargin > 0 && "positive", team.averageMargin < 0 && "negative"]}>
+                      {team.averageMargin > 0 ? "+" : ""}{formatPoints(team.averageMargin)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="table-note">Ranked by recorded wins, then total points scored. Playoff finish is represented separately by the championship result.</p>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .season-page { padding-top: var(--space-6); padding-bottom: var(--space-9); }
+  .breadcrumb { display: flex; gap: var(--space-2); margin-bottom: var(--space-7); color: var(--color-ink-muted); font-family: var(--font-data); font-size: .62rem; letter-spacing: .05em; text-transform: uppercase; }
+  .breadcrumb a { color: var(--color-green); }
+  .season-header { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 27rem); align-items: end; gap: clamp(2rem, 6vw, 6rem); padding-bottom: var(--space-7); border-bottom: 3px double var(--color-rule-dark); }
+  .season-header h1 { margin: 0 0 var(--space-4); font-size: clamp(5rem, 14vw, 11rem); letter-spacing: -.075em; line-height: .75; }
+  .season-header__description { max-width: 46rem; margin: 0; color: var(--color-ink-soft); font-family: var(--font-editorial); font-size: clamp(1.2rem, 2.4vw, 1.6rem); line-height: 1.45; }
+  .season-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; overflow: hidden; border: 1px solid var(--color-rule); border-radius: var(--radius-lg); background: var(--color-surface); }
+  .season-summary div { padding: var(--space-5) var(--space-4); min-width: 0; }
+  .season-summary div + div { border-left: 1px solid var(--color-rule); }
+  .season-summary dt { margin-bottom: var(--space-2); color: var(--color-ink-muted); font-family: var(--font-data); font-size: .58rem; letter-spacing: .06em; text-transform: uppercase; }
+  .season-summary dd { margin: 0; font-family: var(--font-editorial); font-size: clamp(1.2rem, 2.5vw, 1.8rem); font-weight: 700; }
+  .champion { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: clamp(1.5rem, 4vw, 3rem); padding: clamp(1.8rem, 4vw, 3rem); margin-top: var(--space-7); border: 1px solid var(--color-rule); border-top: 5px solid var(--color-green); border-radius: var(--radius-lg); background: radial-gradient(circle at 90% 20%, var(--color-green-faint), transparent 32%), var(--color-surface); }
+  .champion__mark { display: grid; width: clamp(5rem, 10vw, 7.5rem); aspect-ratio: 1; place-items: center; border: 1px solid var(--color-green); border-radius: 50%; color: var(--color-green); font-size: clamp(2rem, 5vw, 3.5rem); }
+  .champion h2 { margin-bottom: var(--space-3); font-size: clamp(2.8rem, 6vw, 5.3rem); letter-spacing: -.055em; line-height: .9; overflow-wrap: normal; }
+  .champion__copy > p:not(.eyebrow) { margin-bottom: var(--space-2); color: var(--color-ink-soft); font-family: var(--font-editorial); font-size: var(--text-xl); }
+  .champion small { color: var(--color-ink-muted); }
+  .champion > a,
+  .section-heading > a { color: var(--color-green); font-weight: 750; white-space: nowrap; }
+  .highlights,
+  .performance { padding-top: var(--space-9); }
+  .section-heading { display: flex; align-items: end; justify-content: space-between; gap: var(--space-6); padding-bottom: var(--space-5); border-bottom: 1px solid var(--color-rule-dark); }
+  .section-heading h2 { margin: 0; font-size: clamp(2.4rem, 5vw, 4.25rem); letter-spacing: -.05em; line-height: .95; }
+  .section-heading > p { max-width: 31rem; margin: 0; color: var(--color-ink-muted); line-height: 1.55; text-align: right; }
+  .highlights-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); padding-top: var(--space-6); }
+  .highlights-grid article { min-width: 0; padding: clamp(1.4rem, 3vw, 2.25rem); border: 1px solid var(--color-rule); border-top: 4px solid var(--color-green); border-radius: var(--radius-lg); background: var(--color-surface); }
+  .highlights-grid p { margin-bottom: var(--space-3); color: var(--color-green); font-family: var(--font-data); font-size: .6rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
+  .highlights-grid h3 { min-height: 2em; margin-bottom: var(--space-4); font-size: clamp(1.7rem, 3.3vw, 2.7rem); letter-spacing: -.04em; line-height: 1; overflow-wrap: normal; }
+  .highlights-grid strong { display: block; margin-bottom: var(--space-2); font-size: clamp(1.1rem, 2vw, 1.4rem); color: var(--color-green); }
+  .highlights-grid span { color: var(--color-ink-muted); font-size: var(--text-sm); }
+  .performance-table { margin-top: var(--space-6); overflow: hidden; border: 1px solid var(--color-rule); border-radius: var(--radius-lg); background: var(--color-surface); }
+  .performance-table__scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 1rem .85rem; border-bottom: 1px solid var(--color-rule); white-space: nowrap; }
+  th { color: var(--color-ink-muted); font-family: var(--font-data); font-size: .59rem; letter-spacing: .06em; text-align: right; text-transform: uppercase; }
+  th:nth-child(2) { text-align: left; }
+  td { font-family: var(--font-data); font-size: .72rem; font-variant-numeric: tabular-nums; text-align: right; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: var(--color-green-faint); }
+  .team-name { min-width: 14rem; text-align: left; font-family: var(--font-editorial); font-size: 1rem; font-weight: 700; }
+  .team-name a:hover { color: var(--color-green); }
+  .positive { color: var(--color-green); font-weight: 700; }
+  .negative { color: var(--color-danger, #9f2f2f); font-weight: 700; }
+  .table-note { margin-top: var(--space-4); color: var(--color-ink-muted); font-size: var(--text-sm); line-height: 1.55; }
+  @media (max-width: 900px) { .season-header { grid-template-columns: 1fr; } .season-summary { max-width: 40rem; } .champion { grid-template-columns: auto minmax(0, 1fr); } .champion > a { grid-column: 2; justify-self: start; } }
+  @media (max-width: 700px) { .section-heading { align-items: flex-start; flex-direction: column; } .section-heading > p { text-align: left; } .highlights-grid { grid-template-columns: 1fr; } .highlights-grid h3 { min-height: 0; } }
+  @media (max-width: 520px) { .season-header h1 { font-size: clamp(4.5rem, 25vw, 7rem); } .season-summary { grid-template-columns: 1fr; } .season-summary div + div { border-top: 1px solid var(--color-rule); border-left: 0; } .champion { grid-template-columns: 1fr; } .champion__mark { width: 5rem; } .champion > a { grid-column: 1; } .champion h2 { font-size: clamp(2.7rem, 14vw, 4.3rem); } }
+</style>

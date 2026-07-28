@@ -1,0 +1,263 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getHistoricalResults } from "../../lib/queries/records";
+import { buildLeagueHistory } from "../../lib/gazette/history";
+
+export const prerender = false;
+
+const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+const results = await getHistoricalResults(sleeperLeagueId);
+const seasons = buildLeagueHistory(results);
+const recordedMatchups = new Set(results.map((result) => result.matchup_id)).size;
+
+function formatPoints(value: number): string {
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+---
+
+<BaseLayout
+  title="League History"
+  description="Browse the seasons, champions and defining performances of Far Far Away Football."
+>
+  <main class="history-page site-shell">
+    <header class="history-header">
+      <div>
+        <p class="eyebrow">The Complete Chronicle</p>
+        <h1>League History</h1>
+        <p class="history-header__description">
+          Every recorded season, champion and defining performance from Far Far
+          Away Football—preserved one campaign at a time.
+        </p>
+      </div>
+
+      <dl class="history-summary">
+        <div><dt>Seasons</dt><dd>{seasons.length}</dd></div>
+        <div><dt>Matchups</dt><dd>{recordedMatchups}</dd></div>
+        <div>
+          <dt>First Recorded</dt>
+          <dd>{seasons.at(-1)?.year ?? "—"}</dd>
+        </div>
+      </dl>
+    </header>
+
+    {seasons.length > 0 ? (
+      <section class="season-archive" aria-labelledby="season-archive-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Season by Season</p>
+            <h2 id="season-archive-title">The Archive</h2>
+          </div>
+          <p>
+            Additional ESPN and earlier Sleeper seasons can join this timeline
+            as their historical results are imported.
+          </p>
+        </div>
+
+        <div class="season-list">
+          {seasons.map((season, index) => (
+            <article class="season-card">
+              <a href={`/history/${season.year}`} aria-label={`Explore the ${season.year} season`}>
+                <div class="season-card__year">
+                  <span>Season {String(index + 1).padStart(2, "0")}</span>
+                  <strong>{season.year}</strong>
+                  <small>{season.provider ?? "Historical import"}</small>
+                </div>
+
+                <div class="season-card__champion">
+                  <p>{season.champion ? "League Champion" : "Champion Unconfirmed"}</p>
+                  <h3>{season.champion ?? "Awaiting historical data"}</h3>
+                  {season.runnerUp && <span>over {season.runnerUp}</span>}
+                </div>
+
+                <dl class="season-card__stats">
+                  <div><dt>Teams</dt><dd>{season.teamCount}</dd></div>
+                  <div><dt>Matchups</dt><dd>{season.matchupCount}</dd></div>
+                  <div><dt>Avg. Score</dt><dd>{formatPoints(season.leagueAverage)}</dd></div>
+                </dl>
+
+                <span class="season-card__arrow" aria-hidden="true">→</span>
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+    ) : (
+      <section class="empty-state">
+        <p class="eyebrow">Historical Archive</p>
+        <h2>No completed seasons are available yet.</h2>
+        <p>Imported league history will appear here once results are available.</p>
+      </section>
+    )}
+  </main>
+</BaseLayout>
+
+<style>
+  .history-page { padding-top: clamp(2.5rem, 6vw, 5rem); padding-bottom: var(--space-9); }
+  .history-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 30rem);
+    align-items: end;
+    gap: clamp(2rem, 6vw, 6rem);
+    padding-bottom: clamp(2rem, 5vw, 4rem);
+    border-bottom: 3px double var(--color-rule-dark);
+  }
+  .history-header h1 {
+    max-width: 10ch;
+    margin: 0 0 var(--space-5);
+    font-size: clamp(3.6rem, 9vw, 7.5rem);
+    letter-spacing: -0.065em;
+    line-height: 0.86;
+  }
+  .history-header__description {
+    max-width: 48rem;
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.2rem, 2.4vw, 1.65rem);
+    line-height: 1.45;
+  }
+  .history-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+  .history-summary div { padding: var(--space-5) var(--space-4); min-width: 0; }
+  .history-summary div + div { border-left: 1px solid var(--color-rule); }
+  .history-summary dt,
+  .history-summary dd { margin: 0; }
+  .history-summary dt {
+    margin-bottom: var(--space-2);
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.56rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .history-summary dd {
+    font-family: var(--font-editorial);
+    font-size: clamp(1.35rem, 2.8vw, 2rem);
+    font-weight: 700;
+  }
+  .season-archive { padding-top: var(--space-9); }
+  .section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-6);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--color-rule-dark);
+  }
+  .section-heading h2 {
+    margin: 0;
+    font-size: clamp(2.4rem, 5vw, 4.25rem);
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+  }
+  .section-heading > p {
+    max-width: 33rem;
+    margin: 0;
+    color: var(--color-ink-muted);
+    line-height: 1.55;
+    text-align: right;
+  }
+  .season-list { display: grid; gap: var(--space-5); padding-top: var(--space-6); }
+  .season-card {
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+  }
+  .season-card:hover { border-color: var(--color-green); box-shadow: var(--shadow-card); transform: translateY(-2px); }
+  .season-card > a {
+    display: grid;
+    grid-template-columns: minmax(10rem, .35fr) minmax(0, 1fr) minmax(20rem, .75fr) auto;
+    align-items: stretch;
+    color: inherit;
+  }
+  .season-card__year,
+  .season-card__champion,
+  .season-card__stats,
+  .season-card__arrow { padding: clamp(1.4rem, 3vw, 2.25rem); }
+  .season-card__year {
+    display: grid;
+    align-content: center;
+    border-right: 1px solid var(--color-rule);
+    background: var(--color-green-faint);
+  }
+  .season-card__year span,
+  .season-card__year small,
+  .season-card__champion p,
+  .season-card__stats dt {
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: .59rem;
+    font-weight: 650;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .season-card__year strong {
+    margin-block: var(--space-2);
+    color: var(--color-green);
+    font-family: var(--font-editorial);
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    line-height: .9;
+  }
+  .season-card__champion { align-self: center; min-width: 0; }
+  .season-card__champion p { margin-bottom: var(--space-3); color: var(--color-green); }
+  .season-card__champion h3 {
+    margin-bottom: var(--space-2);
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    letter-spacing: -.04em;
+    line-height: .98;
+    overflow-wrap: normal;
+  }
+  .season-card__champion span { color: var(--color-ink-muted); }
+  .season-card__stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: center;
+    margin: 0;
+    border-left: 1px solid var(--color-rule);
+  }
+  .season-card__stats div + div { padding-left: var(--space-4); border-left: 1px solid var(--color-rule); }
+  .season-card__stats dt { margin-bottom: var(--space-2); }
+  .season-card__stats dd {
+    margin: 0;
+    font-family: var(--font-editorial);
+    font-size: clamp(1.15rem, 2vw, 1.55rem);
+    font-weight: 700;
+  }
+  .season-card__arrow { display: grid; place-items: center; border-left: 1px solid var(--color-rule); color: var(--color-green); font-size: 1.3rem; }
+  .empty-state { max-width: 48rem; padding: var(--space-8); margin-top: var(--space-8); border: 1px solid var(--color-rule); border-radius: var(--radius-lg); }
+  @media (max-width: 1000px) {
+    .history-header { grid-template-columns: 1fr; }
+    .history-summary { max-width: 42rem; }
+    .season-card > a { grid-template-columns: minmax(10rem, .35fr) minmax(0, 1fr) auto; }
+    .season-card__stats { grid-column: 1 / -1; border-top: 1px solid var(--color-rule); border-left: 0; }
+  }
+  @media (max-width: 700px) {
+    .section-heading { align-items: flex-start; flex-direction: column; }
+    .section-heading > p { text-align: left; }
+    .season-card > a { grid-template-columns: 1fr auto; }
+    .season-card__year,
+    .season-card__champion { grid-column: 1; border-right: 0; }
+    .season-card__year { border-bottom: 1px solid var(--color-rule); }
+    .season-card__arrow { grid-column: 2; grid-row: 1 / 3; }
+  }
+  @media (max-width: 520px) {
+    .history-header h1 { max-width: 100%; font-size: clamp(3.1rem, 16vw, 4.8rem); }
+    .history-summary { grid-template-columns: 1fr; }
+    .history-summary div + div { border-top: 1px solid var(--color-rule); border-left: 0; }
+    .season-card__stats { grid-template-columns: 1fr; }
+    .season-card__stats div + div { padding-top: var(--space-3); padding-left: 0; border-top: 1px solid var(--color-rule); border-left: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .season-card { transition: none; } .season-card:hover { transform: none; } }
+</style>
