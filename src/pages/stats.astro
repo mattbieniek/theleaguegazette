@@ -1,4 +1,549 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { teams as leagueTeams } from "../data/teams";
+import { getHistoricalResults } from "../lib/queries/records";
+import {
+  buildSeasonStatistics,
+  formatTeamRecord,
+  type TeamSeasonStatistics,
+} from "../lib/gazette/statistics";
+
+export const prerender = false;
+
+const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+const historicalResults = await getHistoricalResults(sleeperLeagueId);
+const seasons = [...new Set(
+  historicalResults.map((result) => result.season_year)
+)].sort((first, second) => second - first);
+
+const requestedSeason = Number(Astro.url.searchParams.get("season"));
+const selectedSeason =
+  Number.isInteger(requestedSeason) && seasons.includes(requestedSeason)
+    ? requestedSeason
+    : seasons[0] ?? new Date().getFullYear();
+
+const statistics = buildSeasonStatistics(
+  historicalResults,
+  selectedSeason
+);
+
+function highestBy(
+  teams: TeamSeasonStatistics[],
+  getValue: (team: TeamSeasonStatistics) => number
+): TeamSeasonStatistics | null {
+  return [...teams].sort(
+    (first, second) => getValue(second) - getValue(first)
+  )[0] ?? null;
+}
+
+function lowestBy(
+  teams: TeamSeasonStatistics[],
+  getValue: (team: TeamSeasonStatistics) => number
+): TeamSeasonStatistics | null {
+  return [...teams].sort(
+    (first, second) => getValue(first) - getValue(second)
+  )[0] ?? null;
+}
+
+function formatPoints(value: number): string {
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function getTeamProfile(teamName: string) {
+  const normalized = teamName.trim().toLowerCase();
+
+  return leagueTeams.find(
+    (team) =>
+      team.name.trim().toLowerCase() === normalized ||
+      team.legacyName.trim().toLowerCase() === normalized
+  ) ?? null;
+}
+
+const scoringLeader = highestBy(
+  statistics.teams,
+  (team) => team.pointsFor
+);
+const weeklyPeak = highestBy(
+  statistics.teams,
+  (team) => team.highScore
+);
+const mostConsistent = lowestBy(
+  statistics.teams,
+  (team) => team.scoringDeviation
+);
+const benchLeader = highestBy(
+  statistics.teams,
+  (team) => team.averageBenchPoints
+);
 ---
-<BaseLayout title="Stats | The League Gazette"><div class="shell placeholder"><div class="eyebrow">Version 1</div><h1>Stats</h1><div class="card"><h2>Page foundation ready</h2><p>This route is included in the prototype so the information architecture and navigation can be tested immediately. The next development pass will connect the appropriate Sleeper endpoints and reusable editorial components.</p><a class="button green" href="/">Return to the front page</a></div></div></BaseLayout><style>.placeholder{padding-top:60px;max-width:850px}.placeholder h1{font:700 clamp(3.5rem,9vw,7rem)/.9 Georgia,serif;margin:8px 0 32px}.placeholder .card{padding:35px;border-top:6px solid var(--green)}.placeholder h2{font:700 1.8rem Georgia,serif}.placeholder p{line-height:1.7;color:#555;max-width:650px;margin-bottom:24px}</style>
+
+<BaseLayout
+  title="Statistics"
+  description="Season scoring, consistency and team performance statistics from Far Far Away Football."
+>
+  <main class="stats-page site-shell">
+    <header class="stats-header">
+      <div>
+        <p class="eyebrow">League Intelligence</p>
+        <h1>Statistics</h1>
+        <p class="stats-header__description">
+          A season-by-season view of scoring strength, defensive fortune,
+          consistency and weekly performance across the league.
+        </p>
+      </div>
+
+      {seasons.length > 0 && (
+        <form class="season-control" method="get">
+          <label for="stats-season">Season</label>
+          <div>
+            <select id="stats-season" name="season">
+              {seasons.map((season) => (
+                <option value={season} selected={season === selectedSeason}>
+                  {season}
+                </option>
+              ))}
+            </select>
+            <button type="submit">View season</button>
+          </div>
+        </form>
+      )}
+    </header>
+
+    {statistics.teams.length > 0 ? (
+      <>
+        <section class="season-summary" aria-label={`${selectedSeason} season summary`}>
+          <article>
+            <p>Completed Matchups</p>
+            <strong>{statistics.games}</strong>
+            <span>Regular season and playoffs</span>
+          </article>
+          <article>
+            <p>League Scoring Average</p>
+            <strong>{formatPoints(statistics.leagueAverage)}</strong>
+            <span>Points per team per week</span>
+          </article>
+          <article>
+            <p>Total Points Scored</p>
+            <strong>{formatPoints(statistics.totalPoints)}</strong>
+            <span>Across all completed results</span>
+          </article>
+        </section>
+
+        <section class="leaders-section" aria-labelledby="leaders-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Season Leaders</p>
+              <h2 id="leaders-title">At a Glance</h2>
+            </div>
+            <p>
+              Four different views of the teams defining the {selectedSeason}
+              scoring landscape.
+            </p>
+          </div>
+
+          <div class="leaders-grid">
+            {scoringLeader && (
+              <article class="leader-card leader-card--feature">
+                <p class="leader-card__label">Total Scoring Leader</p>
+                <h3>{scoringLeader.teamName}</h3>
+                <strong>{formatPoints(scoringLeader.pointsFor)}</strong>
+                <span>{formatPoints(scoringLeader.averageScore)} per week</span>
+              </article>
+            )}
+            {weeklyPeak && (
+              <article class="leader-card">
+                <p class="leader-card__label">Highest Weekly Peak</p>
+                <h3>{weeklyPeak.teamName}</h3>
+                <strong>{formatPoints(weeklyPeak.highScore)}</strong>
+                <span>Best single-week score</span>
+              </article>
+            )}
+            {mostConsistent && (
+              <article class="leader-card">
+                <p class="leader-card__label">Most Consistent</p>
+                <h3>{mostConsistent.teamName}</h3>
+                <strong>{formatPoints(mostConsistent.scoringDeviation)}</strong>
+                <span>Lowest weekly scoring deviation</span>
+              </article>
+            )}
+            {benchLeader && (
+              <article class="leader-card">
+                <p class="leader-card__label">Deepest Bench</p>
+                <h3>{benchLeader.teamName}</h3>
+                <strong>{formatPoints(benchLeader.averageBenchPoints)}</strong>
+                <span>Average bench points per week</span>
+              </article>
+            )}
+          </div>
+        </section>
+
+        <section class="table-section" aria-labelledby="team-statistics-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Complete Table</p>
+              <h2 id="team-statistics-title">Team Performance</h2>
+            </div>
+            <a href="/records">Explore the Record Book <span aria-hidden="true">→</span></a>
+          </div>
+
+          <div class="statistics-table">
+            <div class="statistics-table__scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Team</th>
+                    <th>Record</th>
+                    <th>PF</th>
+                    <th>Avg.</th>
+                    <th>High</th>
+                    <th>Low</th>
+                    <th>PA Avg.</th>
+                    <th>Avg. Margin</th>
+                    <th>Consistency</th>
+                    <th>Bench Avg.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {statistics.teams.map((team) => {
+                    const profile = getTeamProfile(team.teamName);
+
+                    return (
+                      <tr>
+                        <td class="statistics-table__team">
+                          {profile ? (
+                            <a href={`/teams/${profile.slug}`}>{team.teamName}</a>
+                          ) : (
+                            <span>{team.teamName}</span>
+                          )}
+                        </td>
+                        <td>{formatTeamRecord(team)}</td>
+                        <td>{formatPoints(team.pointsFor)}</td>
+                        <td>{formatPoints(team.averageScore)}</td>
+                        <td>{formatPoints(team.highScore)}</td>
+                        <td>{formatPoints(team.lowScore)}</td>
+                        <td>{formatPoints(team.averagePointsAgainst)}</td>
+                        <td class:list={[
+                          team.averageMargin > 0 && "is-positive",
+                          team.averageMargin < 0 && "is-negative",
+                        ]}>
+                          {team.averageMargin > 0 ? "+" : ""}{formatPoints(team.averageMargin)}
+                        </td>
+                        <td>{formatPoints(team.scoringDeviation)}</td>
+                        <td>{formatPoints(team.averageBenchPoints)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <p class="table-note">
+            Consistency is measured by standard deviation; a lower value means
+            a team’s weekly scores stayed closer to its season average.
+          </p>
+        </section>
+      </>
+    ) : (
+      <section class="empty-state">
+        <p class="eyebrow">League Intelligence</p>
+        <h2>No completed season data is available yet.</h2>
+        <p>Statistics will appear after matchup results have been synchronized.</p>
+      </section>
+    )}
+  </main>
+
+  <script>
+    const seasonSelect = document.querySelector<HTMLSelectElement>("#stats-season");
+    seasonSelect?.addEventListener("change", () => seasonSelect.form?.requestSubmit());
+  </script>
+</BaseLayout>
+
+<style>
+  .stats-page {
+    padding-top: clamp(2.5rem, 6vw, 5rem);
+    padding-bottom: var(--space-9);
+  }
+
+  .stats-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: clamp(2rem, 6vw, 6rem);
+    padding-bottom: clamp(2rem, 5vw, 4rem);
+    border-bottom: 3px double var(--color-rule-dark);
+  }
+
+  .stats-header h1 {
+    margin: 0 0 var(--space-5);
+    font-size: clamp(3.8rem, 10vw, 8rem);
+    letter-spacing: -0.065em;
+    line-height: 0.85;
+  }
+
+  .stats-header__description {
+    max-width: 48rem;
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.2rem, 2.4vw, 1.65rem);
+    line-height: 1.45;
+  }
+
+  .season-control {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 18rem;
+  }
+
+  .season-control label {
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .season-control > div {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .season-control select,
+  .season-control button {
+    min-height: 2.8rem;
+    padding-inline: var(--space-4);
+    border: 1px solid var(--color-rule-dark);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    font-size: var(--text-sm);
+  }
+
+  .season-control select { flex: 1; }
+  .season-control button {
+    border-color: var(--color-green);
+    background: var(--color-green);
+    color: white;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .season-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: var(--space-6);
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .season-summary article {
+    min-width: 0;
+    padding: clamp(1.25rem, 3vw, 2rem);
+  }
+
+  .season-summary article + article { border-left: 1px solid var(--color-rule); }
+  .season-summary p,
+  .leader-card__label {
+    margin-bottom: var(--space-3);
+    color: var(--color-green);
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    font-weight: 650;
+    letter-spacing: 0.065em;
+    text-transform: uppercase;
+  }
+
+  .season-summary strong,
+  .leader-card > strong {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.8rem, 3.6vw, 2.9rem);
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+  }
+
+  .season-summary span,
+  .leader-card > span {
+    color: var(--color-ink-muted);
+    font-size: var(--text-sm);
+    line-height: 1.45;
+  }
+
+  .leaders-section,
+  .table-section { padding-top: var(--space-9); }
+
+  .section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-6);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--color-rule-dark);
+  }
+
+  .section-heading h2 {
+    margin: 0;
+    font-size: clamp(2.4rem, 5vw, 4.25rem);
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+  }
+
+  .section-heading > p {
+    max-width: 31rem;
+    margin: 0;
+    color: var(--color-ink-muted);
+    line-height: 1.55;
+    text-align: right;
+  }
+
+  .section-heading > a {
+    color: var(--color-green);
+    font-weight: 750;
+  }
+
+  .leaders-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-5);
+    padding-top: var(--space-6);
+  }
+
+  .leader-card {
+    min-width: 0;
+    padding: clamp(1.4rem, 3vw, 2.2rem);
+    border: 1px solid var(--color-rule);
+    border-top: 4px solid var(--color-green);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .leader-card--feature {
+    grid-row: span 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background:
+      radial-gradient(circle at 90% 15%, var(--color-green-faint), transparent 38%),
+      var(--color-surface);
+  }
+
+  .leader-card h3 {
+    min-height: 2.05em;
+    margin-bottom: var(--space-5);
+    font-size: clamp(1.65rem, 3.3vw, 2.6rem);
+    letter-spacing: -0.04em;
+    line-height: 1;
+    overflow-wrap: normal;
+  }
+
+  .leader-card--feature h3 {
+    min-height: 0;
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+  }
+
+  .statistics-table {
+    margin-top: var(--space-6);
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .statistics-table__scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td {
+    padding: 1rem 0.85rem;
+    border-bottom: 1px solid var(--color-rule);
+    white-space: nowrap;
+  }
+
+  th {
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.59rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-align: right;
+    text-transform: uppercase;
+  }
+
+  th:first-child { text-align: left; }
+  td {
+    font-family: var(--font-data);
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: var(--color-green-faint); }
+  .statistics-table__team { min-width: 14rem; text-align: left; }
+  .statistics-table__team a,
+  .statistics-table__team span {
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .statistics-table__team a:hover { color: var(--color-green); }
+  .is-positive { color: var(--color-green); font-weight: 700; }
+  .is-negative { color: var(--color-danger, #9f2f2f); font-weight: 700; }
+
+  .table-note {
+    max-width: 50rem;
+    margin: var(--space-4) 0 0;
+    color: var(--color-ink-muted);
+    font-size: var(--text-sm);
+    line-height: 1.55;
+  }
+
+  .empty-state {
+    max-width: 48rem;
+    padding: var(--space-8);
+    margin-top: var(--space-8);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  @media (max-width: 900px) {
+    .stats-header { grid-template-columns: 1fr; }
+    .season-control { max-width: 30rem; }
+    .leaders-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .leader-card--feature { grid-row: auto; }
+  }
+
+  @media (max-width: 700px) {
+    .season-summary,
+    .leaders-grid { grid-template-columns: 1fr; }
+    .season-summary article + article {
+      border-top: 1px solid var(--color-rule);
+      border-left: 0;
+    }
+    .section-heading {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+    .section-heading > p { text-align: left; }
+    .leader-card h3 { min-height: 0; }
+  }
+
+  @media (max-width: 520px) {
+    .stats-header h1 { font-size: clamp(3.4rem, 17vw, 5rem); }
+    .season-control,
+    .season-control > div,
+    .season-control select,
+    .season-control button { width: 100%; }
+    .season-control > div { flex-direction: column; }
+  }
+</style>
