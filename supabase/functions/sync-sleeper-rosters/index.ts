@@ -238,6 +238,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const { data: season, error: seasonError } = await supabase
+      .from("seasons")
+      .select("id")
+      .eq("sleeper_league_id", SLEEPER_LEAGUE_ID)
+      .single();
+
+    if (seasonError) {
+      throw seasonError;
+    }
+
     /*
      * Step 2:
      * Load managers so Sleeper owner IDs can be converted into UUIDs.
@@ -325,6 +335,7 @@ Deno.serve(async (req: Request) => {
 
       return {
         league_id: league.id,
+        season_id: season.id,
         manager_id: manager?.id ?? null,
         sleeper_roster_id: roster.roster_id,
         team_name: getTeamName(roster, manager),
@@ -370,7 +381,7 @@ Deno.serve(async (req: Request) => {
       await supabase
         .from("fantasy_teams")
         .upsert(fantasyTeamRecords, {
-          onConflict: "league_id,sleeper_roster_id",
+          onConflict: "season_id,sleeper_roster_id",
         })
         .select("id, sleeper_roster_id");
 

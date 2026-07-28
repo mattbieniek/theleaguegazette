@@ -1,8 +1,10 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import StandingsTable from "../../components/StandingsTable.astro";
+import PlayerCard from "../../components/teams/PlayerCard.astro";
 import { getSeasonStandings } from "../../lib/queries/standings";
 import { getHistoricalResults } from "../../lib/queries/records";
+import { getTeamRoster } from "../../lib/queries/rosters";
 import {
   buildFranchiseHistory,
   formatFranchiseRecord,
@@ -38,6 +40,25 @@ const standings = sleeperLeagueId
 const historicalResults = await getHistoricalResults(
   sleeperLeagueId
 );
+
+const roster = sleeperLeagueId
+  ? await getTeamRoster(sleeperLeagueId, team.name)
+  : null;
+
+const primaryPositions = ["QB", "RB", "WR", "TE", "K", "DEF"];
+const rosterGroups = [...primaryPositions, "Other"]
+  .map((position) => ({
+    position,
+    players: roster?.players.filter((player) =>
+      position === "Other"
+        ? !primaryPositions.includes(player.position)
+        : player.position === position
+    ) ?? [],
+  }))
+  .filter((group) => group.players.length > 0);
+
+const starterCount = roster?.players.filter((player) => player.isStarter).length ?? 0;
+const reserveCount = roster?.players.filter((player) => player.isReserve).length ?? 0;
 
 const franchiseHistory = buildFranchiseHistory(
   historicalResults,
@@ -329,6 +350,59 @@ function formatPoints(value: number | null): string {
       }
 
       <section
+        class="active-roster"
+        aria-labelledby="active-roster-title"
+      >
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Current Personnel</p>
+            <h2 id="active-roster-title">Active Roster</h2>
+          </div>
+
+          <p>
+            {roster
+              ? `${roster.players.length} players from the latest ${roster.seasonYear} Sleeper roster sync.`
+              : "The current player roster will appear after Sleeper data is synchronized."}
+          </p>
+        </div>
+
+        {roster && roster.players.length > 0 ? (
+          <>
+            <dl class="roster-summary">
+              <div><dt>Total Players</dt><dd>{roster.players.length}</dd></div>
+              <div><dt>Starters</dt><dd>{starterCount}</dd></div>
+              <div><dt>Reserve</dt><dd>{reserveCount}</dd></div>
+              <div><dt>Position Groups</dt><dd>{rosterGroups.length}</dd></div>
+            </dl>
+
+            <div class="roster-groups">
+              {rosterGroups.map((group) => (
+                <section aria-labelledby={`roster-${team.slug}-${group.position.toLowerCase()}`}>
+                  <header>
+                    <div>
+                      <span>{group.position}</span>
+                      <h3 id={`roster-${team.slug}-${group.position.toLowerCase()}`}>
+                        {group.position === "DEF" ? "Defense" : group.position}
+                      </h3>
+                    </div>
+                    <p>{group.players.length} {group.players.length === 1 ? "player" : "players"}</p>
+                  </header>
+
+                  <div class="roster-group__players">
+                    {group.players.map((player) => <PlayerCard player={player} />)}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div class="roster-empty">
+            <p>No active roster data is available yet.</p>
+          </div>
+        )}
+      </section>
+
+      <section
         class="franchise-summary"
         aria-labelledby="franchise-summary-title"
       >
@@ -433,19 +507,6 @@ function formatPoints(value: number | null): string {
         <div class="coming-next__grid">
           <article>
             <span aria-hidden="true">01</span>
-
-            <div>
-              <h3>Active Roster</h3>
-
-              <p>
-                Player-level roster details and position
-                breakdowns from Sleeper.
-              </p>
-            </div>
-          </article>
-
-          <article>
-            <span aria-hidden="true">02</span>
 
             <div>
               <h3>Recent Results</h3>
@@ -664,8 +725,122 @@ function formatPoints(value: number | null): string {
 
   .franchise-summary,
   .franchise-history,
+  .active-roster,
   .coming-next {
     margin-top: var(--space-8);
+  }
+
+  .roster-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: var(--space-5) 0 0;
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .roster-summary > div {
+    min-width: 0;
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .roster-summary > div + div {
+    border-left: 1px solid var(--color-rule);
+  }
+
+  .roster-summary dt,
+  .roster-summary dd {
+    margin: 0;
+  }
+
+  .roster-summary dt {
+    margin-bottom: var(--space-2);
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.56rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .roster-summary dd {
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .roster-groups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+    padding-top: var(--space-6);
+  }
+
+  .roster-groups > section {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .roster-groups > section > header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--color-rule);
+    background: linear-gradient(145deg, color-mix(in srgb, var(--team-color) 7%, transparent), transparent 65%);
+  }
+
+  .roster-groups header span {
+    display: block;
+    margin-bottom: var(--space-1);
+    color: var(--team-color);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .roster-groups h3 {
+    margin: 0;
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+
+  .roster-groups header p {
+    margin: 0;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .roster-group__players > :global(article) + :global(article) {
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .roster-empty {
+    padding: var(--space-7);
+    margin-top: var(--space-5);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    text-align: center;
+  }
+
+  .roster-empty p {
+    margin: 0;
+    color: var(--color-ink-muted);
+    font-family: var(--font-editorial);
+    font-size: var(--text-lg);
   }
 
   .franchise-summary__card {
@@ -1071,6 +1246,22 @@ function formatPoints(value: number | null): string {
       border-top: 1px solid var(--color-rule);
       border-left: 0;
     }
+
+    .roster-summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .roster-summary > div:nth-child(3) {
+      border-left: 0;
+    }
+
+    .roster-summary > div:nth-child(n + 3) {
+      border-top: 1px solid var(--color-rule);
+    }
+
+    .roster-groups {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 520px) {
@@ -1108,6 +1299,15 @@ function formatPoints(value: number | null): string {
 
     .franchise-summary__identity > div + div {
       border-top: 1px solid var(--color-rule);
+    }
+
+    .roster-summary {
+      grid-template-columns: 1fr;
+    }
+
+    .roster-summary > div + div {
+      border-top: 1px solid var(--color-rule);
+      border-left: 0;
     }
   }
 </style>
