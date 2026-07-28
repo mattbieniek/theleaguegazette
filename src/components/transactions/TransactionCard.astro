@@ -1,0 +1,114 @@
+---
+import type { LeagueTransaction, TransactionAsset } from "../../lib/queries/transactions";
+import { teams } from "../../data/teams";
+
+interface Props { transaction: LeagueTransaction; }
+const { transaction } = Astro.props;
+
+function normalize(value: string | null): string { return value?.trim().toLowerCase() ?? ""; }
+function profile(name: string | null) {
+  return teams.find((team) => [team.name, team.legacyName].some((value) => normalize(value) === normalize(name))) ?? null;
+}
+function typeLabel(type: string): string {
+  if (type === "free_agent") return "Free Agent";
+  if (type === "waiver") return "Waiver Claim";
+  if (type === "trade") return "Trade";
+  return type.replaceAll("_", " ");
+}
+function assetLabel(asset: TransactionAsset): string {
+  if (asset.assetType === "draft_pick") return `${asset.draftSeason ?? "Future"} Round ${asset.draftRound ?? "—"} pick`;
+  if (asset.assetType === "faab") return `$${asset.amount ?? 0} FAAB`;
+  return asset.playerName ?? "Unknown player";
+}
+function assetMeta(asset: TransactionAsset): string {
+  if (asset.assetType !== "player") return asset.assetType === "draft_pick" ? "Draft capital" : "Budget transfer";
+  return [asset.position, asset.proTeam].filter(Boolean).join(" · ") || "Player";
+}
+function formatDate(value: string | null): string | null {
+  if (!value) return null;
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Chicago" }).format(new Date(value));
+}
+---
+
+<article class:list={["transaction-card", `transaction-card--${transaction.type.replaceAll("_", "-")}`]}>
+  <header>
+    <div class="transaction-card__edition">
+      <span>{typeLabel(transaction.type)}</span>
+      <strong>Week {transaction.week}</strong>
+    </div>
+    <div class="transaction-card__date">
+      <span>{transaction.seasonYear} Season</span>
+      {formatDate(transaction.occurredAt) && <time datetime={transaction.occurredAt ?? undefined}>{formatDate(transaction.occurredAt)}</time>}
+    </div>
+  </header>
+
+  <div class="transaction-card__participants" aria-label="Participating franchises">
+    {transaction.participants.map((participant) => {
+      const team = profile(participant.teamName);
+      return (
+        <div style={team ? `--participant-color: ${team.primary}` : undefined}>
+          {team && <img src={team.logo} alt="" width="44" height="44" loading="lazy" />}
+          <span>{participant.teamName ?? `Roster ${participant.rosterId}`}</span>
+        </div>
+      );
+    })}
+  </div>
+
+  <div class="transaction-card__assets">
+    {transaction.assets.map((asset) => {
+      const destination = profile(asset.toTeamName);
+      return (
+        <div class="asset-row">
+          <span class:list={["asset-row__mark", `is-${asset.movementType}`]} aria-hidden="true">
+            {asset.movementType === "add" ? "+" : asset.movementType === "drop" ? "−" : "→"}
+          </span>
+          <div class="asset-row__identity">
+            <strong>{assetLabel(asset)}</strong>
+            <span>{assetMeta(asset)}</span>
+          </div>
+          <div class="asset-row__movement">
+            {asset.fromTeamName && <span>From {asset.fromTeamName}</span>}
+            {asset.toTeamName && (
+              destination ? <a href={`/teams/${destination.slug}`}>To {asset.toTeamName}</a> : <span>To {asset.toTeamName}</span>
+            )}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+
+  {transaction.faabBid !== null && (
+    <footer><span>Winning FAAB bid</span><strong>${transaction.faabBid}</strong></footer>
+  )}
+</article>
+
+<style>
+  .transaction-card { --transaction-accent:var(--color-green); min-width:0; overflow:hidden; border:1px solid var(--color-rule); border-top:4px solid var(--transaction-accent); border-radius:var(--radius-lg); background:var(--color-surface); }
+  .transaction-card--trade { --transaction-accent:#8b6328; }
+  .transaction-card--free-agent { --transaction-accent:#657681; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:var(--space-5); padding:var(--space-4) var(--space-5); border-bottom:1px solid var(--color-rule); background:linear-gradient(145deg,color-mix(in srgb,var(--transaction-accent) 7%,transparent),transparent 68%); }
+  .transaction-card__edition,.transaction-card__date { display:flex; align-items:baseline; gap:var(--space-3); }
+  .transaction-card__edition span,.transaction-card__date span,.transaction-card__date time,footer span { color:var(--color-ink-muted); font-family:var(--font-data); font-size:.57rem; font-weight:650; letter-spacing:.06em; text-transform:uppercase; }
+  .transaction-card__edition span { color:var(--transaction-accent); }
+  .transaction-card__edition strong { font-family:var(--font-editorial); font-size:1.35rem; }
+  .transaction-card__participants { display:flex; flex-wrap:wrap; gap:var(--space-3); padding:var(--space-4) var(--space-5); border-bottom:1px solid var(--color-rule); }
+  .transaction-card__participants>div { display:flex; align-items:center; gap:var(--space-2); padding:.35rem .7rem .35rem .4rem; border:1px solid color-mix(in srgb,var(--participant-color,var(--color-rule-dark)) 30%,var(--color-rule)); border-radius:999px; color:var(--color-ink-soft); font-size:var(--text-sm); font-weight:650; }
+  .transaction-card__participants img { width:1.85rem; height:1.85rem; object-fit:contain; }
+  .asset-row { display:grid; grid-template-columns:2.25rem minmax(0,1fr) minmax(11rem,.65fr); align-items:center; gap:var(--space-4); min-width:0; padding:var(--space-4) var(--space-5); }
+  .asset-row+.asset-row { border-top:1px solid var(--color-rule); }
+  .asset-row__mark { display:grid; width:2.1rem; height:2.1rem; place-items:center; border:1px solid currentColor; border-radius:50%; color:var(--transaction-accent); font-family:var(--font-data); font-size:.75rem; font-weight:750; }
+  .asset-row__mark.is-drop { color:#9f3e35; }
+  .asset-row__identity { min-width:0; }
+  .asset-row__identity strong { display:block; color:var(--color-ink); font-family:var(--font-editorial); font-size:clamp(1.15rem,2.2vw,1.5rem); line-height:1.05; overflow-wrap:anywhere; }
+  .asset-row__identity span,.asset-row__movement { color:var(--color-ink-muted); font-family:var(--font-data); font-size:.58rem; letter-spacing:.04em; line-height:1.45; text-transform:uppercase; }
+  .asset-row__identity span { display:block; margin-top:var(--space-1); }
+  .asset-row__movement { display:grid; gap:var(--space-1); text-align:right; }
+  .asset-row__movement a { color:var(--color-green); font-weight:700; }
+  footer { display:flex; align-items:center; justify-content:space-between; padding:var(--space-4) var(--space-5); border-top:1px solid var(--color-rule-dark); background:var(--color-paper-light); }
+  footer strong { color:var(--transaction-accent); font-family:var(--font-editorial); font-size:1.45rem; }
+  @media (max-width:650px) {
+    header,.transaction-card__edition,.transaction-card__date { align-items:flex-start; flex-direction:column; gap:var(--space-2); }
+    .asset-row { grid-template-columns:2.25rem minmax(0,1fr); }
+    .asset-row__movement { grid-column:2; text-align:left; }
+  }
+</style>

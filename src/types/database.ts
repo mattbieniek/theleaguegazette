@@ -413,6 +413,87 @@ export type Database = {
           },
         ]
       }
+      league_transactions: {
+        Row: {
+          created_at: string
+          creator_provider_id: string | null
+          faab_bid: number | null
+          id: string
+          last_synced_at: string
+          league_id: string | null
+          metadata: Json
+          occurred_at: string | null
+          processed_at: string | null
+          provider: string
+          provider_transaction_id: string
+          raw_data: Json
+          season_id: string | null
+          season_year: number
+          settings: Json
+          status: string
+          transaction_type: string
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          creator_provider_id?: string | null
+          faab_bid?: number | null
+          id?: string
+          last_synced_at?: string
+          league_id?: string | null
+          metadata?: Json
+          occurred_at?: string | null
+          processed_at?: string | null
+          provider: string
+          provider_transaction_id: string
+          raw_data?: Json
+          season_id?: string | null
+          season_year: number
+          settings?: Json
+          status: string
+          transaction_type: string
+          updated_at?: string
+          week: number
+        }
+        Update: {
+          created_at?: string
+          creator_provider_id?: string | null
+          faab_bid?: number | null
+          id?: string
+          last_synced_at?: string
+          league_id?: string | null
+          metadata?: Json
+          occurred_at?: string | null
+          processed_at?: string | null
+          provider?: string
+          provider_transaction_id?: string
+          raw_data?: Json
+          season_id?: string | null
+          season_year?: number
+          settings?: Json
+          status?: string
+          transaction_type?: string
+          updated_at?: string
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "league_transactions_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "league_transactions_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leagues: {
         Row: {
           avatar: string | null
@@ -1040,6 +1121,157 @@ export type Database = {
           sync_type?: string
         }
         Relationships: []
+      }
+      transaction_assets: {
+        Row: {
+          amount: number | null
+          asset_type: string
+          created_at: string
+          draft_round: number | null
+          draft_season: number | null
+          from_fantasy_team_id: string | null
+          from_provider_roster_id: number | null
+          id: string
+          movement_type: string
+          original_provider_roster_id: number | null
+          player_name: string | null
+          player_provider_id: string | null
+          position: string | null
+          pro_team: string | null
+          provider_asset_key: string
+          raw_data: Json
+          to_fantasy_team_id: string | null
+          to_provider_roster_id: number | null
+          transaction_id: string
+        }
+        Insert: {
+          amount?: number | null
+          asset_type: string
+          created_at?: string
+          draft_round?: number | null
+          draft_season?: number | null
+          from_fantasy_team_id?: string | null
+          from_provider_roster_id?: number | null
+          id?: string
+          movement_type: string
+          original_provider_roster_id?: number | null
+          player_name?: string | null
+          player_provider_id?: string | null
+          position?: string | null
+          pro_team?: string | null
+          provider_asset_key: string
+          raw_data?: Json
+          to_fantasy_team_id?: string | null
+          to_provider_roster_id?: number | null
+          transaction_id: string
+        }
+        Update: {
+          amount?: number | null
+          asset_type?: string
+          created_at?: string
+          draft_round?: number | null
+          draft_season?: number | null
+          from_fantasy_team_id?: string | null
+          from_provider_roster_id?: number | null
+          id?: string
+          movement_type?: string
+          original_provider_roster_id?: number | null
+          player_name?: string | null
+          player_provider_id?: string | null
+          position?: string | null
+          pro_team?: string | null
+          provider_asset_key?: string
+          raw_data?: Json
+          to_fantasy_team_id?: string | null
+          to_provider_roster_id?: number | null
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_assets_from_fantasy_team_id_fkey"
+            columns: ["from_fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "fantasy_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_assets_from_fantasy_team_id_fkey"
+            columns: ["from_fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_standings"
+            referencedColumns: ["fantasy_team_id"]
+          },
+          {
+            foreignKeyName: "transaction_assets_to_fantasy_team_id_fkey"
+            columns: ["to_fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "fantasy_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_assets_to_fantasy_team_id_fkey"
+            columns: ["to_fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_standings"
+            referencedColumns: ["fantasy_team_id"]
+          },
+          {
+            foreignKeyName: "transaction_assets_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "league_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transaction_participants: {
+        Row: {
+          consented: boolean
+          created_at: string
+          fantasy_team_id: string | null
+          id: string
+          provider_roster_id: number
+          transaction_id: string
+        }
+        Insert: {
+          consented?: boolean
+          created_at?: string
+          fantasy_team_id?: string | null
+          id?: string
+          provider_roster_id: number
+          transaction_id: string
+        }
+        Update: {
+          consented?: boolean
+          created_at?: string
+          fantasy_team_id?: string | null
+          id?: string
+          provider_roster_id?: number
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_participants_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "fantasy_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_participants_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_standings"
+            referencedColumns: ["fantasy_team_id"]
+          },
+          {
+            foreignKeyName: "transaction_participants_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "league_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -95,6 +95,22 @@ function formatPoints(value: number): string {
             <span aria-hidden="true">→</span>
           </a>
         </article>
+
+        <article class="history-destination history-destination--transactions">
+          <div>
+            <p class="eyebrow">The League Wire</p>
+            <h2>Transaction Ledger</h2>
+            <p>
+              Follow every trade, waiver claim, free-agent addition and drop
+              recorded across the league’s seasons.
+            </p>
+          </div>
+
+          <a href="/transactions">
+            Read the transaction wire
+            <span aria-hidden="true">→</span>
+          </a>
+        </article>
       </section>
 
       <section id="seasons" class="season-archive" aria-labelledby="season-archive-title">
@@ -228,12 +244,16 @@ function formatPoints(value: number): string {
       var(--color-surface);
   }
   .history-destination--draft {
-    grid-column: 1 / -1;
     min-height: 19rem;
     border-top-color: #8b6328;
     background:
       linear-gradient(120deg, color-mix(in srgb, #8b6328 7%, transparent), transparent 52%),
       var(--color-surface);
+  }
+  .history-destination--transactions {
+    min-height:19rem;
+    border-top-color:#657681;
+    background:linear-gradient(120deg,color-mix(in srgb,#657681 7%,transparent),transparent 52%),var(--color-surface);
   }
   .history-destination h2 {
     max-width: 12ch;

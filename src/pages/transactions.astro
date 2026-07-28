@@ -1,0 +1,178 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HistoryNav from "../components/history/HistoryNav.astro";
+import TransactionCard from "../components/transactions/TransactionCard.astro";
+import { getTransactionArchive } from "../lib/queries/transactions";
+
+export const prerender = false;
+
+const archive = await getTransactionArchive();
+const seasons = [...new Set(archive.map((transaction) => transaction.seasonYear))].sort((a, b) => b - a);
+const requestedSeason = Number(Astro.url.searchParams.get("season"));
+const selectedSeason = seasons.includes(requestedSeason) ? requestedSeason : seasons[0] ?? null;
+const requestedType = Astro.url.searchParams.get("type") ?? "all";
+const selectedType = ["all", "trade", "waiver", "free_agent"].includes(requestedType) ? requestedType : "all";
+const requestedWeekValue = Astro.url.searchParams.get("week");
+const requestedWeek = Number(requestedWeekValue);
+
+const seasonTransactions = selectedSeason === null
+  ? []
+  : archive.filter((transaction) => transaction.seasonYear === selectedSeason);
+const weeks = [...new Set(seasonTransactions.map((transaction) => transaction.week))].sort((a, b) => b - a);
+const selectedWeek = requestedWeekValue === "all"
+  ? null
+  : weeks.includes(requestedWeek)
+    ? requestedWeek
+    : weeks[0] ?? null;
+const transactions = seasonTransactions.filter((transaction) =>
+  (selectedType === "all" || transaction.type === selectedType) &&
+  (selectedWeek === null || transaction.week === selectedWeek)
+);
+
+const groupedTransactions = [...transactions.reduce((groups, transaction) => {
+  const current = groups.get(transaction.week) ?? [];
+  current.push(transaction);
+  groups.set(transaction.week, current);
+  return groups;
+}, new Map<number, typeof transactions>()).entries()].sort(([a], [b]) => b - a);
+
+const tradeCount = seasonTransactions.filter((transaction) => transaction.type === "trade").length;
+const waiverCount = seasonTransactions.filter((transaction) => transaction.type === "waiver").length;
+const playerMoves = seasonTransactions.reduce(
+  (total, transaction) => total + transaction.assets.filter((asset) => asset.assetType === "player").length,
+  0
+);
+---
+
+<BaseLayout
+  title="Transactions"
+  description="Trades, waiver claims, additions and drops from Far Far Away Football."
+>
+  <main class="transactions-page site-shell">
+    <HistoryNav />
+
+    <header class="transactions-header">
+      <div>
+        <p class="eyebrow">The League Wire</p>
+        <h1>Transactions</h1>
+        <p class="transactions-header__description">
+          Every trade, waiver claim and roster move—recorded as the league’s
+          franchises reshape their seasons one decision at a time.
+        </p>
+      </div>
+
+      {selectedSeason !== null && (
+        <dl class="transactions-summary">
+          <div><dt>Trades</dt><dd>{tradeCount}</dd></div>
+          <div><dt>Waivers</dt><dd>{waiverCount}</dd></div>
+          <div><dt>Player Moves</dt><dd>{playerMoves}</dd></div>
+        </dl>
+      )}
+    </header>
+
+    {selectedSeason !== null ? (
+      <>
+        <section class="transaction-controls" aria-label="Filter transaction archive">
+          <form method="get">
+            <label>
+              <span>Season</span>
+              <select name="season">
+                {seasons.map((season) => <option value={season} selected={season === selectedSeason}>{season}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Move Type</span>
+              <select name="type">
+                <option value="all" selected={selectedType === "all"}>All activity</option>
+                <option value="trade" selected={selectedType === "trade"}>Trades</option>
+                <option value="waiver" selected={selectedType === "waiver"}>Waiver claims</option>
+                <option value="free_agent" selected={selectedType === "free_agent"}>Free agents</option>
+              </select>
+            </label>
+            <label>
+              <span>Week</span>
+              <select name="week">
+                <option value="all" selected={selectedWeek === null}>All weeks</option>
+                {weeks.map((week) => <option value={week} selected={week === selectedWeek}>Week {week}</option>)}
+              </select>
+            </label>
+            <button type="submit">View activity</button>
+          </form>
+        </section>
+
+        <section class="transaction-ledger" aria-labelledby="transaction-ledger-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Official Activity</p>
+              <h2 id="transaction-ledger-title">{selectedSeason} League Ledger</h2>
+            </div>
+            <p>{transactions.length} completed {transactions.length === 1 ? "transaction" : "transactions"} match the current view.</p>
+          </div>
+
+          {groupedTransactions.length > 0 ? (
+            <div class="week-groups">
+              {groupedTransactions.map(([week, weekTransactions]) => (
+                <section class="week-group" aria-labelledby={`transaction-week-${week}`}>
+                  <header>
+                    <span>{String(week).padStart(2, "0")}</span>
+                    <div><p>Transaction Round</p><h3 id={`transaction-week-${week}`}>Week {week}</h3></div>
+                    <small>{weekTransactions.length} {weekTransactions.length === 1 ? "move" : "moves"}</small>
+                  </header>
+                  <div class="transaction-list">
+                    {weekTransactions.map((transaction) => <TransactionCard transaction={transaction} />)}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <div class="filtered-empty">
+              <h3>No transactions match these filters.</h3>
+              <p>Choose another week or activity type to continue browsing the ledger.</p>
+            </div>
+          )}
+        </section>
+      </>
+    ) : (
+      <section class="empty-state">
+        <p class="eyebrow">Transaction Archive</p>
+        <h2>No transaction history is available yet.</h2>
+        <p>Trades, waiver claims and free-agent activity will appear after the Sleeper transaction sync is deployed and run.</p>
+      </section>
+    )}
+  </main>
+</BaseLayout>
+
+<style>
+  .transactions-page { padding-top:clamp(2.5rem,6vw,5rem); padding-bottom:var(--space-9); }
+  .transactions-header { display:grid; grid-template-columns:minmax(0,1fr) minmax(20rem,30rem); align-items:end; gap:clamp(2rem,6vw,6rem); padding-bottom:clamp(2rem,5vw,4rem); border-bottom:3px double var(--color-rule-dark); }
+  .transactions-header h1 { max-width:11ch; margin:0 0 var(--space-5); font-size:clamp(3.5rem,9vw,7.5rem); letter-spacing:-.065em; line-height:.86; overflow-wrap:anywhere; }
+  .transactions-header__description { max-width:48rem; margin:0; color:var(--color-ink-soft); font-family:var(--font-editorial); font-size:clamp(1.2rem,2.4vw,1.65rem); line-height:1.45; }
+  .transactions-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin:0; overflow:hidden; border:1px solid var(--color-rule); border-radius:var(--radius-lg); background:var(--color-surface); }
+  .transactions-summary div { min-width:0; padding:var(--space-5) var(--space-4); }
+  .transactions-summary div+div { border-left:1px solid var(--color-rule); }
+  .transactions-summary dt,.transactions-summary dd { margin:0; }
+  .transactions-summary dt,.transaction-controls label span,.week-group>header p,.week-group>header small { color:var(--color-ink-muted); font-family:var(--font-data); font-size:.56rem; font-weight:650; letter-spacing:.06em; text-transform:uppercase; }
+  .transactions-summary dd { margin-top:var(--space-2); font-family:var(--font-editorial); font-size:clamp(1.35rem,2.8vw,2rem); font-weight:700; }
+  .transaction-controls { padding-block:var(--space-6); border-bottom:1px solid var(--color-rule); }
+  .transaction-controls form { display:flex; flex-wrap:wrap; align-items:end; gap:var(--space-3); }
+  .transaction-controls label { display:grid; gap:var(--space-2); }
+  .transaction-controls select,.transaction-controls button { min-height:2.75rem; padding-inline:var(--space-4); border:1px solid var(--color-rule-dark); border-radius:999px; background:var(--color-surface); color:var(--color-ink); font:inherit; font-size:var(--text-sm); }
+  .transaction-controls button { border-color:var(--color-green); background:var(--color-green); color:white; font-weight:750; cursor:pointer; }
+  .transaction-ledger { padding-top:var(--space-8); }
+  .section-heading { display:flex; align-items:end; justify-content:space-between; gap:var(--space-6); padding-bottom:var(--space-5); border-bottom:1px solid var(--color-rule-dark); }
+  .section-heading h2 { margin:0; font-size:clamp(2.4rem,5vw,4.25rem); letter-spacing:-.05em; line-height:.95; }
+  .section-heading>p { max-width:28rem; margin:0; color:var(--color-ink-muted); line-height:1.55; text-align:right; }
+  .week-groups { display:grid; gap:var(--space-8); padding-top:var(--space-7); }
+  .week-group { display:grid; grid-template-columns:minmax(9rem,.23fr) minmax(0,1fr); overflow:hidden; border:1px solid var(--color-rule); border-radius:var(--radius-lg); background:var(--color-paper-light); }
+  .week-group>header { padding:var(--space-5); border-right:1px solid var(--color-rule); background:linear-gradient(145deg,var(--color-green-faint),transparent 70%); }
+  .week-group>header>span { display:block; margin-bottom:var(--space-6); color:var(--color-green); font-family:var(--font-editorial); font-size:clamp(3rem,6vw,5.25rem); font-weight:700; line-height:.8; }
+  .week-group>header h3 { margin:var(--space-2) 0 var(--space-3); font-size:clamp(1.7rem,3vw,2.4rem); letter-spacing:-.04em; line-height:1; }
+  .week-group>header p,.week-group>header small { margin:0; }
+  .transaction-list { display:grid; gap:var(--space-4); min-width:0; padding:var(--space-5); }
+  .filtered-empty,.empty-state { max-width:52rem; padding:clamp(2rem,5vw,4rem); margin-top:var(--space-7); border:1px solid var(--color-rule); border-radius:var(--radius-lg); background:var(--color-surface); }
+  .filtered-empty h3,.empty-state h2 { margin-bottom:var(--space-4); font-size:clamp(2rem,4vw,3.6rem); letter-spacing:-.045em; line-height:.95; }
+  .filtered-empty p,.empty-state p { margin:0; color:var(--color-ink-soft); line-height:1.6; }
+  @media (max-width:950px) { .transactions-header { grid-template-columns:1fr; } .transactions-summary { max-width:42rem; } .week-group { grid-template-columns:1fr; } .week-group>header { display:flex; align-items:center; justify-content:space-between; gap:var(--space-5); border-right:0; border-bottom:1px solid var(--color-rule); } .week-group>header>span { margin:0; } }
+  @media (max-width:700px) { .section-heading { align-items:flex-start; flex-direction:column; } .section-heading>p { text-align:left; } }
+  @media (max-width:520px) { .transactions-header h1 { max-width:100%; font-size:clamp(3rem,15vw,4.7rem); } .transactions-summary { grid-template-columns:1fr; } .transactions-summary div+div { border-top:1px solid var(--color-rule); border-left:0; } .transaction-controls form,.transaction-controls label,.transaction-controls select,.transaction-controls button { width:100%; } .week-group>header { align-items:flex-start; flex-direction:column; } .transaction-list { padding:var(--space-3); } }
+</style>
