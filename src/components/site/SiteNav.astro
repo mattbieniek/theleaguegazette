@@ -42,9 +42,46 @@ function isCurrentPage(href: string) {
           );
         })
       }
+      <li class="site-nav__item site-nav__item--search">
+        <a
+          class:list={[
+            "site-nav__link",
+            "site-nav__search",
+            currentPath === "/search" && "site-nav__link--current",
+          ]}
+          href="/search?focus=1"
+          aria-current={currentPath === "/search" ? "page" : undefined}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5"></circle>
+            <path d="m16 16 4 4"></path>
+          </svg>
+          Search
+          <kbd aria-hidden="true">/</kbd>
+        </a>
+      </li>
     </ul>
   </div>
 </nav>
+
+<script>
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+
+    const target = event.target;
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement ||
+      (target instanceof HTMLElement && target.isContentEditable)
+    ) return;
+
+    event.preventDefault();
+    const searchInput = document.querySelector<HTMLInputElement>("[data-site-search]");
+    if (searchInput) searchInput.focus();
+    else window.location.href = "/search?focus=1";
+  });
+</script>
 
 <style>
   .site-nav {
@@ -77,6 +114,11 @@ function isCurrentPage(href: string) {
 
   .site-nav__item {
     display: flex;
+  }
+
+  .site-nav__item--search {
+    margin-left: var(--space-2);
+    border-left: 1px solid var(--color-rule);
   }
 
   .site-nav__link {
@@ -120,6 +162,32 @@ function isCurrentPage(href: string) {
     background: var(--color-green);
   }
 
+  .site-nav__search {
+    gap: var(--space-2);
+  }
+
+  .site-nav__search svg {
+    width: 1rem;
+    height: 1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.8;
+  }
+
+  .site-nav__search kbd {
+    display: grid;
+    min-width: 1.4rem;
+    height: 1.4rem;
+    place-items: center;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-sm);
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+    line-height: 1;
+  }
+
   @supports not (backdrop-filter: blur(12px)) {
     .site-nav {
       background: var(--color-paper-light);
@@ -133,6 +201,10 @@ function isCurrentPage(href: string) {
 
     .site-nav__link {
       min-height: 3rem;
+    }
+
+    .site-nav__search kbd {
+      display: none;
     }
   }
 </style>

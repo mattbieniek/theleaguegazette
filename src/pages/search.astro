@@ -1,0 +1,221 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getPublishedArticles } from "../lib/queries/gazette";
+import { formatPublicationDate } from "../lib/formatDate";
+import { teams } from "../data/teams";
+import {
+  highlightSearchTerm,
+  searchDestinations,
+  searchPublicSite,
+} from "../lib/gazette/search";
+
+export const prerender = false;
+
+const query = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 120);
+const shouldFocus = Astro.url.searchParams.get("focus") === "1";
+const articles = query ? await getPublishedArticles() : [];
+const results = query ? searchPublicSite(articles, teams, query) : null;
+
+function highlighted(value: string) {
+  return highlightSearchTerm(value, query);
+}
+---
+
+<BaseLayout
+  title={query ? `Search: ${query}` : "Search"}
+  description="Search Gazette stories, league teams and the public Far Far Away Football archive."
+  noindex
+>
+  <div class="site-shell search-page">
+    <header class="search-header">
+      <p class="eyebrow">The Gazette Index</p>
+      <h1>Search the League</h1>
+      <p>
+        Find published stories, franchises, owners and destinations throughout
+        Far Far Away Football.
+      </p>
+    </header>
+
+    <form class="search-form" method="get" role="search">
+      <label for="site-search-input">Search the Gazette</label>
+      <div class="search-form__control">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="6.5"></circle>
+          <path d="m16 16 4 4"></path>
+        </svg>
+        <input
+          id="site-search-input"
+          data-site-search
+          type="search"
+          name="q"
+          value={query}
+          placeholder="Try a team, owner, story or league record…"
+          autocomplete="off"
+          autofocus={shouldFocus}
+        />
+        <button type="submit">Search</button>
+      </div>
+      <p>Tip: press <kbd>/</kbd> anywhere on the site to begin a search.</p>
+    </form>
+
+    {!query ? (
+      <section class="search-start" aria-labelledby="search-start-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Explore the Site</p>
+            <h2 id="search-start-title">Popular Destinations</h2>
+          </div>
+          <p>Start with one of the Gazette’s principal desks and archives.</p>
+        </div>
+        <div class="destination-grid">
+          {searchDestinations.slice(0, 6).map((destination) => (
+            <a href={destination.href}>
+              <span>{destination.section}</span>
+              <strong>{destination.title}</strong>
+              <p>{destination.description}</p>
+              <small>Explore <span aria-hidden="true">→</span></small>
+            </a>
+          ))}
+        </div>
+      </section>
+    ) : results && results.total > 0 ? (
+      <div class="search-results">
+        <header class="results-summary">
+          <p class="eyebrow">Search Results</p>
+          <h2>{results.total} {results.total === 1 ? "result" : "results"} for “{query}”</h2>
+        </header>
+
+        {results.stories.length > 0 && (
+          <section class="result-section" aria-labelledby="story-results-title">
+            <header><h3 id="story-results-title">Gazette Stories</h3><span>{results.stories.length}</span></header>
+            <div class="story-results">
+              {results.stories.map((story) => (
+                <article>
+                  <a class="story-result__image" href={`/gazette/${story.slug}`}>
+                    <img
+                      src={story.image_url ?? "/images/homepage/article-placeholder.jpg"}
+                      alt={story.image_alt ?? ""}
+                      width="360"
+                      height="240"
+                      loading="lazy"
+                    />
+                  </a>
+                  <div>
+                    <p class="story-result__meta">
+                      <span>{story.category}</span>
+                      {story.published_at && <time datetime={story.published_at}>{formatPublicationDate(story.published_at)}</time>}
+                    </p>
+                    <h4><a href={`/gazette/${story.slug}`}>{highlighted(story.headline).map((part) => part.match ? <mark>{part.text}</mark> : part.text)}</a></h4>
+                    {story.summary && <p>{highlighted(story.summary).map((part) => part.match ? <mark>{part.text}</mark> : part.text)}</p>}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {results.teams.length > 0 && (
+          <section class="result-section" aria-labelledby="team-results-title">
+            <header><h3 id="team-results-title">Teams & Owners</h3><span>{results.teams.length}</span></header>
+            <div class="team-results">
+              {results.teams.map((team) => (
+                <a href={`/teams/${team.slug}`} style={`--team-color:${team.primary};`}>
+                  <img src={team.logo} alt="" width="64" height="64" loading="lazy" />
+                  <div>
+                    <span>Owned by {highlighted(team.owner).map((part) => part.match ? <mark>{part.text}</mark> : part.text)}</span>
+                    <strong>{highlighted(team.name).map((part) => part.match ? <mark>{part.text}</mark> : part.text)}</strong>
+                    {team.legacyName !== team.name && <small>Formerly {team.legacyName}</small>}
+                  </div>
+                  <b aria-hidden="true">→</b>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {results.destinations.length > 0 && (
+          <section class="result-section" aria-labelledby="page-results-title">
+            <header><h3 id="page-results-title">League Pages</h3><span>{results.destinations.length}</span></header>
+            <div class="page-results">
+              {results.destinations.map((destination) => (
+                <a href={destination.href}>
+                  <span>{destination.section}</span>
+                  <strong>{highlighted(destination.title).map((part) => part.match ? <mark>{part.text}</mark> : part.text)}</strong>
+                  <p>{destination.description}</p>
+                  <b aria-hidden="true">→</b>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    ) : (
+      <section class="no-results">
+        <p class="eyebrow">Nothing in the Files</p>
+        <h2>No results for “{query}”</h2>
+        <p>Check the spelling, try a shorter phrase or search for a team, owner or topic instead.</p>
+        <a href="/search">Clear search <span aria-hidden="true">→</span></a>
+      </section>
+    )}
+  </div>
+</BaseLayout>
+
+<style>
+  .search-page { padding-bottom:var(--space-4); }
+  .search-header { max-width:62rem; padding-bottom:var(--space-6); border-bottom:3px double var(--color-rule-dark); }
+  .search-header h1 { max-width:12ch; margin-bottom:var(--space-5); font-size:clamp(3.25rem,8vw,7rem); letter-spacing:-.06em; line-height:.87; overflow-wrap:anywhere; }
+  .search-header>p:last-child { max-width:45rem; margin:0; color:var(--color-ink-soft); font-family:var(--font-editorial); font-size:clamp(1.15rem,2.2vw,1.55rem); line-height:1.45; }
+  .search-form { padding-block:var(--space-6); border-bottom:1px solid var(--color-rule-dark); }
+  .search-form>label { display:block; margin-bottom:var(--space-2); color:var(--color-ink-muted); font-family:var(--font-data); font-size:.61rem; font-weight:650; letter-spacing:.065em; text-transform:uppercase; }
+  .search-form__control { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; max-width:62rem; overflow:hidden; border:1px solid var(--color-rule-dark); border-radius:999px; background:var(--color-surface); transition:border-color var(--transition-fast),box-shadow var(--transition-fast); }
+  .search-form__control:focus-within { border-color:var(--color-green); box-shadow:0 0 0 3px var(--color-green-faint); }
+  .search-form__control svg { width:1.2rem; height:1.2rem; margin-left:var(--space-5); fill:none; stroke:var(--color-green); stroke-linecap:round; stroke-width:1.75; }
+  .search-form input { min-width:0; min-height:3.5rem; padding:0 var(--space-4); border:0; outline:0; background:transparent; color:var(--color-ink); font:inherit; font-size:var(--text-base); }
+  .search-form button { align-self:stretch; padding-inline:var(--space-6); border:0; background:var(--color-green); color:white; font:inherit; font-size:var(--text-sm); font-weight:750; cursor:pointer; }
+  .search-form>p { margin:var(--space-3) 0 0; color:var(--color-ink-muted); font-size:var(--text-sm); }
+  kbd { padding:.15rem .4rem; border:1px solid var(--color-rule); border-radius:var(--radius-sm); background:var(--color-surface); font-family:var(--font-data); font-size:.7rem; }
+  .search-start,.search-results { padding-top:var(--space-8); }
+  .section-heading { display:flex; align-items:end; justify-content:space-between; gap:var(--space-6); padding-bottom:var(--space-5); border-bottom:1px solid var(--color-rule-dark); }
+  .section-heading h2,.results-summary h2 { margin:0; font-size:clamp(2.25rem,5vw,4rem); letter-spacing:-.05em; line-height:.94; }
+  .section-heading>p { max-width:28rem; margin:0; color:var(--color-ink-muted); text-align:right; }
+  .destination-grid,.page-results { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--space-4); padding-top:var(--space-5); }
+  .destination-grid>a,.page-results>a { position:relative; display:flex; min-width:0; flex-direction:column; padding:var(--space-5); border:1px solid var(--color-rule); border-radius:var(--radius-lg); background:var(--color-surface); transition:border-color var(--transition-fast),transform var(--transition-fast); }
+  .destination-grid>a:hover,.page-results>a:hover { border-color:var(--color-green); transform:translateY(-2px); }
+  .destination-grid>a>span,.page-results>a>span { margin-bottom:var(--space-3); color:var(--color-green); font-family:var(--font-data); font-size:.58rem; font-weight:650; letter-spacing:.065em; text-transform:uppercase; }
+  .destination-grid strong,.page-results strong { margin-bottom:var(--space-3); font-family:var(--font-editorial); font-size:clamp(1.4rem,2.5vw,1.9rem); letter-spacing:-.03em; line-height:1; }
+  .destination-grid p,.page-results p { margin:0 0 var(--space-4); color:var(--color-ink-soft); font-size:var(--text-sm); line-height:1.55; }
+  .destination-grid small { margin-top:auto; color:var(--color-green); font-size:var(--text-sm); font-weight:700; }
+  .page-results b { position:absolute; right:var(--space-5); bottom:var(--space-5); color:var(--color-green); }
+  .results-summary { padding-bottom:var(--space-5); border-bottom:3px double var(--color-rule-dark); }
+  .result-section { padding-top:var(--space-7); }
+  .result-section>header { display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-4); padding-bottom:var(--space-4); border-bottom:1px solid var(--color-rule-dark); }
+  .result-section>header h3 { margin:0; font-size:clamp(1.75rem,3vw,2.5rem); letter-spacing:-.04em; }
+  .result-section>header span { color:var(--color-ink-muted); font-family:var(--font-data); font-size:.62rem; }
+  .story-results { display:grid; }
+  .story-results article { display:grid; grid-template-columns:minmax(9rem,.28fr) minmax(0,.72fr); gap:clamp(1.25rem,3vw,2.25rem); padding-block:var(--space-5); border-bottom:1px solid var(--color-rule); }
+  .story-result__image { overflow:hidden; aspect-ratio:3/2; border-radius:var(--radius-md); background:var(--color-surface-muted); }
+  .story-result__image img { width:100%; height:100%; object-fit:cover; }
+  .story-result__meta { display:flex; flex-wrap:wrap; justify-content:space-between; gap:var(--space-3); margin:0 0 var(--space-2); color:var(--color-ink-muted); font-family:var(--font-data); font-size:.58rem; letter-spacing:.05em; text-transform:uppercase; }
+  .story-result__meta span { color:var(--color-green); font-weight:650; }
+  .story-results h4 { margin-bottom:var(--space-3); font-size:clamp(1.7rem,3.5vw,2.75rem); letter-spacing:-.04em; line-height:.98; overflow-wrap:anywhere; }
+  .story-results h4 a:hover { color:var(--color-green); }
+  .story-results article>div>p:last-child { margin:0; color:var(--color-ink-soft); font-family:var(--font-editorial); font-size:var(--text-lg); line-height:1.45; }
+  mark { padding:0 .05em; background:var(--color-green-soft); color:inherit; }
+  .team-results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-4); padding-top:var(--space-5); }
+  .team-results>a { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:var(--space-4); min-width:0; padding:var(--space-4); border:1px solid var(--color-rule); border-radius:var(--radius-lg); background:linear-gradient(145deg,color-mix(in srgb,var(--team-color) 6%,transparent),transparent 65%),var(--color-surface); }
+  .team-results>a:hover { border-color:color-mix(in srgb,var(--team-color) 45%,var(--color-rule)); }
+  .team-results img { width:4rem; height:4rem; object-fit:contain; }
+  .team-results div { min-width:0; }
+  .team-results span,.team-results small { display:block; color:var(--color-ink-muted); font-family:var(--font-data); font-size:.56rem; letter-spacing:.045em; text-transform:uppercase; }
+  .team-results strong { display:block; margin-block:var(--space-1); font-family:var(--font-editorial); font-size:clamp(1.3rem,2.5vw,1.8rem); letter-spacing:-.03em; line-height:1; overflow-wrap:anywhere; }
+  .team-results b { color:var(--team-color); }
+  .no-results { max-width:52rem; padding:var(--space-8) 0; }
+  .no-results h2 { margin-bottom:var(--space-4); font-size:clamp(2.5rem,6vw,5rem); letter-spacing:-.055em; line-height:.92; overflow-wrap:anywhere; }
+  .no-results>p:last-of-type { color:var(--color-ink-soft); font-family:var(--font-editorial); font-size:var(--text-xl); }
+  .no-results a { color:var(--color-green); font-weight:700; }
+  @media (max-width:850px) { .destination-grid,.page-results { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:700px) { .section-heading { align-items:flex-start; flex-direction:column; } .section-heading>p { text-align:left; } .team-results { grid-template-columns:1fr; } }
+  @media (max-width:560px) { .search-header h1 { max-width:100%; font-size:clamp(3rem,15vw,4.8rem); } .search-form__control { grid-template-columns:auto minmax(0,1fr); border-radius:var(--radius-lg); } .search-form button { grid-column:1/-1; min-height:3rem; } .destination-grid,.page-results { grid-template-columns:1fr; } .story-results article { grid-template-columns:1fr; } .story-result__image { aspect-ratio:16/9; } }
+  @media (prefers-reduced-motion:reduce) { .destination-grid>a,.page-results>a { transition:none; } .destination-grid>a:hover,.page-results>a:hover { transform:none; } }
+</style>
+
