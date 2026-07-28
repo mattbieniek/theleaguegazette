@@ -1,4 +1,263 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HistoryNav from "../components/history/HistoryNav.astro";
+import { getDraftArchive, type DraftPick } from "../lib/queries/drafts";
+
+export const prerender = false;
+
+const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+const drafts = sleeperLeagueId ? await getDraftArchive(sleeperLeagueId) : [];
+const requestedSeason = Number(Astro.url.searchParams.get("season"));
+const draft = drafts.find((item) => item.seasonYear === requestedSeason) ?? drafts[0] ?? null;
+const rounds = draft
+  ? Array.from({ length: draft.rounds }, (_, index) => index + 1)
+  : [];
+
+const teamClasses = draft
+  ? Array.from(
+      draft.picks.reduce((groups, pick) => {
+        const key = pick.fantasyTeamName ?? `Roster ${pick.rosterId ?? "—"}`;
+        const current = groups.get(key) ?? [];
+        current.push(pick);
+        groups.set(key, current);
+        return groups;
+      }, new Map<string, DraftPick[]>()),
+    ).sort((a, b) => (a[1][0]?.draftSlot ?? 99) - (b[1][0]?.draftSlot ?? 99))
+  : [];
+
+const firstPick = draft?.picks[0] ?? null;
+const positionCounts = draft?.picks.reduce((counts, pick) => {
+  const position = pick.position ?? "Other";
+  counts.set(position, (counts.get(position) ?? 0) + 1);
+  return counts;
+}, new Map<string, number>());
+const mostDraftedPosition = positionCounts
+  ? [...positionCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null
+  : null;
+
+function positionClass(position: string | null): string {
+  return `position-${(position ?? "other").toLowerCase()}`;
+}
 ---
-<BaseLayout title="Draft | The League Gazette"><div class="shell placeholder"><div class="eyebrow">Version 1</div><h1>Draft</h1><div class="card"><h2>Page foundation ready</h2><p>This route is included in the prototype so the information architecture and navigation can be tested immediately. The next development pass will connect the appropriate Sleeper endpoints and reusable editorial components.</p><a class="button green" href="/">Return to the front page</a></div></div></BaseLayout><style>.placeholder{padding-top:60px;max-width:850px}.placeholder h1{font:700 clamp(3.5rem,9vw,7rem)/.9 Georgia,serif;margin:8px 0 32px}.placeholder .card{padding:35px;border-top:6px solid var(--green)}.placeholder h2{font:700 1.8rem Georgia,serif}.placeholder p{line-height:1.7;color:#555;max-width:650px;margin-bottom:24px}</style>
+
+<BaseLayout
+  title="Draft Archive"
+  description="Round-by-round draft history for Far Far Away Football."
+>
+  <main class="draft-page site-shell">
+    <HistoryNav />
+
+    <header class="draft-header">
+      <div>
+        <p class="eyebrow">The War Room</p>
+        <h1>Draft Archive</h1>
+        <p class="draft-header__description">
+          Every selection, every reach and every future victory lap—preserved
+          round by round from the league draft room.
+        </p>
+      </div>
+
+      {draft && (
+        <dl class="draft-summary">
+          <div><dt>Season</dt><dd>{draft.seasonYear}</dd></div>
+          <div><dt>Rounds</dt><dd>{draft.rounds}</dd></div>
+          <div><dt>Picks</dt><dd>{draft.picks.length}</dd></div>
+        </dl>
+      )}
+    </header>
+
+    {draft ? (
+      <>
+        <section class="draft-controls" aria-label="Choose a draft season">
+          <div>
+            <p class="draft-controls__label">Draft Edition</p>
+            <nav aria-label="Draft seasons">
+              {drafts.map((edition) => (
+                <a
+                  class:list={[edition.seasonYear === draft.seasonYear && "is-current"]}
+                  href={`/draft?season=${edition.seasonYear}`}
+                  aria-current={edition.seasonYear === draft.seasonYear ? "page" : undefined}
+                >
+                  {edition.seasonYear}
+                </a>
+              ))}
+            </nav>
+          </div>
+          <p>{draft.provider} · {draft.draftType} draft · {draft.status}</p>
+        </section>
+
+        <section class="draft-lede" aria-label="Draft overview">
+          <article>
+            <p class="eyebrow">First Overall</p>
+            <strong>{firstPick?.playerName ?? "—"}</strong>
+            <span>
+              {firstPick?.position ?? "—"} · {firstPick?.proTeam ?? "FA"}<br />
+              {firstPick?.fantasyTeamName ?? "Team unavailable"}
+            </span>
+          </article>
+          <article>
+            <p class="eyebrow">Most Selected</p>
+            <strong>{mostDraftedPosition?.[0] ?? "—"}</strong>
+            <span>{mostDraftedPosition?.[1] ?? 0} players drafted</span>
+          </article>
+          <article>
+            <p class="eyebrow">Draft Field</p>
+            <strong>{draft.teamCount}</strong>
+            <span>Franchises in the room</span>
+          </article>
+        </section>
+
+        <section class="draft-board" aria-labelledby="draft-board-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Pick by Pick</p>
+              <h2 id="draft-board-title">The {draft.seasonYear} Board</h2>
+            </div>
+            <p>Selections are shown in official draft order, including the franchise that ultimately made each pick.</p>
+          </div>
+
+          <nav class="round-jump" aria-label="Jump to a draft round">
+            {rounds.map((round) => <a href={`#round-${round}`}>Round {round}</a>)}
+          </nav>
+
+          <div class="round-list">
+            {rounds.map((round) => {
+              const picks = draft.picks.filter((pick) => pick.round === round);
+              return (
+                <section id={`round-${round}`} class="draft-round" aria-labelledby={`round-${round}-title`}>
+                  <header>
+                    <span>{String(round).padStart(2, "0")}</span>
+                    <div>
+                      <p>Draft Round</p>
+                      <h3 id={`round-${round}-title`}>Round {round}</h3>
+                    </div>
+                  </header>
+
+                  <ol>
+                    {picks.map((pick) => (
+                      <li style={pick.fantasyTeam ? `--team-color: ${pick.fantasyTeam.primary}` : undefined}>
+                        <span class="pick-number">{pick.round}.{String(pick.roundPick).padStart(2, "0")}</span>
+                        <div class:list={["position-mark", positionClass(pick.position)]}>
+                          {pick.position ?? "—"}
+                        </div>
+                        <div class="pick-player">
+                          <strong>{pick.playerName}</strong>
+                          <span>{pick.proTeam || "Free Agent"}{pick.isKeeper ? " · Keeper" : ""}</span>
+                        </div>
+                        <div class="pick-team">
+                          {pick.fantasyTeam ? (
+                            <>
+                              <img src={pick.fantasyTeam.logo} alt="" width="40" height="40" loading="lazy" />
+                              <a href={`/teams/${pick.fantasyTeam.slug}`}>{pick.fantasyTeamName}</a>
+                            </>
+                          ) : (
+                            <span>{pick.fantasyTeamName ?? `Roster ${pick.rosterId ?? "—"}`}</span>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              );
+            })}
+          </div>
+        </section>
+
+        <section class="team-classes" aria-labelledby="team-classes-title">
+          <div class="section-heading">
+            <div><p class="eyebrow">By Franchise</p><h2 id="team-classes-title">Draft Classes</h2></div>
+            <p>A compact look at each franchise’s selections in pick order.</p>
+          </div>
+          <div class="team-class-grid">
+            {teamClasses.map(([teamName, picks]) => {
+              const profile = picks[0]?.fantasyTeam;
+              return (
+                <article style={profile ? `--team-color: ${profile.primary}` : undefined}>
+                  <header>
+                    {profile && <img src={profile.logo} alt="" width="54" height="54" loading="lazy" />}
+                    <div><p>Draft Slot {picks[0]?.draftSlot ?? "—"}</p><h3>{teamName}</h3></div>
+                  </header>
+                  <ol>
+                    {picks.map((pick) => (
+                      <li><span>{pick.round}.{String(pick.roundPick).padStart(2, "0")}</span><strong>{pick.playerName}</strong><small>{pick.position ?? "—"}</small></li>
+                    ))}
+                  </ol>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      </>
+    ) : (
+      <section class="empty-state">
+        <p class="eyebrow">Draft Archive</p>
+        <h2>No draft results are available yet.</h2>
+        <p>Completed Sleeper and imported ESPN drafts will appear here once their picks are synchronized.</p>
+      </section>
+    )}
+  </main>
+</BaseLayout>
+
+<style>
+  .draft-page { padding-top: clamp(2.5rem, 6vw, 5rem); padding-bottom: var(--space-9); }
+  .draft-header { display:grid; grid-template-columns:minmax(0,1fr) minmax(20rem,30rem); align-items:end; gap:clamp(2rem,6vw,6rem); padding-bottom:clamp(2rem,5vw,4rem); border-bottom:3px double var(--color-rule-dark); }
+  .draft-header h1 { max-width:10ch; margin:0 0 var(--space-5); font-size:clamp(3.6rem,9vw,7.5rem); letter-spacing:-.065em; line-height:.86; }
+  .draft-header__description { max-width:48rem; margin:0; color:var(--color-ink-soft); font-family:var(--font-editorial); font-size:clamp(1.2rem,2.4vw,1.65rem); line-height:1.45; }
+  .draft-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin:0; overflow:hidden; border:1px solid var(--color-rule); border-radius:var(--radius-lg); background:var(--color-surface); }
+  .draft-summary div { min-width:0; padding:var(--space-5) var(--space-4); }
+  .draft-summary div+div { border-left:1px solid var(--color-rule); }
+  .draft-summary dt,.draft-summary dd { margin:0; }
+  .draft-summary dt,.draft-controls__label,.draft-controls>p { color:var(--color-ink-muted); font-family:var(--font-data); font-size:.56rem; font-weight:650; letter-spacing:.06em; text-transform:uppercase; }
+  .draft-summary dd { margin-top:var(--space-2); font-family:var(--font-editorial); font-size:clamp(1.35rem,2.8vw,2rem); font-weight:700; }
+  .draft-controls { display:flex; align-items:center; justify-content:space-between; gap:var(--space-5); padding-block:var(--space-5); border-bottom:1px solid var(--color-rule); }
+  .draft-controls>div { display:flex; align-items:center; gap:var(--space-4); }
+  .draft-controls p { margin:0; }
+  .draft-controls nav { display:flex; flex-wrap:wrap; gap:var(--space-2); }
+  .draft-controls a,.round-jump a { display:inline-flex; min-height:2.3rem; align-items:center; padding-inline:var(--space-4); border:1px solid var(--color-rule); border-radius:999px; color:var(--color-ink-soft); font-size:var(--text-sm); font-weight:700; }
+  .draft-controls a:hover,.draft-controls a.is-current,.round-jump a:hover { border-color:var(--color-green); background:var(--color-green-faint); color:var(--color-green); }
+  .draft-lede { display:grid; grid-template-columns:1.5fr 1fr 1fr; margin-top:var(--space-7); overflow:hidden; border:1px solid var(--color-rule); border-radius:var(--radius-lg); background:var(--color-surface); }
+  .draft-lede article { min-width:0; padding:clamp(1.5rem,4vw,2.75rem); background:linear-gradient(145deg,var(--color-green-faint),transparent 60%); }
+  .draft-lede article+article { border-left:1px solid var(--color-rule); }
+  .draft-lede strong { display:block; margin-bottom:var(--space-3); font-family:var(--font-editorial); font-size:clamp(2rem,4vw,3.5rem); letter-spacing:-.045em; line-height:.95; overflow-wrap:anywhere; }
+  .draft-lede span { color:var(--color-ink-muted); font-size:var(--text-sm); line-height:1.5; }
+  .draft-board,.team-classes { padding-top:var(--space-9); }
+  .section-heading { display:flex; align-items:end; justify-content:space-between; gap:var(--space-6); padding-bottom:var(--space-5); border-bottom:1px solid var(--color-rule-dark); }
+  .section-heading h2 { margin:0; font-size:clamp(2.4rem,5vw,4.5rem); letter-spacing:-.05em; line-height:.92; }
+  .section-heading>p { max-width:30rem; margin:0; color:var(--color-ink-muted); font-size:var(--text-sm); line-height:1.55; text-align:right; }
+  .round-jump { display:flex; gap:var(--space-2); padding-block:var(--space-5); overflow-x:auto; scrollbar-width:none; }
+  .round-jump a { flex:0 0 auto; }
+  .round-list { display:grid; gap:var(--space-6); }
+  .draft-round { scroll-margin-top:5rem; display:grid; grid-template-columns:minmax(9rem,.25fr) minmax(0,1fr); overflow:hidden; border:1px solid var(--color-rule); border-radius:var(--radius-lg); background:var(--color-surface); }
+  .draft-round>header { padding:var(--space-6); border-right:1px solid var(--color-rule); background:linear-gradient(160deg,var(--color-green-faint),transparent 70%); }
+  .draft-round>header>span { display:block; margin-bottom:var(--space-7); color:var(--color-green); font-family:var(--font-data); font-size:.7rem; font-weight:700; }
+  .draft-round header p { margin:0 0 var(--space-2); color:var(--color-ink-muted); font-family:var(--font-data); font-size:.58rem; letter-spacing:.06em; text-transform:uppercase; }
+  .draft-round h3 { margin:0; font-size:clamp(2rem,4vw,3rem); letter-spacing:-.04em; }
+  .draft-round ol,.team-class-grid ol { padding:0; margin:0; list-style:none; }
+  .draft-round li { display:grid; grid-template-columns:4rem 3rem minmax(12rem,1fr) minmax(12rem,.8fr); align-items:center; gap:var(--space-4); min-height:5.5rem; padding:var(--space-3) var(--space-5); border-left:3px solid var(--team-color,var(--color-rule-dark)); }
+  .draft-round li+li { border-top:1px solid var(--color-rule); }
+  .pick-number { color:var(--color-ink-muted); font-family:var(--font-data); font-size:.68rem; font-weight:650; }
+  .position-mark { display:grid; width:2.5rem; height:2.5rem; place-items:center; border:1px solid var(--color-rule); border-radius:50%; color:var(--color-green); font-family:var(--font-data); font-size:.62rem; font-weight:700; }
+  .position-rb { color:#8b3a31; }.position-wr { color:#1d5c75; }.position-qb { color:#73511c; }.position-te { color:#654783; }.position-def,.position-k { color:var(--color-ink-muted); }
+  .pick-player strong,.pick-team a,.pick-team>span { display:block; color:var(--color-ink); font-family:var(--font-editorial); font-size:clamp(1.05rem,2vw,1.35rem); font-weight:650; line-height:1.05; }
+  .pick-player span { display:block; margin-top:.35rem; color:var(--color-ink-muted); font-family:var(--font-data); font-size:.58rem; letter-spacing:.04em; text-transform:uppercase; }
+  .pick-team { display:flex; align-items:center; gap:var(--space-3); }
+  .pick-team img { width:2.5rem; height:2.5rem; flex:0 0 auto; object-fit:contain; }
+  .pick-team a:hover { color:var(--color-green); }
+  .team-class-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-5); padding-top:var(--space-6); }
+  .team-class-grid article { min-width:0; overflow:hidden; border:1px solid var(--color-rule); border-top:4px solid var(--team-color,var(--color-green)); border-radius:var(--radius-lg); background:var(--color-surface); }
+  .team-class-grid article>header { display:flex; align-items:center; gap:var(--space-4); padding:var(--space-5); border-bottom:1px solid var(--color-rule); background:linear-gradient(145deg,color-mix(in srgb,var(--team-color,var(--color-green)) 7%,transparent),transparent 65%); }
+  .team-class-grid header img { width:3.4rem; height:3.4rem; object-fit:contain; }
+  .team-class-grid header p { margin:0 0 var(--space-1); color:var(--color-ink-muted); font-family:var(--font-data); font-size:.56rem; letter-spacing:.05em; text-transform:uppercase; }
+  .team-class-grid h3 { margin:0; font-size:clamp(1.5rem,3vw,2.2rem); letter-spacing:-.035em; }
+  .team-class-grid li { display:grid; grid-template-columns:3.4rem minmax(0,1fr) auto; align-items:baseline; gap:var(--space-3); padding:.85rem var(--space-5); }
+  .team-class-grid li+li { border-top:1px solid var(--color-rule); }
+  .team-class-grid li span,.team-class-grid li small { color:var(--color-ink-muted); font-family:var(--font-data); font-size:.6rem; }
+  .team-class-grid li strong { font-family:var(--font-editorial); font-size:1.05rem; }
+  .empty-state { max-width:48rem; padding-block:var(--space-9); }
+  .empty-state h2 { margin-bottom:var(--space-4); font-size:clamp(2.5rem,6vw,5rem); letter-spacing:-.05em; line-height:.95; }
+  .empty-state>p:last-child { color:var(--color-ink-soft); font-family:var(--font-editorial); font-size:var(--text-xl); }
+  @media(max-width:900px){.draft-header{grid-template-columns:1fr}.draft-summary{max-width:36rem}.draft-lede{grid-template-columns:1fr}.draft-lede article+article{border-top:1px solid var(--color-rule);border-left:0}.draft-round{grid-template-columns:1fr}.draft-round>header{display:flex;align-items:center;gap:var(--space-5);padding:var(--space-4) var(--space-5);border-right:0;border-bottom:1px solid var(--color-rule)}.draft-round>header>span{margin:0}.team-class-grid{grid-template-columns:1fr}}
+  @media(max-width:700px){.draft-controls,.draft-controls>div,.section-heading{align-items:flex-start;flex-direction:column}.draft-controls>p,.section-heading>p{text-align:left}.draft-round li{grid-template-columns:3.2rem 2.7rem minmax(0,1fr)}.pick-team{grid-column:3}.pick-team img{display:none}}
+  @media(max-width:480px){.draft-summary{grid-template-columns:1fr}.draft-summary div+div{border-top:1px solid var(--color-rule);border-left:0}.draft-round li{grid-template-columns:2.6rem minmax(0,1fr);gap:var(--space-3);padding:var(--space-4)}.position-mark{grid-column:1;grid-row:2}.pick-player{grid-column:2;grid-row:1}.pick-team{grid-column:2;grid-row:2}.team-class-grid li{grid-template-columns:3rem minmax(0,1fr)}.team-class-grid li small{display:none}}
+</style>
+

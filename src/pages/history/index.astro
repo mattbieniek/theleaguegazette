@@ -79,6 +79,22 @@ function formatPoints(value: number): string {
             <span aria-hidden="true">↓</span>
           </a>
         </article>
+
+        <article class="history-destination history-destination--draft">
+          <div>
+            <p class="eyebrow">Pick by Pick</p>
+            <h2>Draft Archive</h2>
+            <p>
+              Revisit every selection, draft slot and franchise class from the
+              league’s recorded draft rooms.
+            </p>
+          </div>
+
+          <a href="/draft">
+            Enter the war room
+            <span aria-hidden="true">→</span>
+          </a>
+        </article>
       </section>
 
       <section id="seasons" class="season-archive" aria-labelledby="season-archive-title">
@@ -209,6 +225,14 @@ function formatPoints(value: number): string {
     border-top-color: var(--color-green);
     background:
       radial-gradient(circle at 88% 15%, var(--color-green-faint), transparent 34%),
+      var(--color-surface);
+  }
+  .history-destination--draft {
+    grid-column: 1 / -1;
+    min-height: 19rem;
+    border-top-color: #8b6328;
+    background:
+      linear-gradient(120deg, color-mix(in srgb, #8b6328 7%, transparent), transparent 52%),
       var(--color-surface);
   }
   .history-destination h2 {
