@@ -1,0 +1,19 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ErrorPage from "../components/site/ErrorPage.astro";
+
+export const prerender = false;
+---
+
+<BaseLayout
+  title="Publication Interrupted"
+  description="The League Gazette encountered an unexpected problem."
+  noindex
+>
+  <ErrorPage
+    code="500"
+    eyebrow="Technical Timeout"
+    title="The presses have temporarily stopped."
+    description="Something unexpected interrupted this edition. The front page and archive may still be available while the Gazette staff sorts it out."
+  />
+</BaseLayout>

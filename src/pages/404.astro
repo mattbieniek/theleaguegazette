@@ -1,0 +1,18 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ErrorPage from "../components/site/ErrorPage.astro";
+---
+
+<BaseLayout
+  title="Page Not Found"
+  description="The requested League Gazette page could not be found."
+  noindex
+>
+  <ErrorPage
+    code="404"
+    eyebrow="Missing from the Roster"
+    title="This page has left the league."
+    description="The route may have been traded, waived or never rostered in the first place. Search the Gazette or return to familiar territory."
+  />
+</BaseLayout>
+
