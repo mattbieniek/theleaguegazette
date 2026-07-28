@@ -144,7 +144,10 @@ function formatPoints(value: number | null): string {
       </div>
 
       <div class="standings-card">
-        <StandingsTable standings={standings} />
+        <StandingsTable
+          standings={standings}
+          caption="Current league standings"
+        />
       </div>
     </section>
   </div>

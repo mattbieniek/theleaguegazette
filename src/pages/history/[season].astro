@@ -43,7 +43,7 @@ const championProfile = getTeamProfile(season.champion);
   title={`${season.year} Season`}
   description={`Champion, standings and defining performances from the ${season.year} Far Far Away Football season.`}
 >
-  <main class="season-page site-shell">
+  <div class="season-page site-shell">
     <HistoryNav />
 
     <nav class="breadcrumb" aria-label="Breadcrumb">
@@ -107,9 +107,15 @@ const championProfile = getTeamProfile(season.champion);
         <a href={`/stats?season=${season.year}`}>Full season statistics <span aria-hidden="true">→</span></a>
       </div>
       <div class="performance-table">
-        <div class="performance-table__scroll">
+        <div
+          class="performance-table__scroll"
+          role="region"
+          aria-label={`${season.year} season performance table`}
+          tabindex="0"
+        >
           <table>
-            <thead><tr><th>Rank</th><th>Team</th><th>Record</th><th>PF</th><th>Average</th><th>PA</th><th>Margin</th></tr></thead>
+            <caption class="sr-only">{season.year} season performance table</caption>
+            <thead><tr><th scope="col">Rank</th><th scope="col">Team</th><th scope="col">Record</th><th scope="col">PF</th><th scope="col">Average</th><th scope="col">PA</th><th scope="col">Margin</th></tr></thead>
             <tbody>
               {season.standings.map((team, index) => {
                 const profile = getTeamProfile(team.teamName);
@@ -135,7 +141,7 @@ const championProfile = getTeamProfile(season.champion);
       </div>
       <p class="table-note">Ranked by recorded wins, then total points scored. Playoff finish is represented separately by the championship result.</p>
     </section>
-  </main>
+  </div>
 </BaseLayout>
 
 <style>

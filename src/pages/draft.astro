@@ -44,7 +44,7 @@ function positionClass(position: string | null): string {
   title="Draft Archive"
   description="Round-by-round draft history for Far Far Away Football."
 >
-  <main class="draft-page site-shell">
+  <div class="draft-page site-shell">
     <HistoryNav />
 
     <header class="draft-header">
@@ -195,7 +195,7 @@ function positionClass(position: string | null): string {
         <p>Completed Sleeper and imported ESPN drafts will appear here once their picks are synchronized.</p>
       </section>
     )}
-  </main>
+  </div>
 </BaseLayout>
 
 <style>
@@ -260,4 +260,3 @@ function positionClass(position: string | null): string {
   @media(max-width:700px){.draft-controls,.draft-controls>div,.section-heading{align-items:flex-start;flex-direction:column}.draft-controls>p,.section-heading>p{text-align:left}.draft-round li{grid-template-columns:3.2rem 2.7rem minmax(0,1fr)}.pick-team{grid-column:3}.pick-team img{display:none}}
   @media(max-width:480px){.draft-summary{grid-template-columns:1fr}.draft-summary div+div{border-top:1px solid var(--color-rule);border-left:0}.draft-round li{grid-template-columns:2.6rem minmax(0,1fr);gap:var(--space-3);padding:var(--space-4)}.position-mark{grid-column:1;grid-row:2}.pick-player{grid-column:2;grid-row:1}.pick-team{grid-column:2;grid-row:2}.team-class-grid li{grid-template-columns:3rem minmax(0,1fr)}.team-class-grid li small{display:none}}
 </style>
-

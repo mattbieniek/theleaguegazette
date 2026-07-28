@@ -31,11 +31,11 @@ const { story } = Astro.props;
   <div class="lead-story__content">
     <p class="eyebrow">{story.category}</p>
 
-    <h1 class="lead-story__headline">
+    <h2 class="lead-story__headline">
       <a href={`/gazette/${story.slug}`}>
         {story.headline}
       </a>
-    </h1>
+    </h2>
 
     <p class="lead-story__summary">
       {story.summary}

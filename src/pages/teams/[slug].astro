@@ -227,7 +227,7 @@ function formatPoints(value: number | null): string {
     class="site-shell team-profile"
     style={`--team-color: ${team.primary}; --secondary-color: ${team.secondary};`}
   >
-    <main class="team-profile__main">
+    <div class="team-profile__main">
       <section aria-labelledby="season-snapshot-title">
         <div class="section-heading">
           <div>
@@ -448,16 +448,22 @@ function formatPoints(value: number | null): string {
                 </a>
               </div>
 
-              <div class="season-history__scroll">
+              <div
+                class="season-history__scroll"
+                role="region"
+                aria-label={`${team.name} season history`}
+                tabindex="0"
+              >
                 <table>
+                  <caption class="sr-only">{team.name} season-by-season history</caption>
                   <thead>
                     <tr>
-                      <th>Season</th>
-                      <th>Finish</th>
-                      <th>Record</th>
-                      <th>PF</th>
-                      <th>PA</th>
-                      <th>Average</th>
+                      <th scope="col">Season</th>
+                      <th scope="col">Finish</th>
+                      <th scope="col">Record</th>
+                      <th scope="col">PF</th>
+                      <th scope="col">PA</th>
+                      <th scope="col">Average</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -672,7 +678,7 @@ function formatPoints(value: number | null): string {
         </div>
       </section>
 
-    </main>
+    </div>
 
     <aside
       class="team-profile__sidebar"
@@ -697,6 +703,7 @@ function formatPoints(value: number | null): string {
         <StandingsTable
           standings={surroundingStandings}
           compact
+          caption={`Standings around ${team.name}`}
         />
       </div>
 

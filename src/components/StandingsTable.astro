@@ -5,12 +5,14 @@ interface Props {
   standings: SeasonStanding[];
   compact?: boolean;
   limit?: number;
+  caption?: string;
 }
 
 const {
   standings,
   compact = false,
   limit,
+  caption = "League standings",
 } = Astro.props;
 
 const visibleStandings =
@@ -42,23 +44,29 @@ function formatRecord(team: SeasonStanding): string {
 >
   {
     visibleStandings.length > 0 ? (
-      <div class="standings-table__scroll">
+      <div
+        class="standings-table__scroll"
+        role="region"
+        aria-label={caption}
+        tabindex="0"
+      >
         <table>
+          <caption class="sr-only">{caption}</caption>
           <thead>
             <tr>
-              <th class="standings-table__rank">Rank</th>
-              <th>Team</th>
-              <th class="standings-table__record">Record</th>
-              <th class="standings-table__number">PF</th>
+              <th scope="col" class="standings-table__rank">Rank</th>
+              <th scope="col">Team</th>
+              <th scope="col" class="standings-table__record">Record</th>
+              <th scope="col" class="standings-table__number">PF</th>
 
               {
                 !compact && (
                   <>
-                    <th class="standings-table__number">
+                    <th scope="col" class="standings-table__number">
                       PA
                     </th>
 
-                    <th class="standings-table__number">
+                    <th scope="col" class="standings-table__number">
                       Diff.
                     </th>
                   </>

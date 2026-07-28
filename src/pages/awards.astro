@@ -22,7 +22,7 @@ const awards = selectedOption
     title="Weekly Awards | The League Gazette"
     description="The best, worst, luckiest and most painful performances from each week of Far Far Away Football."
 >
-    <main class="awards-page site-shell">
+    <div class="awards-page site-shell">
         <header class="awards-header">
             <div>
                 <p class="eyebrow">Far Far Away Football</p>
@@ -98,7 +98,7 @@ const awards = selectedOption
 
         {
             selectedOption && !selectedOption.isComplete && (
-                <aside class="partial-notice">
+                <aside class="partial-notice" role="status">
                     <strong>Partial week</strong>
 
                     <p>
@@ -243,7 +243,7 @@ const awards = selectedOption
                 </section>
             )
         }
-    </main>
+    </div>
 
     <script>
         const seasonSelect =

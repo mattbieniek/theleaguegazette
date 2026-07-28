@@ -84,7 +84,7 @@ const benchLeader = highestBy(
   title="Statistics"
   description="Season scoring, consistency and team performance statistics from Far Far Away Football."
 >
-  <main class="stats-page site-shell">
+  <div class="stats-page site-shell">
     <header class="stats-header">
       <div>
         <p class="eyebrow">League Intelligence</p>
@@ -190,20 +190,28 @@ const benchLeader = highestBy(
           </div>
 
           <div class="statistics-table">
-            <div class="statistics-table__scroll">
+            <div
+              class="statistics-table__scroll"
+              role="region"
+              aria-label={`${selectedSeason} team performance statistics`}
+              tabindex="0"
+            >
               <table>
+                <caption class="sr-only">
+                  {selectedSeason} team performance statistics
+                </caption>
                 <thead>
                   <tr>
-                    <th>Team</th>
-                    <th>Record</th>
-                    <th>PF</th>
-                    <th>Avg.</th>
-                    <th>High</th>
-                    <th>Low</th>
-                    <th>PA Avg.</th>
-                    <th>Avg. Margin</th>
-                    <th>Consistency</th>
-                    <th>Bench Avg.</th>
+                    <th scope="col">Team</th>
+                    <th scope="col">Record</th>
+                    <th scope="col">PF</th>
+                    <th scope="col">Avg.</th>
+                    <th scope="col">High</th>
+                    <th scope="col">Low</th>
+                    <th scope="col">PA Avg.</th>
+                    <th scope="col">Avg. Margin</th>
+                    <th scope="col">Consistency</th>
+                    <th scope="col">Bench Avg.</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -254,7 +262,7 @@ const benchLeader = highestBy(
         <p>Statistics will appear after matchup results have been synchronized.</p>
       </section>
     )}
-  </main>
+  </div>
 
   <script>
     const seasonSelect = document.querySelector<HTMLSelectElement>("#stats-season");
