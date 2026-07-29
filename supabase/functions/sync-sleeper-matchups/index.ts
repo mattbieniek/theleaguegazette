@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireAdmin } from "../_shared/requireAdmin.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -93,6 +94,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       500,
     );
   }
+
+  await requireAdmin(req, supabaseUrl, serviceRoleKey);
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: {

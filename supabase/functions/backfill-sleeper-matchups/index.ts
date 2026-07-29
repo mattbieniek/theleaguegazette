@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { requireAdmin } from "../_shared/requireAdmin.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,6 +53,8 @@ Deno.serve(async (request: Request): Promise<Response> => {
     if (!serviceRoleKey) {
       throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured.");
     }
+
+    await requireAdmin(request, supabaseUrl, serviceRoleKey);
 
     let body: BackfillRequest;
 

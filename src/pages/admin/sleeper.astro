@@ -1,0 +1,98 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Sleeper Data | The League Gazette">
+  <main id="sleeper-page" class="admin-shell sleeper-page" hidden>
+    <header class="sleeper-header">
+      <div><p class="eyebrow">League operations</p><h1>Sleeper Data</h1><p>Inspect data freshness and run controlled imports from the current Sleeper league.</p></div>
+      <button id="refresh-status" class="secondary" type="button">Refresh status</button>
+    </header>
+    <p id="sleeper-message" class="sleeper-message" role="status" aria-live="polite"></p>
+
+    <section id="league-summary" class="league-summary"></section>
+
+    <section class="sleeper-grid">
+      <article class="sleeper-panel">
+        <div class="panel-heading"><p class="eyebrow">Foundation</p><h2>League datasets</h2><p>Run these in order when initializing a season. Player imports are large and usually need only occasional refreshes.</p></div>
+        <div class="sync-actions">
+          <button data-sync-function="sync-sleeper-league" type="button"><strong>1. League settings</strong><small>Season, scoring, and league configuration</small></button>
+          <button data-sync-function="sync-sleeper-players" type="button"><strong>2. NFL players</strong><small>League-wide player directory</small></button>
+          <button data-sync-function="sync-sleeper-users" type="button"><strong>3. League users</strong><small>Managers and memberships</small></button>
+          <button data-sync-function="sync-sleeper-rosters" type="button"><strong>4. Teams and rosters</strong><small>Standings, ownership, and current players</small></button>
+          <button data-sync-function="sync-sleeper-drafts" type="button"><strong>5. Draft history</strong><small>Drafts and completed picks</small></button>
+        </div>
+      </article>
+
+      <article class="sleeper-panel">
+        <div class="panel-heading"><p class="eyebrow">Weekly operations</p><h2>Sync a league week</h2><p>Matchups should run before the roster snapshot. Transactions can be refreshed independently.</p></div>
+        <div class="week-control"><label for="sync-week">Week</label><input id="sync-week" type="number" min="1" max="18" value="1" /></div>
+        <div class="sync-actions">
+          <button data-week-sync="sync-sleeper-matchups" type="button"><strong>Matchups</strong><small>Scores, starters, and results</small></button>
+          <button data-week-sync="sync-sleeper-roster-snapshots" type="button"><strong>Roster snapshot</strong><small>Preserve each team's weekly roster</small></button>
+          <button data-week-sync="sync-sleeper-transactions" type="button"><strong>Transactions</strong><small>Trades, waivers, and free agents for this week</small></button>
+        </div>
+      </article>
+    </section>
+
+    <section class="sleeper-panel"><div class="panel-heading"><p class="eyebrow">Freshness</p><h2>Dataset status</h2></div><div id="dataset-status" class="dataset-status"></div></section>
+    <section class="sleeper-panel"><div class="panel-heading"><p class="eyebrow">History</p><h2>Recent sync runs</h2></div><div id="sync-history" class="sync-history"></div><div id="sync-history-empty" class="empty-state" hidden>No recorded sync runs yet.</div></section>
+    <details class="sync-result"><summary>Latest technical result</summary><pre id="sync-result">No sync has run in this session.</pre></details>
+  </main>
+
+  <script>
+    import { supabaseBrowser } from "../../lib/supabase-browser";
+    type League = { name: string; sleeper_league_id: string; season: number; status: string | null; current_week: number | null; total_rosters: number | null; last_synced_at: string; updated_at: string };
+    type Dataset = { key: string; label: string; last_synced_at: string | null };
+    type SyncRun = { id: string; sync_type: string; status: string; started_at: string; completed_at: string | null; records_processed: number; error_message: string | null };
+    type Status = { league: League | null; datasets: Dataset[]; recent_runs: SyncRun[] };
+    const page = document.querySelector<HTMLElement>("#sleeper-page");
+    const message = document.querySelector<HTMLElement>("#sleeper-message");
+    const leagueSummary = document.querySelector<HTMLElement>("#league-summary");
+    const datasetStatus = document.querySelector<HTMLElement>("#dataset-status");
+    const syncHistory = document.querySelector<HTMLElement>("#sync-history");
+    const syncHistoryEmpty = document.querySelector<HTMLElement>("#sync-history-empty");
+    const weekInput = document.querySelector<HTMLInputElement>("#sync-week");
+    const result = document.querySelector<HTMLElement>("#sync-result");
+    let status: Status = { league: null, datasets: [], recent_runs: [] };
+    function formatDate(value: string | null): string { return value ? new Intl.DateTimeFormat("en-US", { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit" }).format(new Date(value)) : "Never"; }
+    function setMessage(text: string, error = false): void { if (message) { message.textContent = text; message.dataset.error = String(error); } }
+    function render(): void {
+      if (leagueSummary) {
+        leagueSummary.replaceChildren();
+        if (!status.league) leagueSummary.textContent = "No Sleeper league record is available.";
+        else for (const [label, value] of [["League", status.league.name], ["Season", status.league.season], ["Current week", status.league.current_week ?? "—"], ["Teams", status.league.total_rosters ?? "—"], ["Sleeper ID", status.league.sleeper_league_id]]) { const item=document.createElement("div"); const small=document.createElement("span"); small.textContent=String(label); const strong=document.createElement("strong"); strong.textContent=String(value); item.append(small,strong); leagueSummary.append(item); }
+        if (weekInput && status.league?.current_week) weekInput.value = String(status.league.current_week);
+      }
+      if (datasetStatus) { datasetStatus.replaceChildren(); for (const dataset of status.datasets) { const row=document.createElement("div"); const label=document.createElement("strong"); label.textContent=dataset.label; const date=document.createElement("time"); date.textContent=formatDate(dataset.last_synced_at); if(dataset.last_synced_at) date.dateTime=dataset.last_synced_at; row.append(label,date); datasetStatus.append(row); } }
+      if (syncHistory && syncHistoryEmpty) { syncHistory.replaceChildren(); for (const run of status.recent_runs) { const row=document.createElement("article"); row.className="sync-run"; const copy=document.createElement("div"); const title=document.createElement("strong"); title.textContent=run.sync_type.replaceAll("_"," "); const detail=document.createElement("small"); detail.textContent=run.error_message || `${run.records_processed} records · ${formatDate(run.started_at)}`; copy.append(title,detail); const badge=document.createElement("span"); badge.className=`sync-badge sync-badge--${run.status}`; badge.textContent=run.status; row.append(copy,badge); syncHistory.append(row); } syncHistory.hidden=status.recent_runs.length===0; syncHistoryEmpty.hidden=status.recent_runs.length>0; }
+    }
+    async function loadStatus(): Promise<void> {
+      setMessage("Loading Sleeper status…");
+      const { data, error } = await supabaseBrowser.rpc("admin_sleeper_status");
+      if (error) { setMessage(`Unable to load Sleeper status: ${error.message}`, true); return; }
+      status = data as unknown as Status; render(); setMessage("");
+    }
+    async function runSync(button: HTMLButtonElement, functionName: string, body: Record<string, unknown> = {}): Promise<void> {
+      const original = button.innerHTML; button.disabled=true; button.textContent="Syncing…"; setMessage(`Running ${functionName.replaceAll("-", " ")}…`);
+      const { data, error } = await supabaseBrowser.functions.invoke(functionName, { body });
+      button.disabled=false; button.innerHTML=original;
+      if (result) result.textContent=JSON.stringify(error ? { error: error.message } : data, null, 2);
+      if (error || data?.success === false) { const detail=data?.error?.message ?? data?.error ?? error?.message ?? "Unknown sync error"; setMessage(`Sync failed: ${String(detail)}`, true); return; }
+      setMessage(data?.message ?? "Sync completed successfully."); await loadStatus();
+    }
+    async function initialize(): Promise<void> {
+      const { data: { user } } = await supabaseBrowser.auth.getUser(); if (!user) { window.location.replace("/admin/login"); return; }
+      const { data: admin } = await supabaseBrowser.from("admin_users").select("user_id").eq("user_id",user.id).maybeSingle(); if (!admin) { window.location.replace("/admin/articles"); return; }
+      if (page) page.hidden=false; await loadStatus();
+    }
+    document.querySelectorAll<HTMLButtonElement>("[data-sync-function]").forEach((button) => button.addEventListener("click", () => { const fn=button.dataset.syncFunction; if(fn) void runSync(button,fn); }));
+    document.querySelectorAll<HTMLButtonElement>("[data-week-sync]").forEach((button) => button.addEventListener("click", () => { const fn=button.dataset.weekSync; const week=Number(weekInput?.value); const league=status.league?.sleeper_league_id; if(!fn||!league||!Number.isInteger(week)||week<1||week>18){setMessage("Choose a valid week and confirm the league record is available.",true);return;} const body=fn==="sync-sleeper-transactions"?{sleeper_league_id:league,start_week:week,end_week:week}:{sleeper_league_id:league,week,status:"complete",overwrite:true}; void runSync(button,fn,body); }));
+    document.querySelector<HTMLButtonElement>("#refresh-status")?.addEventListener("click",()=>void loadStatus());
+    void initialize();
+  </script>
+</AdminLayout>
+
+<style>
+  .sleeper-page{display:grid;gap:1.5rem}.sleeper-page[hidden]{display:none}.sleeper-header{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding-bottom:1.5rem;border-bottom:3px double var(--color-rule-dark)}.sleeper-header h1{margin:.25rem 0;font-size:clamp(3rem,7vw,6rem)}.sleeper-header p:last-child{max-width:48rem;color:var(--color-ink-soft)}button.secondary{padding:.7rem 1rem;border:1px solid var(--color-rule-dark);background:var(--color-surface);font-weight:750}.sleeper-message{min-height:1.3rem;margin:0;color:var(--color-green)}.sleeper-message[data-error="true"]{color:#a32320}.league-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;border:1px solid var(--color-rule);background:var(--color-rule)}.league-summary>div{display:grid;gap:.35rem;padding:1rem;background:var(--color-surface)}.league-summary span{color:var(--color-ink-soft);font-size:.7rem;font-weight:750;text-transform:uppercase}.sleeper-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.5rem}.sleeper-panel{overflow:hidden;border:1px solid var(--color-rule);border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-card)}.panel-heading{padding:1.25rem 1.5rem;border-bottom:1px solid var(--color-rule)}.panel-heading h2{margin:.2rem 0;font-size:1.8rem}.panel-heading p:last-child{margin:.6rem 0 0;color:var(--color-ink-soft);font-size:.85rem;line-height:1.5}.sync-actions{display:grid;padding:.75rem}.sync-actions button{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem;border:0;border-radius:.5rem;background:transparent;color:inherit;text-align:left;cursor:pointer}.sync-actions button:hover{background:color-mix(in srgb,var(--color-green) 6%,transparent)}.sync-actions button strong,.sync-actions button small{display:block}.sync-actions button small{margin-top:.2rem;color:var(--color-ink-soft)}.sync-actions button:disabled{opacity:.55}.week-control{display:flex;align-items:center;gap:.75rem;padding:1rem 1.5rem;border-bottom:1px solid var(--color-rule);font-weight:750}.week-control input{width:5rem;padding:.55rem;border:1px solid var(--color-rule-dark)}.dataset-status>div,.sync-run{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.5rem;border-bottom:1px solid var(--color-rule)}.dataset-status>div:last-child,.sync-run:last-child{border-bottom:0}.dataset-status time,.sync-run small{color:var(--color-ink-soft);font-size:.75rem}.sync-run>div{display:grid;gap:.25rem}.sync-run strong{text-transform:capitalize}.sync-badge{padding:.25rem .5rem;border-radius:999px;background:#ececeb;font-size:.65rem;font-weight:850;text-transform:uppercase}.sync-badge--success,.sync-badge--completed{background:#e4f0e8;color:var(--color-green)}.sync-badge--error,.sync-badge--failed{background:#f6e5e3;color:#a32320}.sync-badge--running{background:#eee7f6;color:#67468a}.empty-state{padding:2rem;text-align:center;color:var(--color-ink-soft)}.empty-state[hidden],.sync-history[hidden]{display:none}.sync-result{padding:1rem;border:1px solid var(--color-rule);border-radius:.5rem}.sync-result pre{overflow:auto;max-height:24rem;padding:1rem;background:#18231d;color:#f4f1e9;font-size:.75rem}@media(max-width:900px){.sleeper-grid{grid-template-columns:1fr}.league-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.sleeper-header{align-items:flex-start;flex-direction:column}.league-summary{grid-template-columns:1fr}.dataset-status>div{align-items:flex-start;flex-direction:column}}
+</style>

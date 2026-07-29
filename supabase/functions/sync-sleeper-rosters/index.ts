@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { requireAdmin } from "../_shared/requireAdmin.ts";
 
 const SLEEPER_LEAGUE_ID = "1257085409687506944";
 
@@ -167,6 +168,8 @@ Deno.serve(async (req: Request) => {
       500,
     );
   }
+
+  await requireAdmin(req, supabaseUrl, serviceRoleKey);
 
   const supabase = createClient(
     supabaseUrl,
