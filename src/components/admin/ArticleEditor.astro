@@ -37,6 +37,7 @@ const editorMode = articleId ? "edit" : "create";
 
       <div class="editor-header__actions">
         <a
+          id="cancel-editor"
           class="editor-button editor-button--secondary"
           href="/admin/articles"
         >
@@ -271,7 +272,7 @@ const editorMode = articleId ? "edit" : "create";
           </div>
 
           <div class="editor-fields">
-            <label>
+            <label id="category-field">
               <span>Category</span>
 
               <input
@@ -282,7 +283,7 @@ const editorMode = articleId ? "edit" : "create";
               />
             </label>
 
-            <label>
+            <label id="author-field">
               <span>Author</span>
 
               <input
@@ -293,7 +294,7 @@ const editorMode = articleId ? "edit" : "create";
               />
             </label>
 
-            <label>
+            <label id="publication-date-field">
               <span>Slug</span>
 
               <input
@@ -334,7 +335,7 @@ const editorMode = articleId ? "edit" : "create";
           </div>
         </section>
 
-        <section class="editor-panel">
+        <section id="homepage-placement-panel" class="editor-panel">
           <div class="editor-panel__heading">
             <p class="eyebrow">Artwork</p>
             <h2>Featured image</h2>
@@ -677,6 +678,7 @@ const editorMode = articleId ? "edit" : "create";
     is_featured: boolean;
     homepage_order: number | null;
     updated_at: string;
+    created_by?: string;
   };
 
   type ReadinessRequirementKey =
@@ -729,6 +731,9 @@ const editorMode = articleId ? "edit" : "create";
   const categoryInput = document.querySelector<HTMLInputElement>("#category");
 
   const authorInput = document.querySelector<HTMLInputElement>("#author-name");
+  const publicationDateField = document.querySelector<HTMLElement>("#publication-date-field");
+  const homepagePlacementPanel = document.querySelector<HTMLElement>("#homepage-placement-panel");
+  const cancelEditor = document.querySelector<HTMLAnchorElement>("#cancel-editor");
 
   const slugInput = document.querySelector<HTMLInputElement>("#slug");
 
@@ -902,6 +907,9 @@ const editorMode = articleId ? "edit" : "create";
   ]);
 
   let isUploadingImage = false;
+  let currentUserId = "";
+  let isCommissioner = false;
+  let contributorDisplayName = "";
 
   let richTextEditor: Editor | null = null;
 
@@ -2016,19 +2024,51 @@ const editorMode = articleId ? "edit" : "create";
       return false;
     }
 
+    currentUserId = user.id;
+
     const { data: adminRecord, error: adminError } = await supabaseBrowser
       .from("admin_users")
       .select("user_id")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (adminError || !adminRecord) {
+    if (!adminError && adminRecord) {
+      return true;
+    }
+
+    const { data: contributor } = await supabaseBrowser
+      .from("publication_contributors")
+      .select("display_name, role")
+      .eq("user_id", user.id)
+      .eq("role", "commissioner")
+      .maybeSingle();
+
+    if (!contributor) {
       await supabaseBrowser.auth.signOut();
       window.location.replace("/admin/login");
       return false;
     }
 
+    isCommissioner = true;
+    contributorDisplayName = contributor.display_name;
     return true;
+  }
+
+  function applyContributorEditor(): void {
+    if (!isCommissioner) return;
+    if (categoryInput) { categoryInput.value = "Commissioner's Corner"; categoryInput.readOnly = true; }
+    if (authorInput) { authorInput.value = contributorDisplayName; authorInput.readOnly = true; }
+    if (articleStatusInput) {
+      for (const option of Array.from(articleStatusInput.options)) {
+        if (option.value !== "draft" && option.value !== "ready_for_review") option.remove();
+      }
+    }
+    if (publicationDateField) publicationDateField.hidden = true;
+    if (homepagePlacementPanel) homepagePlacementPanel.hidden = true;
+    if (cancelEditor) { cancelEditor.href = "/admin/articles"; cancelEditor.textContent = "My stories"; }
+    if (pageTitle && mode === "create") pageTitle.textContent = "Commissioner's Corner draft";
+    updatePrimaryAction();
+    renderPublishingReadiness();
   }
 
   function populateForm(article: ArticleRecord): void {
@@ -2208,6 +2248,7 @@ const editorMode = articleId ? "edit" : "create";
       is_featured: isFeaturedInput?.checked ?? false,
       homepage_order: homepageOrderValue ? Number(homepageOrderValue) : null,
       updated_at: new Date().toISOString(),
+      ...(articleId ? {} : { created_by: currentUserId }),
     };
   }
 
@@ -2770,7 +2811,9 @@ const editorMode = articleId ? "edit" : "create";
     }
 
     initializeRichTextEditor();
+    applyContributorEditor();
     await loadArticle();
+    applyContributorEditor();
   }
 
   headlineInput?.addEventListener("input", () => {
