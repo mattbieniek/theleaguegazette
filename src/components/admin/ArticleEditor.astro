@@ -78,6 +78,16 @@ const editorMode = articleId ? "edit" : "create";
     >
     </div>
 
+    <button
+      id="approve-publish-button"
+      class="approve-publish-button"
+      type="button"
+      hidden
+    >
+      <span>Approve &amp; Publish</span>
+      <small>Publish this reviewed story now</small>
+    </button>
+
     <div class="editor-layout">
       <main class="editor-canvas">
         <section class="editor-section editor-section--headline">
@@ -798,6 +808,10 @@ const editorMode = articleId ? "edit" : "create";
 
   const publishButton =
     document.querySelector<HTMLButtonElement>("#publish-button");
+
+  const approvePublishButton = document.querySelector<HTMLButtonElement>(
+    "#approve-publish-button",
+  );
 
   const wordCount = document.querySelector<HTMLElement>("#word-count");
 
@@ -1921,6 +1935,12 @@ const editorMode = articleId ? "edit" : "create";
       previewButton.disabled = saving;
     }
 
+    if (approvePublishButton) {
+      approvePublishButton.disabled = saving;
+      const label = approvePublishButton.querySelector("span");
+      if (label) label.textContent = saving ? "Publishing…" : "Approve & Publish";
+    }
+
     if (saving) {
       setSaveStatus(isAutosave ? "Autosaving…" : "Saving…");
     }
@@ -1993,6 +2013,11 @@ const editorMode = articleId ? "edit" : "create";
     }
 
     updatePrimaryAction();
+
+    if (approvePublishButton) {
+      approvePublishButton.hidden =
+        isCommissioner || article.status !== "ready_for_review";
+    }
 
     if (viewPublishedStory) {
       const canView =
@@ -2922,6 +2947,37 @@ const editorMode = articleId ? "edit" : "create";
     });
   });
 
+  approvePublishButton?.addEventListener("click", async () => {
+    if (isCommissioner || currentArticleStatus !== "ready_for_review") {
+      return;
+    }
+
+    if (!validatePublishingReadiness("published")) {
+      return;
+    }
+
+    const previousSelectedStatus = selectedArticleStatus;
+    selectedArticleStatus = "published";
+
+    if (articleStatusInput) {
+      articleStatusInput.value = "published";
+    }
+
+    updateStatusHelp("published");
+    renderPublishingReadiness();
+
+    const published = await saveArticle("published", {
+      applyWorkflowRules: true,
+    });
+
+    if (!published) {
+      selectedArticleStatus = previousSelectedStatus;
+      if (articleStatusInput) articleStatusInput.value = previousSelectedStatus;
+      updateStatusHelp(previousSelectedStatus);
+      renderPublishingReadiness();
+    }
+  });
+
   previewButton?.addEventListener("click", openPreview);
 
   closePreviewButton?.addEventListener("click", closePreview);
@@ -3083,6 +3139,42 @@ const editorMode = articleId ? "edit" : "create";
     border: 1px solid color-mix(in srgb, var(--color-green) 30%, transparent);
     background: color-mix(in srgb, var(--color-green) 8%, white);
     color: var(--color-green);
+  }
+
+  .approve-publish-button {
+    position: fixed;
+    z-index: 30;
+    right: clamp(1rem, 3vw, 2rem);
+    bottom: clamp(1rem, 3vw, 2rem);
+    display: grid;
+    gap: 0.15rem;
+    min-width: min(18rem, calc(100vw - 2rem));
+    padding: 0.9rem 1.15rem;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--color-green);
+    box-shadow: 0 0.8rem 2rem rgba(24, 35, 29, 0.24);
+    color: #fff;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .approve-publish-button[hidden] {
+    display: none;
+  }
+
+  .approve-publish-button span {
+    font-weight: 850;
+  }
+
+  .approve-publish-button small {
+    color: rgba(255, 255, 255, 0.76);
+  }
+
+  .approve-publish-button:disabled {
+    cursor: wait;
+    opacity: 0.7;
   }
 
   .editor-layout {
