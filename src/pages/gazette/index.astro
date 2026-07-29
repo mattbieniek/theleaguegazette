@@ -1,15 +1,22 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getPublishedArticles } from "../../lib/queries/gazette";
+import { COMMISSIONERS_CORNER_CATEGORY, getPublishedArticles } from "../../lib/queries/gazette";
 import { formatPublicationDate } from "../../lib/formatDate";
+import CommissionersCorner from "../../components/gazette/CommissionersCorner.astro";
 
 const articles = await getPublishedArticles();
+const commissionersCornerArticles = articles.filter(
+  (article) => article.category === COMMISSIONERS_CORNER_CATEGORY,
+);
+const generalArticles = articles.filter(
+  (article) => article.category !== COMMISSIONERS_CORNER_CATEGORY,
+);
 
-const leadArticle = articles[0] ?? null;
-const archiveArticles = articles.slice(1);
+const leadArticle = generalArticles[0] ?? null;
+const archiveArticles = generalArticles.slice(1);
 
 const categoryCount = new Set(
-  articles
+  generalArticles
     .map((article) => article.category?.trim())
     .filter(Boolean)
 ).size;
@@ -45,6 +52,8 @@ function getArticleImage(
         </p>
       </div>
     </header>
+
+    <CommissionersCorner articles={commissionersCornerArticles} context="gazette" />
 
     {
       leadArticle ? (
@@ -141,9 +150,9 @@ function getArticleImage(
 
               <div class="archive-summary">
                 <span>
-                  {articles.length}
+                  {generalArticles.length}
                   {" "}
-                  {articles.length === 1
+                  {generalArticles.length === 1
                     ? "story"
                     : "stories"}
                 </span>
@@ -263,7 +272,7 @@ function getArticleImage(
             }
           </section>
         </>
-      ) : (
+      ) : commissionersCornerArticles.length === 0 ? (
         <section class="empty-state">
           <p class="eyebrow">
             The Weekly Gazette
@@ -276,7 +285,7 @@ function getArticleImage(
             first edition is released.
           </p>
         </section>
-      )
+      ) : null
     }
   </div>
 </BaseLayout>

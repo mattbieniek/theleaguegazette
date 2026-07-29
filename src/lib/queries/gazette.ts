@@ -14,6 +14,8 @@ export interface GazetteArticle
   body: RichTextDocument;
 }
 
+export const COMMISSIONERS_CORNER_CATEGORY = "Commissioner's Corner";
+
 function normalizeArticle(
   article: GazetteArticleRow
 ): GazetteArticle {
@@ -52,6 +54,7 @@ export async function getHomepageArticles(): Promise<
     .from("gazette_articles")
     .select("*")
     .in("status", ["published", "scheduled"])
+    .neq("category", COMMISSIONERS_CORNER_CATEGORY)
     .lte("published_at", new Date().toISOString())
     .order("homepage_order", {
       ascending: true,
@@ -66,6 +69,27 @@ export async function getHomepageArticles(): Promise<
   if (error) {
     throw new Error(
       `Unable to load homepage articles: ${error.message}`
+    );
+  }
+
+  return (data ?? []).map(normalizeArticle);
+}
+
+export async function getCommissionersCornerArticles(
+  limit = 3,
+): Promise<GazetteArticle[]> {
+  const { data, error } = await supabase
+    .from("gazette_articles")
+    .select("*")
+    .eq("category", COMMISSIONERS_CORNER_CATEGORY)
+    .in("status", ["published", "scheduled"])
+    .lte("published_at", new Date().toISOString())
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(
+      `Unable to load Commissioner's Corner articles: ${error.message}`,
     );
   }
 

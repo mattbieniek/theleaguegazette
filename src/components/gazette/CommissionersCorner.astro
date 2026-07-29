@@ -1,0 +1,253 @@
+---
+import type { GazetteArticle } from "../../lib/queries/gazette";
+import { formatPublicationDate } from "../../lib/formatDate";
+
+interface Props {
+  articles: GazetteArticle[];
+  context?: "homepage" | "gazette";
+}
+
+const { articles, context = "homepage" } = Astro.props;
+const latest = articles[0] ?? null;
+const previous = articles.slice(1, 3);
+---
+
+{
+  latest && (
+    <section
+      class:list={["commissioners-corner", `commissioners-corner--${context}`]}
+      aria-labelledby={`commissioners-corner-${context}-title`}
+    >
+      <div class="commissioners-corner__masthead">
+        <div>
+          <p class="commissioners-corner__kicker">From the League Office</p>
+          <h2 id={`commissioners-corner-${context}-title`}>
+            Commissioner’s Corner
+          </h2>
+        </div>
+
+        <p class="commissioners-corner__description">
+          News, rulings and perspective directly from the commissioner’s desk.
+        </p>
+      </div>
+
+      <div class="commissioners-corner__feature">
+        <a
+          class="commissioners-corner__image"
+          href={`/gazette/${latest.slug}`}
+          aria-label={`Read ${latest.headline}`}
+        >
+          <img
+            src={latest.image_url ?? "/images/homepage/lead-story-placeholder.webp"}
+            alt={latest.image_alt ?? ""}
+            width="1200"
+            height="800"
+            loading="lazy"
+            decoding="async"
+          />
+        </a>
+
+        <article class="commissioners-corner__story">
+          <p class="commissioners-corner__label">Latest Dispatch</p>
+          <h3>
+            <a href={`/gazette/${latest.slug}`}>{latest.headline}</a>
+          </h3>
+          {latest.summary && <p class="commissioners-corner__summary">{latest.summary}</p>}
+          <div class="commissioners-corner__meta">
+            <span>By {latest.author_name}</span>
+            {latest.published_at && (
+              <>
+                <span aria-hidden="true">·</span>
+                <time datetime={latest.published_at}>
+                  {formatPublicationDate(latest.published_at)}
+                </time>
+              </>
+            )}
+          </div>
+          <a class="commissioners-corner__read" href={`/gazette/${latest.slug}`}>
+            Read from the commissioner <span aria-hidden="true">→</span>
+          </a>
+        </article>
+      </div>
+
+      {context === "gazette" && previous.length > 0 && (
+        <div class="commissioners-corner__previous" aria-label="Earlier Commissioner’s Corner stories">
+          <p>Earlier from the desk</p>
+          <div>
+            {previous.map((story) => (
+              <a href={`/gazette/${story.slug}`}>
+                <span>{story.headline}</span>
+                {story.published_at && <time datetime={story.published_at}>{formatPublicationDate(story.published_at)}</time>}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+<style>
+  .commissioners-corner {
+    overflow: hidden;
+    border: 1px solid rgb(255 255 255 / 10%);
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(circle at top right, rgb(255 255 255 / 8%), transparent 24rem),
+      #18231d;
+    color: #f7f5ed;
+  }
+
+  .commissioners-corner__masthead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 28rem);
+    gap: var(--space-5);
+    align-items: end;
+    padding: clamp(1.4rem, 4vw, 2.5rem);
+    border-bottom: 1px solid rgb(255 255 255 / 13%);
+  }
+
+  .commissioners-corner__kicker,
+  .commissioners-corner__label {
+    margin: 0 0 var(--space-2);
+    color: #d6bd77;
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .commissioners-corner h2 {
+    margin: 0;
+    color: inherit;
+    font-size: clamp(2.4rem, 5vw, 4.5rem);
+    letter-spacing: -0.05em;
+    line-height: 0.92;
+  }
+
+  .commissioners-corner__description {
+    margin: 0;
+    color: rgb(247 245 237 / 68%);
+    font-family: var(--font-editorial);
+    font-size: 1.05rem;
+    line-height: 1.5;
+  }
+
+  .commissioners-corner__feature {
+    display: grid;
+    grid-template-columns: minmax(16rem, 0.8fr) minmax(0, 1.2fr);
+  }
+
+  .commissioners-corner__image {
+    min-height: 23rem;
+    overflow: hidden;
+    background: #27372e;
+  }
+
+  .commissioners-corner__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-standard);
+  }
+
+  .commissioners-corner__image:hover img { transform: scale(1.02); }
+
+  .commissioners-corner__story {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: clamp(1.5rem, 5vw, 3.5rem);
+  }
+
+  .commissioners-corner__story h3 {
+    margin: 0 0 var(--space-4);
+    color: inherit;
+    font-size: clamp(2.2rem, 4.5vw, 4.2rem);
+    letter-spacing: -0.045em;
+    line-height: 0.96;
+  }
+
+  .commissioners-corner__story h3 a:hover { color: #e2cc91; }
+
+  .commissioners-corner__summary {
+    max-width: 46rem;
+    margin-bottom: var(--space-5);
+    color: rgb(247 245 237 / 74%);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+    line-height: 1.5;
+  }
+
+  .commissioners-corner__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: var(--space-5);
+    color: rgb(247 245 237 / 58%);
+    font-family: var(--font-data);
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .commissioners-corner__read {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: var(--space-2);
+    color: #e2cc91;
+    font-size: var(--text-sm);
+    font-weight: 800;
+  }
+
+  .commissioners-corner__read:hover { text-decoration: underline; text-underline-offset: 0.25rem; }
+
+  .commissioners-corner__previous {
+    display: grid;
+    grid-template-columns: 12rem 1fr;
+    gap: var(--space-5);
+    padding: 1.25rem clamp(1.4rem, 4vw, 2.5rem);
+    border-top: 1px solid rgb(255 255 255 / 13%);
+  }
+
+  .commissioners-corner__previous > p {
+    margin: 0;
+    color: #d6bd77;
+    font-family: var(--font-data);
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .commissioners-corner__previous > div { display: grid; gap: 0.75rem; }
+
+  .commissioners-corner__previous a {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgb(255 255 255 / 10%);
+  }
+
+  .commissioners-corner__previous a:hover span { color: #e2cc91; }
+  .commissioners-corner__previous time { flex: 0 0 auto; color: rgb(247 245 237 / 48%); font-family: var(--font-data); font-size: 0.62rem; text-transform: uppercase; }
+
+  .commissioners-corner--homepage { margin-top: var(--space-7); }
+  .commissioners-corner--gazette { margin-block: var(--space-7); }
+
+  @media (max-width: 760px) {
+    .commissioners-corner__masthead,
+    .commissioners-corner__feature,
+    .commissioners-corner__previous { grid-template-columns: 1fr; }
+    .commissioners-corner__image { min-height: 17rem; }
+    .commissioners-corner__previous a { align-items: flex-start; flex-direction: column; gap: 0.35rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .commissioners-corner__image img { transition: none; }
+    .commissioners-corner__image:hover img { transform: none; }
+  }
+</style>
