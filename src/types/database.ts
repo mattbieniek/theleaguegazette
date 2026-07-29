@@ -392,6 +392,42 @@ export type Database = {
         }
         Relationships: []
       }
+      editorial_notifications: {
+        Row: {
+          action_url: string | null
+          article_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          message: string
+          read_at: string | null
+          recipient_user_id: string
+          title: string
+        }
+        Insert: {
+          action_url?: string | null
+          article_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          message: string
+          read_at?: string | null
+          recipient_user_id: string
+          title: string
+        }
+        Update: {
+          action_url?: string | null
+          article_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          message?: string
+          read_at?: string | null
+          recipient_user_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       league_members: {
         Row: {
           created_at: string
@@ -1658,6 +1694,24 @@ export type Database = {
       }
     }
     Functions: {
+      admin_add_publication_contributor: {
+        Args: { contributor_display_name: string; contributor_email: string }
+        Returns: string
+      }
+      admin_publication_contributors: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          role: string
+          user_id: string
+        }[]
+      }
+      admin_remove_publication_contributor: {
+        Args: { contributor_user_id: string }
+        Returns: undefined
+      }
       is_gazette_admin: { Args: never; Returns: boolean }
     }
     Enums: {

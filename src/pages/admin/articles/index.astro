@@ -324,10 +324,16 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       }
 
       const headline = document.createElement("h3");
-      const editLink = document.createElement("a");
-      editLink.href = `/admin/articles/${article.id}`;
-      editLink.textContent = normalizeText(article.headline) || "Untitled story";
-      headline.append(editLink);
+      const headlineText = normalizeText(article.headline) || "Untitled story";
+      const contributorCanEdit = article.status === "draft" || article.status === "ready_for_review";
+      if (!isCommissioner || contributorCanEdit) {
+        const editLink = document.createElement("a");
+        editLink.href = `/admin/articles/${article.id}`;
+        editLink.textContent = headlineText;
+        headline.append(editLink);
+      } else {
+        headline.textContent = headlineText;
+      }
 
       const meta = document.createElement("p");
       meta.className = "story-row__meta";
@@ -363,7 +369,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         actions.append(viewAction);
       }
 
-      actions.append(editAction);
+      if (!isCommissioner || contributorCanEdit) actions.append(editAction);
       row.append(main, status, actions);
 
       return row;
@@ -788,13 +794,19 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
             image_alt: string | null;
           }>).map((article) => ({
             ...article,
-            status_label: article.status === "ready_for_review" ? "Ready for review" : "Draft",
+            status_label: ({
+              draft: "Draft",
+              ready_for_review: "Ready for review",
+              scheduled: "Scheduled",
+              published: "Published",
+              archived: "Archived",
+            } as Record<string, string>)[article.status] ?? article.status,
             editorial_date: article.updated_at,
             editorial_sort_at: article.updated_at,
             can_publish: false,
             needs_image_alt: Boolean(article.image_url && !article.image_alt),
-            is_due_for_publishing: false,
-            is_publicly_available: false,
+            is_due_for_publishing: article.status === "scheduled" && Boolean(article.published_at && new Date(article.published_at) <= new Date()),
+            is_publicly_available: article.status === "published" || (article.status === "scheduled" && Boolean(article.published_at && new Date(article.published_at) <= new Date())),
           })) as ArticleSummary[])
         : ((data ?? []) as ArticleSummary[]);
 
