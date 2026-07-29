@@ -127,7 +127,7 @@ function isActive(path: string, exact = false) {
               </a>
             </div>
 
-            <div class="admin-navigation__group">
+            <div class="admin-navigation__group" data-admin-only>
               <p class="admin-navigation__label">
                 Publication
               </p>
@@ -137,7 +137,6 @@ function isActive(path: string, exact = false) {
                   "admin-navigation__link",
                   { "admin-navigation__link--active": currentPath === "/admin/homepage" },
                 ]}
-                data-admin-only
                 href="/admin/homepage"
               >
                 <svg
@@ -198,7 +197,7 @@ function isActive(path: string, exact = false) {
               </span>
             </div>
 
-            <div class="admin-navigation__group">
+            <div class="admin-navigation__group" data-admin-only>
               <p class="admin-navigation__label">
                 League
               </p>
@@ -606,6 +605,10 @@ function isActive(path: string, exact = false) {
   .admin-navigation__group {
     display: grid;
     gap: 0.3rem;
+  }
+
+  [data-admin-only][hidden] {
+    display: none !important;
   }
 
   .admin-navigation__label {
