@@ -72,7 +72,8 @@ function isActive(path: string, exact = false) {
                       isActive("/admin", true),
                   },
                 ]}
-                href="/admin/articles"
+                href="/admin"
+                data-admin-only
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -92,7 +93,7 @@ function isActive(path: string, exact = false) {
                       isActive("/admin/articles"),
                   },
                 ]}
-                href="/admin"
+                href="/admin/articles"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -126,14 +127,17 @@ function isActive(path: string, exact = false) {
               </a>
             </div>
 
-            <div class="admin-navigation__group">
+            <div class="admin-navigation__group" data-admin-only>
               <p class="admin-navigation__label">
                 Publication
               </p>
 
-              <span
-                class="admin-navigation__link admin-navigation__link--disabled"
-                aria-disabled="true"
+              <a
+                class:list={[
+                  "admin-navigation__link",
+                  { "admin-navigation__link--active": currentPath === "/admin/homepage" },
+                ]}
+                href="/admin/homepage"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -142,9 +146,8 @@ function isActive(path: string, exact = false) {
                   <path d="M4 6h16v12H4V6Zm3 3h5v6H7V9Zm8 0h2M15 12h2M15 15h2" />
                 </svg>
 
-                <span>Weekly Gazette</span>
-                <small>Soon</small>
-              </span>
+                <span>Homepage Curation</span>
+              </a>
 
               <span
                 class="admin-navigation__link admin-navigation__link--disabled"
@@ -194,7 +197,7 @@ function isActive(path: string, exact = false) {
               </span>
             </div>
 
-            <div class="admin-navigation__group">
+            <div class="admin-navigation__group" data-admin-only>
               <p class="admin-navigation__label">
                 League
               </p>
@@ -374,6 +377,23 @@ function isActive(path: string, exact = false) {
           document.querySelector<HTMLButtonElement>(
             "#admin-sign-out"
           );
+
+        async function personalizeNavigation() {
+          const { data: { user } } = await supabaseBrowser.auth.getUser();
+          if (!user) return;
+          const { data: contributor } = await supabaseBrowser
+            .from("publication_contributors")
+            .select("role")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (contributor?.role === "commissioner") {
+            document.querySelectorAll<HTMLElement>("[data-admin-only]").forEach((element) => {
+              element.hidden = true;
+            });
+          }
+        }
+
+        void personalizeNavigation();
 
         function openSidebar() {
           if (!sidebar || !backdrop || !openButton) {
@@ -585,6 +605,10 @@ function isActive(path: string, exact = false) {
   .admin-navigation__group {
     display: grid;
     gap: 0.3rem;
+  }
+
+  [data-admin-only][hidden] {
+    display: none !important;
   }
 
   .admin-navigation__label {

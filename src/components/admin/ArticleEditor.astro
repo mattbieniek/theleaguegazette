@@ -37,6 +37,7 @@ const editorMode = articleId ? "edit" : "create";
 
       <div class="editor-header__actions">
         <a
+          id="cancel-editor"
           class="editor-button editor-button--secondary"
           href="/admin/articles"
         >
@@ -76,6 +77,16 @@ const editorMode = articleId ? "edit" : "create";
       aria-live="polite"
     >
     </div>
+
+    <button
+      id="approve-publish-button"
+      class="approve-publish-button"
+      type="button"
+      hidden
+    >
+      <span>Approve &amp; Publish</span>
+      <small>Publish this reviewed story now</small>
+    </button>
 
     <div class="editor-layout">
       <main class="editor-canvas">
@@ -271,7 +282,7 @@ const editorMode = articleId ? "edit" : "create";
           </div>
 
           <div class="editor-fields">
-            <label>
+            <label id="category-field">
               <span>Category</span>
 
               <input
@@ -282,7 +293,7 @@ const editorMode = articleId ? "edit" : "create";
               />
             </label>
 
-            <label>
+            <label id="author-field">
               <span>Author</span>
 
               <input
@@ -293,7 +304,7 @@ const editorMode = articleId ? "edit" : "create";
               />
             </label>
 
-            <label>
+            <label id="publication-date-field">
               <span>Slug</span>
 
               <input
@@ -409,7 +420,7 @@ const editorMode = articleId ? "edit" : "create";
           </div>
         </section>
 
-        <section class="editor-panel">
+        <section id="homepage-placement-panel" class="editor-panel">
           <div class="editor-panel__heading">
             <p class="eyebrow">Homepage</p>
             <h2>Placement</h2>
@@ -677,6 +688,7 @@ const editorMode = articleId ? "edit" : "create";
     is_featured: boolean;
     homepage_order: number | null;
     updated_at: string;
+    created_by?: string;
   };
 
   type ReadinessRequirementKey =
@@ -729,6 +741,9 @@ const editorMode = articleId ? "edit" : "create";
   const categoryInput = document.querySelector<HTMLInputElement>("#category");
 
   const authorInput = document.querySelector<HTMLInputElement>("#author-name");
+  const publicationDateField = document.querySelector<HTMLElement>("#publication-date-field");
+  const homepagePlacementPanel = document.querySelector<HTMLElement>("#homepage-placement-panel");
+  const cancelEditor = document.querySelector<HTMLAnchorElement>("#cancel-editor");
 
   const slugInput = document.querySelector<HTMLInputElement>("#slug");
 
@@ -793,6 +808,10 @@ const editorMode = articleId ? "edit" : "create";
 
   const publishButton =
     document.querySelector<HTMLButtonElement>("#publish-button");
+
+  const approvePublishButton = document.querySelector<HTMLButtonElement>(
+    "#approve-publish-button",
+  );
 
   const wordCount = document.querySelector<HTMLElement>("#word-count");
 
@@ -902,6 +921,9 @@ const editorMode = articleId ? "edit" : "create";
   ]);
 
   let isUploadingImage = false;
+  let currentUserId = "";
+  let isCommissioner = false;
+  let contributorDisplayName = "";
 
   let richTextEditor: Editor | null = null;
 
@@ -1913,6 +1935,12 @@ const editorMode = articleId ? "edit" : "create";
       previewButton.disabled = saving;
     }
 
+    if (approvePublishButton) {
+      approvePublishButton.disabled = saving;
+      const label = approvePublishButton.querySelector("span");
+      if (label) label.textContent = saving ? "Publishing…" : "Approve & Publish";
+    }
+
     if (saving) {
       setSaveStatus(isAutosave ? "Autosaving…" : "Saving…");
     }
@@ -1986,6 +2014,11 @@ const editorMode = articleId ? "edit" : "create";
 
     updatePrimaryAction();
 
+    if (approvePublishButton) {
+      approvePublishButton.hidden =
+        isCommissioner || article.status !== "ready_for_review";
+    }
+
     if (viewPublishedStory) {
       const canView =
         Boolean(article.slug) &&
@@ -2016,19 +2049,51 @@ const editorMode = articleId ? "edit" : "create";
       return false;
     }
 
+    currentUserId = user.id;
+
     const { data: adminRecord, error: adminError } = await supabaseBrowser
       .from("admin_users")
       .select("user_id")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (adminError || !adminRecord) {
+    if (!adminError && adminRecord) {
+      return true;
+    }
+
+    const { data: contributor } = await supabaseBrowser
+      .from("publication_contributors")
+      .select("display_name, role")
+      .eq("user_id", user.id)
+      .eq("role", "commissioner")
+      .maybeSingle();
+
+    if (!contributor) {
       await supabaseBrowser.auth.signOut();
       window.location.replace("/admin/login");
       return false;
     }
 
+    isCommissioner = true;
+    contributorDisplayName = contributor.display_name;
     return true;
+  }
+
+  function applyContributorEditor(): void {
+    if (!isCommissioner) return;
+    if (categoryInput) { categoryInput.value = "Commissioner's Corner"; categoryInput.readOnly = true; }
+    if (authorInput) { authorInput.value = contributorDisplayName; authorInput.readOnly = true; }
+    if (articleStatusInput) {
+      for (const option of Array.from(articleStatusInput.options)) {
+        if (option.value !== "draft" && option.value !== "ready_for_review") option.remove();
+      }
+    }
+    if (publicationDateField) publicationDateField.hidden = true;
+    if (homepagePlacementPanel) homepagePlacementPanel.hidden = true;
+    if (cancelEditor) { cancelEditor.href = "/admin/articles"; cancelEditor.textContent = "My stories"; }
+    if (pageTitle && mode === "create") pageTitle.textContent = "Commissioner's Corner draft";
+    updatePrimaryAction();
+    renderPublishingReadiness();
   }
 
   function populateForm(article: ArticleRecord): void {
@@ -2208,6 +2273,7 @@ const editorMode = articleId ? "edit" : "create";
       is_featured: isFeaturedInput?.checked ?? false,
       homepage_order: homepageOrderValue ? Number(homepageOrderValue) : null,
       updated_at: new Date().toISOString(),
+      ...(articleId ? {} : { created_by: currentUserId }),
     };
   }
 
@@ -2770,7 +2836,9 @@ const editorMode = articleId ? "edit" : "create";
     }
 
     initializeRichTextEditor();
+    applyContributorEditor();
     await loadArticle();
+    applyContributorEditor();
   }
 
   headlineInput?.addEventListener("input", () => {
@@ -2877,6 +2945,37 @@ const editorMode = articleId ? "edit" : "create";
     await saveArticle(targetStatus, {
       applyWorkflowRules: true,
     });
+  });
+
+  approvePublishButton?.addEventListener("click", async () => {
+    if (isCommissioner || currentArticleStatus !== "ready_for_review") {
+      return;
+    }
+
+    if (!validatePublishingReadiness("published")) {
+      return;
+    }
+
+    const previousSelectedStatus = selectedArticleStatus;
+    selectedArticleStatus = "published";
+
+    if (articleStatusInput) {
+      articleStatusInput.value = "published";
+    }
+
+    updateStatusHelp("published");
+    renderPublishingReadiness();
+
+    const published = await saveArticle("published", {
+      applyWorkflowRules: true,
+    });
+
+    if (!published) {
+      selectedArticleStatus = previousSelectedStatus;
+      if (articleStatusInput) articleStatusInput.value = previousSelectedStatus;
+      updateStatusHelp(previousSelectedStatus);
+      renderPublishingReadiness();
+    }
   });
 
   previewButton?.addEventListener("click", openPreview);
@@ -3040,6 +3139,42 @@ const editorMode = articleId ? "edit" : "create";
     border: 1px solid color-mix(in srgb, var(--color-green) 30%, transparent);
     background: color-mix(in srgb, var(--color-green) 8%, white);
     color: var(--color-green);
+  }
+
+  .approve-publish-button {
+    position: fixed;
+    z-index: 30;
+    right: clamp(1rem, 3vw, 2rem);
+    bottom: clamp(1rem, 3vw, 2rem);
+    display: grid;
+    gap: 0.15rem;
+    min-width: min(18rem, calc(100vw - 2rem));
+    padding: 0.9rem 1.15rem;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--color-green);
+    box-shadow: 0 0.8rem 2rem rgba(24, 35, 29, 0.24);
+    color: #fff;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .approve-publish-button[hidden] {
+    display: none;
+  }
+
+  .approve-publish-button span {
+    font-weight: 850;
+  }
+
+  .approve-publish-button small {
+    color: rgba(255, 255, 255, 0.76);
+  }
+
+  .approve-publish-button:disabled {
+    cursor: wait;
+    opacity: 0.7;
   }
 
   .editor-layout {

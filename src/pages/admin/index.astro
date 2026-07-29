@@ -444,6 +444,17 @@ const archivedCount =
         .maybeSingle();
 
       if (adminError || !adminRecord) {
+        const { data: contributor } = await supabaseBrowser
+          .from("publication_contributors")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (contributor?.role === "commissioner") {
+          window.location.replace("/admin/articles");
+          return false;
+        }
+
         await supabaseBrowser.auth.signOut();
         window.location.replace("/admin/login");
         return false;

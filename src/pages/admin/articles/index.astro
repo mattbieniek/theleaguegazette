@@ -244,6 +244,8 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 
     let articles: ArticleSummary[] = [];
     let searchUrlTimer: number | undefined;
+    let isCommissioner = false;
+    let currentUserId = "";
 
     function normalizeText(value: string | null | undefined): string {
       return value?.trim() ?? "";
@@ -685,19 +687,33 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         return false;
       }
 
+      currentUserId = user.id;
+
       const { data: adminRecord, error: adminError } = await supabaseBrowser
         .from("admin_users")
         .select("user_id")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (adminError || !adminRecord) {
-        await supabaseBrowser.auth.signOut();
-        window.location.replace("/admin/login");
-        return false;
+      if (!adminError && adminRecord) {
+        return true;
       }
 
-      return true;
+      const { data: contributor } = await supabaseBrowser
+        .from("publication_contributors")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "commissioner")
+        .maybeSingle();
+
+      if (contributor) {
+        isCommissioner = true;
+        return true;
+      }
+
+      await supabaseBrowser.auth.signOut();
+      window.location.replace("/admin/login");
+      return false;
     }
 
     async function initializeStories(): Promise<void> {
@@ -707,9 +723,15 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         return;
       }
 
-      const { data, error } = await supabaseBrowser
-        .from("editorial_articles")
-        .select(
+      const result = isCommissioner
+        ? await supabaseBrowser
+            .from("gazette_articles")
+            .select("id, slug, category, headline, author_name, status, is_featured, published_at, created_at, updated_at, image_url, image_alt")
+            .eq("created_by", currentUserId)
+            .order("updated_at", { ascending: false })
+        : await supabaseBrowser
+            .from("editorial_articles")
+            .select(
           `
             id,
             slug,
@@ -729,10 +751,10 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
             is_due_for_publishing,
             is_publicly_available
           `,
-        )
-        .order("editorial_sort_at", {
-          ascending: false,
-        });
+            )
+            .order("editorial_sort_at", { ascending: false });
+
+      const { data, error } = result;
 
       if (loading) {
         loading.hidden = true;
@@ -750,7 +772,31 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         return;
       }
 
-      articles = (data ?? []) as ArticleSummary[];
+      articles = isCommissioner
+        ? (((data ?? []) as Array<{
+            id: string;
+            slug: string;
+            category: string;
+            headline: string;
+            author_name: string;
+            status: string;
+            is_featured: boolean;
+            published_at: string | null;
+            created_at: string;
+            updated_at: string;
+            image_url: string | null;
+            image_alt: string | null;
+          }>).map((article) => ({
+            ...article,
+            status_label: article.status === "ready_for_review" ? "Ready for review" : "Draft",
+            editorial_date: article.updated_at,
+            editorial_sort_at: article.updated_at,
+            can_publish: false,
+            needs_image_alt: Boolean(article.image_url && !article.image_alt),
+            is_due_for_publishing: false,
+            is_publicly_available: false,
+          })) as ArticleSummary[])
+        : ((data ?? []) as ArticleSummary[]);
 
       if (allCount) {
         allCount.textContent = String(articles.length);

@@ -58,3 +58,18 @@ Legacy logos are temporary placeholders and can be replaced without changing pag
 ## Important prototype note
 
 Because the build environment used to package this project could not reach the Sleeper API directly, the repository includes visually realistic fallback records. In a browser with normal internet access, the homepage attempts to replace those values with live archived Sleeper roster data. The next pass should add server/build-time data normalization and confirm the mapping against the actual Sleeper display names.
+
+## Publication contributors
+
+Commissioners use the existing `/admin/login` screen. To add one:
+
+1. Invite or create the user in Supabase Authentication.
+2. Apply the repository's latest database migrations.
+3. Add the authenticated user to `public.publication_contributors`:
+
+```sql
+insert into public.publication_contributors (user_id, display_name, role)
+values ('AUTH_USER_UUID', 'Commissioner Name', 'commissioner');
+```
+
+Commissioners can create, edit, upload artwork for, and delete only their own **Commissioner's Corner** stories. They can save drafts and submit stories for review. Scheduling, publishing, archiving, and homepage placement remain administrator-only.

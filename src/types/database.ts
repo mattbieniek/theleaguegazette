@@ -320,6 +320,7 @@ export type Database = {
           body: Json
           category: string
           created_at: string
+          created_by: string | null
           headline: string
           homepage_order: number | null
           id: string
@@ -337,6 +338,7 @@ export type Database = {
           body?: Json
           category: string
           created_at?: string
+          created_by?: string | null
           headline: string
           homepage_order?: number | null
           id?: string
@@ -354,6 +356,7 @@ export type Database = {
           body?: Json
           category?: string
           created_at?: string
+          created_by?: string | null
           headline?: string
           homepage_order?: number | null
           id?: string
@@ -365,6 +368,27 @@ export type Database = {
           status?: string
           summary?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      publication_contributors: {
+        Row: {
+          created_at: string
+          display_name: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          role?: string
+          user_id?: string
         }
         Relationships: []
       }
