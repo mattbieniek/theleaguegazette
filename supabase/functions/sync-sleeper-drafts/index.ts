@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { requireAdmin } from "../_shared/requireAdmin.ts";
 
 const DEFAULT_LEAGUE_ID = "1257085409687506944";
 const SLEEPER_API = "https://api.sleeper.app/v1";
@@ -52,6 +53,8 @@ Deno.serve(async (req: Request) => {
     if (!supabaseUrl || !serviceRoleKey) {
       throw new Error("Missing Supabase service credentials.");
     }
+
+    await requireAdmin(req, supabaseUrl, serviceRoleKey);
 
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const sleeperLeagueId = body.sleeper_league_id ?? DEFAULT_LEAGUE_ID;
@@ -171,4 +174,3 @@ Deno.serve(async (req: Request) => {
     );
   }
 });
-

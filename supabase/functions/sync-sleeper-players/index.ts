@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireAdmin } from "../_shared/requireAdmin.ts";
 
 const PLAYERS_URL = "https://api.sleeper.app/v1/players/nfl";
 const BATCH_SIZE = 500;
@@ -32,7 +33,7 @@ function chunk<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -42,6 +43,8 @@ Deno.serve(async () => {
       { status: 500 },
     );
   }
+
+  await requireAdmin(req, supabaseUrl, serviceRoleKey);
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 

@@ -1721,6 +1721,7 @@ export type Database = {
       }
     }
     Functions: {
+      admin_sleeper_status: { Args: never; Returns: Json }
       admin_return_article_for_changes: {
         Args: { review_note: string; target_article_id: string }
         Returns: undefined

@@ -171,9 +171,9 @@ function isActive(path: string, exact = false) {
                 <span>Homepage Curation</span>
               </a>
 
-              <span
-                class="admin-navigation__link admin-navigation__link--disabled"
-                aria-disabled="true"
+              <a
+                class:list={["admin-navigation__link", { "admin-navigation__link--active": currentPath === "/admin/sleeper" }]}
+                href="/admin/sleeper"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -186,9 +186,9 @@ function isActive(path: string, exact = false) {
                 <small>Soon</small>
               </span>
 
-              <span
-                class="admin-navigation__link admin-navigation__link--disabled"
-                aria-disabled="true"
+              <a
+                class:list={["admin-navigation__link", { "admin-navigation__link--active": currentPath === "/admin/sleeper" }]}
+                href="/admin/sleeper"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -256,20 +256,15 @@ function isActive(path: string, exact = false) {
                 <small>Soon</small>
               </span>
 
-              <span
-                class="admin-navigation__link admin-navigation__link--disabled"
-                aria-disabled="true"
+              <a
+                class:list={["admin-navigation__link", { "admin-navigation__link--active": currentPath === "/admin/sleeper" }]}
+                href="/admin/sleeper"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M7 7h10v10H7V7Zm-3 5h3M17 12h3M12 4v3M12 17v3" />
                 </svg>
-
                 <span>Sleeper Data</span>
-                <small>Soon</small>
-              </span>
+              </a>
             </div>
           </nav>
 
