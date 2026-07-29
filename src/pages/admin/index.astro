@@ -73,6 +73,26 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
   </a>
 </section>
 
+    <section class="desk-priority" aria-label="Current editorial priorities">
+      <article class="desk-panel">
+        <div class="desk-panel__heading">
+          <div><p class="eyebrow">Review queue</p><h2>Awaiting your decision</h2></div>
+          <a href="/admin/articles?status=ready_for_review">View queue</a>
+        </div>
+        <div id="dashboard-review-queue" class="dashboard-list"></div>
+        <div id="dashboard-review-empty" class="desk-empty" hidden><h3>No reviews waiting</h3><p>Contributor submissions will appear here.</p></div>
+      </article>
+
+      <article class="desk-panel">
+        <div class="desk-panel__heading">
+          <div><p class="eyebrow">Notifications</p><h2>Unread updates</h2></div>
+          <a href="/admin/notifications">View all</a>
+        </div>
+        <div id="dashboard-notifications" class="dashboard-list"></div>
+        <div id="dashboard-notifications-empty" class="desk-empty" hidden><h3>You're caught up</h3><p>New editorial activity will appear here.</p></div>
+      </article>
+    </section>
+
     <section class="desk-grid">
       <article class="desk-panel desk-panel--recent">
         <div class="desk-panel__heading">
@@ -203,6 +223,14 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
       </aside>
     </section>
 
+    <section class="desk-panel">
+      <div class="desk-panel__heading">
+        <div><p class="eyebrow">Contributor activity</p><h2>Recent review history</h2></div>
+      </div>
+      <div id="dashboard-activity" class="dashboard-activity"></div>
+      <div id="dashboard-activity-empty" class="desk-empty" hidden><h3>No contributor activity yet</h3><p>Submissions, revision requests, and approvals will be recorded here.</p></div>
+    </section>
+
     <div
       id="desk-message"
       class="desk-message"
@@ -237,6 +265,8 @@ type ArticleSummary = {
   can_publish: boolean;
   needs_image_alt: boolean;
 };
+type EditorialNotification = { id: string; kind: string; title: string; message: string; action_url: string | null; created_at: string };
+type ReviewEvent = { id: string; article_id: string; action: string; note: string | null; created_at: string };
 
     const loading =
       document.querySelector<HTMLElement>("#desk-loading");
@@ -288,6 +318,12 @@ const archivedCount =
 
     const attentionClear =
       document.querySelector<HTMLElement>("#attention-clear");
+    const dashboardReviewQueue = document.querySelector<HTMLElement>("#dashboard-review-queue");
+    const dashboardReviewEmpty = document.querySelector<HTMLElement>("#dashboard-review-empty");
+    const dashboardNotifications = document.querySelector<HTMLElement>("#dashboard-notifications");
+    const dashboardNotificationsEmpty = document.querySelector<HTMLElement>("#dashboard-notifications-empty");
+    const dashboardActivity = document.querySelector<HTMLElement>("#dashboard-activity");
+    const dashboardActivityEmpty = document.querySelector<HTMLElement>("#dashboard-activity-empty");
 
     function formatDate(value: string): string {
       return new Intl.DateTimeFormat("en-US", {
@@ -423,6 +459,48 @@ const archivedCount =
       return story;
     }
 
+    function renderReviewQueue(articles: ArticleSummary[]): void {
+      if (!dashboardReviewQueue || !dashboardReviewEmpty) return;
+      dashboardReviewQueue.replaceChildren();
+      const reviews = articles.filter((article) => article.status === "ready_for_review").slice(0, 4);
+      for (const article of reviews) {
+        const link = document.createElement("a"); link.className = "dashboard-row"; link.href = `/admin/articles/${article.id}`;
+        const copy = document.createElement("span"); const title = document.createElement("strong"); title.textContent = article.headline || "Untitled story";
+        const detail = document.createElement("small"); detail.textContent = `${article.author_name} · ${formatDate(article.updated_at)}`;
+        copy.append(title, detail); const action = document.createElement("b"); action.textContent = "Review →"; link.append(copy, action); dashboardReviewQueue.append(link);
+      }
+      dashboardReviewQueue.hidden = reviews.length === 0; dashboardReviewEmpty.hidden = reviews.length > 0;
+    }
+
+    function renderNotifications(notifications: EditorialNotification[]): void {
+      if (!dashboardNotifications || !dashboardNotificationsEmpty) return;
+      dashboardNotifications.replaceChildren();
+      for (const notification of notifications) {
+        const link = document.createElement("a"); link.className = "dashboard-row"; link.href = notification.action_url ?? "/admin/notifications";
+        link.addEventListener("click", () => { void supabaseBrowser.from("editorial_notifications").update({ read_at: new Date().toISOString() }).eq("id", notification.id); });
+        const copy = document.createElement("span"); const title = document.createElement("strong"); title.textContent = notification.title;
+        const detail = document.createElement("small"); detail.textContent = notification.message;
+        copy.append(title, detail); const date = document.createElement("time"); date.dateTime = notification.created_at; date.textContent = formatDate(notification.created_at);
+        link.append(copy, date); dashboardNotifications.append(link);
+      }
+      dashboardNotifications.hidden = notifications.length === 0; dashboardNotificationsEmpty.hidden = notifications.length > 0;
+    }
+
+    function renderActivity(events: ReviewEvent[], articles: ArticleSummary[]): void {
+      if (!dashboardActivity || !dashboardActivityEmpty) return;
+      dashboardActivity.replaceChildren(); const articleMap = new Map(articles.map((article) => [article.id, article]));
+      const labels: Record<string, string> = { submitted: "submitted for review", changes_requested: "returned for changes", approved: "approved and published" };
+      for (const event of events) {
+        const article = articleMap.get(event.article_id); if (!article) continue;
+        const item = document.createElement("a"); item.className = "activity-row"; item.href = `/admin/articles/${article.id}`;
+        const marker = document.createElement("span"); marker.className = `activity-row__marker activity-row__marker--${event.action}`; marker.setAttribute("aria-hidden", "true");
+        const copy = document.createElement("span"); const text = document.createElement("strong"); text.textContent = `${article.author_name} ${labels[event.action] ?? "updated"} “${article.headline}”`;
+        const detail = document.createElement("small"); detail.textContent = event.note ? `${formatDate(event.created_at)} · ${event.note}` : formatDate(event.created_at);
+        copy.append(text, detail); item.append(marker, copy); dashboardActivity.append(item);
+      }
+      const hasActivity = dashboardActivity.childElementCount > 0; dashboardActivity.hidden = !hasActivity; dashboardActivityEmpty.hidden = hasActivity;
+    }
+
     async function verifyAdmin(): Promise<boolean> {
       const {
         data: { user },
@@ -490,7 +568,8 @@ const archivedCount =
         return;
       }
 
-      const { data, error } = await supabaseBrowser
+      const [articleResult, notificationResult, activityResult] = await Promise.all([
+        supabaseBrowser
   .from("editorial_articles")
   .select(
     `
@@ -512,7 +591,12 @@ const archivedCount =
   )
   .order("editorial_sort_at", {
     ascending: false,
-  });
+  }),
+        supabaseBrowser.from("editorial_notifications").select("id,kind,title,message,action_url,created_at").is("read_at", null).order("created_at", { ascending: false }).limit(4),
+        supabaseBrowser.from("editorial_review_events").select("id,article_id,action,note,created_at").order("created_at", { ascending: false }).limit(8),
+      ]);
+
+      const { data, error } = articleResult;
 
       if (loading) {
         loading.hidden = true;
@@ -533,6 +617,10 @@ const archivedCount =
 
       const articles =
         (data ?? []) as ArticleSummary[];
+
+      renderReviewQueue(articles);
+      renderNotifications((notificationResult.data ?? []) as EditorialNotification[]);
+      renderActivity((activityResult.data ?? []) as ReviewEvent[], articles);
 
       if (allCount) {
         allCount.textContent = String(articles.length);
@@ -640,6 +728,8 @@ if (archivedCount) {
   .desk-loading[hidden],
   .editorial-desk[hidden],
   .recent-stories[hidden],
+  .dashboard-list[hidden],
+  .dashboard-activity[hidden],
   .desk-empty[hidden],
   .attention-clear[hidden] {
     display: none;
@@ -685,6 +775,53 @@ if (archivedCount) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--space-4);
   }
+
+  .desk-priority {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+
+  .dashboard-list,
+  .dashboard-activity { display: grid; }
+
+  :global(.dashboard-row) {
+    display: flex;
+    min-height: 5rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-rule);
+    color: inherit;
+    text-decoration: none;
+  }
+  :global(.dashboard-row):last-child { border-bottom: 0; }
+  :global(.dashboard-row):hover { background: color-mix(in srgb, var(--color-green) 5%, transparent); }
+  :global(.dashboard-row > span) { display: grid; min-width: 0; gap: 0.25rem; }
+  :global(.dashboard-row strong) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :global(.dashboard-row small) { overflow: hidden; color: var(--color-ink-soft); font-size: 0.75rem; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+  :global(.dashboard-row b) { color: var(--color-green); font-size: 0.75rem; white-space: nowrap; }
+  :global(.dashboard-row time) { color: var(--color-ink-soft); font-size: 0.72rem; white-space: nowrap; }
+
+  :global(.activity-row) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0.85rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-rule);
+    color: inherit;
+    text-decoration: none;
+  }
+  :global(.activity-row):last-child { border-bottom: 0; }
+  :global(.activity-row):hover { background: color-mix(in srgb, var(--color-green) 5%, transparent); }
+  :global(.activity-row > span:last-child) { display: grid; gap: 0.25rem; }
+  :global(.activity-row small) { color: var(--color-ink-soft); font-size: 0.75rem; line-height: 1.45; }
+  :global(.activity-row__marker) { width: 0.65rem; height: 0.65rem; margin-top: 0.3rem; border-radius: 999px; background: #8b8b86; }
+  :global(.activity-row__marker--submitted) { background: #34587b; }
+  :global(.activity-row__marker--changes_requested) { background: #a32320; }
+  :global(.activity-row__marker--approved) { background: var(--color-green); }
 
   .desk-stat {
     display: grid;
@@ -1077,6 +1214,9 @@ if (archivedCount) {
   }
 
   @media (max-width: 900px) {
+  .desk-priority {
+    grid-template-columns: 1fr;
+  }
   .desk-overview {
     grid-template-columns:
       repeat(2, minmax(0, 1fr));
