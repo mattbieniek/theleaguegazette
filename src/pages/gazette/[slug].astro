@@ -7,15 +7,7 @@ import {
 } from "../../lib/queries/gazette";
 import { formatPublicationDate } from "../../lib/formatDate";
 
-export async function getStaticPaths() {
-  const articles = await getPublishedArticles();
-
-  return articles.map((article) => ({
-    params: {
-      slug: article.slug,
-    },
-  }));
-}
+export const prerender = false;
 
 const { slug } = Astro.params;
 
