@@ -171,9 +171,9 @@ function isActive(path: string, exact = false) {
                 <span>Homepage Curation</span>
               </a>
 
-              <span
-                class="admin-navigation__link admin-navigation__link--disabled"
-                aria-disabled="true"
+              <a
+                class:list={["admin-navigation__link", { "admin-navigation__link--active": currentPath === "/admin/rankings" }]}
+                href="/admin/rankings"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -183,8 +183,7 @@ function isActive(path: string, exact = false) {
                 </svg>
 
                 <span>Power Rankings</span>
-                <small>Soon</small>
-              </span>
+              </a>
 
               <a
                 class:list={["admin-navigation__link", { "admin-navigation__link--active": currentPath === "/admin/awards" }]}
