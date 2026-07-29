@@ -19,6 +19,8 @@ import { getTransactionArchive } from "../lib/queries/transactions";
 import { getHomepageTransactionHighlights } from "../lib/gazette/transactionHighlights";
 import { getSeasonMatchups } from "../lib/queries/matchups";
 
+export const prerender = false;
+
 const stories = await getHomepageArticles();
 const commissionersCornerArticles = await getCommissionersCornerArticles();
 
