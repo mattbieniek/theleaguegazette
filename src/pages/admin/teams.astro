@@ -1,0 +1,63 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Teams | The League Gazette">
+  <main id="teams-desk" class="admin-shell teams-desk" hidden>
+    <header class="teams-header">
+      <div>
+        <p class="eyebrow">League operations</p>
+        <h1>Teams</h1>
+        <p>Review franchise identities, managers, records, rosters, and Sleeper data health.</p>
+      </div>
+      <a href="/teams" target="_blank" rel="noreferrer">View public directory ↗</a>
+    </header>
+
+    <section id="teams-summary" class="teams-summary" aria-label="Team data summary"></section>
+
+    <div class="teams-toolbar">
+      <label>Season<select id="teams-season"></select></label>
+      <label class="teams-search">Find a team<input id="teams-search" type="search" placeholder="Team or manager name" /></label>
+      <button id="sync-teams" type="button">Refresh teams from Sleeper</button>
+    </div>
+
+    <p id="teams-message" class="teams-message" role="status" aria-live="polite"></p>
+    <section id="teams-grid" class="teams-grid" aria-label="Franchise review"></section>
+    <section id="teams-empty" class="teams-empty" hidden><h2>No teams found</h2><p>Try another search or refresh the current league data.</p></section>
+  </main>
+
+  <script>
+    import { supabaseBrowser } from "../../lib/supabase-browser";
+    import { teams as publicTeams } from "../../data/teams";
+
+    type TeamRow = {
+      id:string; team_name:string|null; sleeper_roster_id:number; wins:number; losses:number; ties:number;
+      points_for:number; points_against:number; last_synced_at:string; season_year:number;
+      manager_name:string|null; manager_username:string|null; roster_count:number; starter_count:number;
+    };
+
+    const page=document.querySelector<HTMLElement>("#teams-desk");
+    const summary=document.querySelector<HTMLElement>("#teams-summary");
+    const grid=document.querySelector<HTMLElement>("#teams-grid");
+    const empty=document.querySelector<HTMLElement>("#teams-empty");
+    const seasonSelect=document.querySelector<HTMLSelectElement>("#teams-season");
+    const searchInput=document.querySelector<HTMLInputElement>("#teams-search");
+    const syncButton=document.querySelector<HTMLButtonElement>("#sync-teams");
+    const message=document.querySelector<HTMLElement>("#teams-message");
+    let rows:TeamRow[]=[]; let leagueId="";
+
+    function setMessage(text:string,error=false){if(message){message.textContent=text;message.dataset.error=String(error)}}
+    function normalized(value:string|null|undefined){return value?.trim().toLowerCase()??""}
+    function publicTeam(name:string|null){return publicTeams.find(team=>normalized(team.name)===normalized(name)||normalized(team.legacyName)===normalized(name))}
+    function formatRecord(team:TeamRow){const base=`${team.wins??0}-${team.losses??0}`;return team.ties?`${base}-${team.ties}`:base}
+    function freshness(date:string){const elapsed=Date.now()-new Date(date).getTime();const days=Math.floor(elapsed/86400000);if(!Number.isFinite(days))return "Unknown";if(days===0)return "Today";if(days===1)return "Yesterday";return `${days} days ago`}
+    function stat(label:string,value:string){const item=document.createElement("div");const small=document.createElement("span");small.textContent=label;const strong=document.createElement("strong");strong.textContent=value;item.append(small,strong);return item}
+    function render(){if(!grid||!empty)return;const season=Number(seasonSelect?.value);const query=normalized(searchInput?.value);const seasonRows=rows.filter(row=>row.season_year===season);const visible=seasonRows.filter(row=>!query||normalized(row.team_name).includes(query)||normalized(row.manager_name).includes(query)||normalized(row.manager_username).includes(query));grid.replaceChildren();for(const team of visible){const profile=publicTeam(team.team_name);const issues:string[]=[];if(!team.team_name)issues.push("Missing team name");if(!team.manager_name)issues.push("Missing manager");if(team.roster_count===0)issues.push("Empty roster");if(!profile)issues.push("No public profile match");const card=document.createElement("article");card.className="team-review";card.dataset.health=issues.length?"attention":"ready";const top=document.createElement("div");top.className="team-review__top";const identity=document.createElement("div");const owner=document.createElement("p");owner.textContent=team.manager_name??team.manager_username??"Manager unavailable";const title=document.createElement("h2");title.textContent=team.team_name??`Sleeper roster ${team.sleeper_roster_id}`;identity.append(owner,title);const badge=document.createElement("span");badge.textContent=issues.length?`${issues.length} item${issues.length===1?"":"s"} to check`:"Ready";top.append(identity,badge);const stats=document.createElement("div");stats.className="team-review__stats";stats.append(stat("Record",formatRecord(team)),stat("Points for",Number(team.points_for??0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})),stat("Roster",`${team.roster_count} players`),stat("Starters",String(team.starter_count)),stat("Last synced",freshness(team.last_synced_at)));const footer=document.createElement("div");footer.className="team-review__footer";const note=document.createElement("p");note.textContent=issues.length?issues.join(" · "):"Identity, manager, roster, and public profile are connected.";footer.append(note);if(profile){const link=document.createElement("a");link.href=`/teams/${profile.slug}`;link.target="_blank";link.rel="noreferrer";link.textContent="View profile ↗";footer.append(link)}card.append(top,stats,footer);grid.append(card)}empty.hidden=visible.length>0;grid.hidden=visible.length===0;if(summary){const issueCount=seasonRows.filter(team=>!team.team_name||!team.manager_name||team.roster_count===0||!publicTeam(team.team_name)).length;const latest=seasonRows.reduce((date,team)=>!date||team.last_synced_at>date?team.last_synced_at:date,"");summary.replaceChildren(stat("Franchises",String(seasonRows.length)),stat("Complete profiles",String(seasonRows.length-issueCount)),stat("Needs attention",String(issueCount)),stat("Latest team sync",latest?freshness(latest):"Unknown"))}}
+    async function initialize(){const{data:{user}}=await supabaseBrowser.auth.getUser();if(!user){window.location.replace("/admin/login");return}const{data:admin}=await supabaseBrowser.from("admin_users").select("user_id").eq("user_id",user.id).maybeSingle();if(!admin){window.location.replace("/admin/articles");return}setMessage("Loading teams…");const[{data,error},{data:statusData}]=await Promise.all([supabaseBrowser.from("fantasy_teams").select("id,team_name,sleeper_roster_id,wins,losses,ties,points_for,points_against,last_synced_at,seasons!inner(year),managers(display_name,username),roster_players(is_starter)"),supabaseBrowser.rpc("admin_sleeper_status")]);if(page)page.hidden=false;if(error){setMessage(error.message,true);return}rows=(data??[]).map((row:any)=>({id:String(row.id),team_name:row.team_name,sleeper_roster_id:Number(row.sleeper_roster_id),wins:Number(row.wins??0),losses:Number(row.losses??0),ties:Number(row.ties??0),points_for:Number(row.points_for??0),points_against:Number(row.points_against??0),last_synced_at:String(row.last_synced_at??""),season_year:Number(row.seasons?.year),manager_name:row.managers?.display_name??null,manager_username:row.managers?.username??null,roster_count:row.roster_players?.length??0,starter_count:row.roster_players?.filter((player:any)=>player.is_starter).length??0})).sort((a,b)=>a.sleeper_roster_id-b.sleeper_roster_id);leagueId=String((statusData as any)?.league?.sleeper_league_id??"");if(seasonSelect){for(const season of [...new Set(rows.map(row=>row.season_year))].sort((a,b)=>b-a)){const option=document.createElement("option");option.value=String(season);option.textContent=String(season);seasonSelect.append(option)}}setMessage("");render()}
+    seasonSelect?.addEventListener("change",render);searchInput?.addEventListener("input",render);syncButton?.addEventListener("click",async()=>{if(!leagueId){setMessage("The current Sleeper league is unavailable.",true);return}syncButton.disabled=true;syncButton.textContent="Refreshing…";setMessage("Refreshing managers, teams, and rosters…");for(const functionName of ["sync-sleeper-users","sync-sleeper-rosters"]){const{data,error}=await supabaseBrowser.functions.invoke(functionName,{body:{sleeper_league_id:leagueId}});if(error||data?.success===false){syncButton.disabled=false;syncButton.textContent="Refresh teams from Sleeper";setMessage(`Refresh failed: ${data?.error?.message??data?.error??error?.message}`,true);return}}window.location.reload()});void initialize();
+  </script>
+</AdminLayout>
+
+<style>
+  .teams-desk{display:grid;gap:1.5rem}.teams-desk[hidden],.teams-empty[hidden],.teams-grid[hidden]{display:none}.teams-header{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding-bottom:1.5rem;border-bottom:3px double var(--color-rule-dark)}.teams-header h1{margin:.25rem 0;font-size:clamp(3rem,7vw,6rem)}.teams-header p:last-child{max-width:48rem;color:var(--color-ink-soft)}.teams-header>a,.team-review__footer a{color:var(--color-green);font-weight:750}.teams-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;border:1px solid var(--color-rule);background:var(--color-rule)}.teams-summary>div{display:grid;gap:.35rem;padding:1rem;background:var(--color-surface)}.teams-summary span,.team-review__stats span{color:var(--color-ink-soft);font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.teams-toolbar{display:flex;align-items:end;gap:1rem;padding:1rem 1.25rem;border:1px solid var(--color-rule);background:var(--color-surface)}.teams-toolbar label{display:grid;gap:.35rem;font-weight:750}.teams-toolbar select,.teams-toolbar input{min-height:2.65rem;padding:.6rem;border:1px solid var(--color-rule-dark);background:#fff}.teams-search{flex:1}.teams-toolbar button{padding:.75rem 1rem;border:0;border-radius:.45rem;background:var(--color-green);color:#fff;font-weight:750}.teams-toolbar button:disabled{opacity:.55}.teams-message{min-height:1.25rem;margin:0;color:var(--color-green)}.teams-message[data-error="true"]{color:#a32320}.teams-grid{display:grid;gap:1rem}.team-review{border:1px solid var(--color-rule);border-left:5px solid var(--color-green);background:var(--color-surface);box-shadow:var(--shadow-card)}.team-review[data-health="attention"]{border-left-color:#b37b22}.team-review__top,.team-review__footer{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.25rem}.team-review__top p,.team-review__top h2,.team-review__footer p{margin:0}.team-review__top p{color:var(--color-ink-soft);font-size:.78rem}.team-review__top h2{margin-top:.2rem;font-size:1.65rem}.team-review__top>span{padding:.3rem .55rem;border-radius:999px;background:#e4f0e8;color:var(--color-green);font-size:.68rem;font-weight:850;text-transform:uppercase}.team-review[data-health="attention"] .team-review__top>span{background:#fff1cf;color:#7b5717}.team-review__stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-block:1px solid var(--color-rule)}.team-review__stats>div{display:grid;gap:.35rem;padding:.85rem 1.25rem;border-right:1px solid var(--color-rule)}.team-review__stats>div:last-child{border-right:0}.team-review__footer p{color:var(--color-ink-soft);font-size:.78rem}.teams-empty{padding:3rem;border:1px dashed var(--color-rule-dark);text-align:center}@media(max-width:900px){.teams-summary,.team-review__stats{grid-template-columns:repeat(2,minmax(0,1fr))}.team-review__stats>div{border-bottom:1px solid var(--color-rule)}}@media(max-width:650px){.teams-header,.teams-toolbar,.team-review__top,.team-review__footer{align-items:flex-start;flex-direction:column}.teams-summary,.team-review__stats{grid-template-columns:1fr}.teams-toolbar label,.teams-toolbar button{width:100%}}
+</style>
