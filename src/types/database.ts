@@ -428,6 +428,33 @@ export type Database = {
         }
         Relationships: []
       }
+      editorial_review_events: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          article_id: string
+          created_at: string
+          id: string
+          note: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          article_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          article_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+        }
+        Relationships: []
+      }
       league_members: {
         Row: {
           created_at: string
@@ -1694,6 +1721,10 @@ export type Database = {
       }
     }
     Functions: {
+      admin_return_article_for_changes: {
+        Args: { review_note: string; target_article_id: string }
+        Returns: undefined
+      }
       admin_add_publication_contributor: {
         Args: { contributor_display_name: string; contributor_email: string }
         Returns: string

@@ -78,15 +78,20 @@ const editorMode = articleId ? "edit" : "create";
     >
     </div>
 
-    <button
-      id="approve-publish-button"
-      class="approve-publish-button"
-      type="button"
-      hidden
-    >
-      <span>Approve &amp; Publish</span>
-      <small>Publish this reviewed story now</small>
-    </button>
+    <section id="review-workflow" class="review-workflow" hidden>
+      <div><p class="eyebrow">Editorial decision</p><h2>This story is ready for review</h2></div>
+      <div class="review-workflow__actions">
+        <button id="return-changes-button" class="editor-button editor-button--secondary" type="button">Return for Changes</button>
+        <button id="approve-publish-button" class="approve-publish-button" type="button">
+          <span>Approve &amp; Publish</span><small>Publish this reviewed story now</small>
+        </button>
+      </div>
+    </section>
+
+    <section id="review-history" class="review-history" hidden>
+      <div class="review-history__heading"><p class="eyebrow">Review history</p><h2>Editorial feedback</h2></div>
+      <div id="review-history-list" class="review-history__list"></div>
+    </section>
 
     <div class="editor-layout">
       <main class="editor-canvas">
@@ -583,6 +588,20 @@ const editorMode = articleId ? "edit" : "create";
       </div>
     </div>
   </dialog>
+  <dialog id="return-changes-dialog" class="status-confirmation" aria-labelledby="return-changes-title">
+    <form id="return-changes-form" class="status-confirmation__panel">
+      <div class="status-confirmation__heading"><p class="eyebrow">Editorial feedback</p><h2 id="return-changes-title">Return story for changes</h2></div>
+      <div class="return-changes__body">
+        <p>Explain what the contributor should revise. This note will remain in the story's review history.</p>
+        <label for="return-changes-note">Revision note</label>
+        <textarea id="return-changes-note" rows="5" required placeholder="Describe the changes needed before publication…"></textarea>
+      </div>
+      <div class="status-confirmation__actions">
+        <button id="cancel-return-changes" class="editor-button editor-button--secondary" type="button">Cancel</button>
+        <button id="confirm-return-changes" class="editor-button editor-button--primary" type="submit">Return to contributor</button>
+      </div>
+    </form>
+  </dialog>
   <dialog id="preview-dialog" class="preview-dialog">
     <div class="preview-shell">
       <header class="preview-toolbar">
@@ -690,6 +709,8 @@ const editorMode = articleId ? "edit" : "create";
     updated_at: string;
     created_by?: string;
   };
+
+  type ReviewEvent = { id: string; action: string; note: string | null; created_at: string };
 
   type ReadinessRequirementKey =
     | "headline"
@@ -812,6 +833,14 @@ const editorMode = articleId ? "edit" : "create";
   const approvePublishButton = document.querySelector<HTMLButtonElement>(
     "#approve-publish-button",
   );
+  const reviewWorkflow = document.querySelector<HTMLElement>("#review-workflow");
+  const returnChangesButton = document.querySelector<HTMLButtonElement>("#return-changes-button");
+  const reviewHistory = document.querySelector<HTMLElement>("#review-history");
+  const reviewHistoryList = document.querySelector<HTMLElement>("#review-history-list");
+  const returnChangesDialog = document.querySelector<HTMLDialogElement>("#return-changes-dialog");
+  const returnChangesForm = document.querySelector<HTMLFormElement>("#return-changes-form");
+  const returnChangesNote = document.querySelector<HTMLTextAreaElement>("#return-changes-note");
+  const cancelReturnChanges = document.querySelector<HTMLButtonElement>("#cancel-return-changes");
 
   const wordCount = document.querySelector<HTMLElement>("#word-count");
 
@@ -1940,6 +1969,7 @@ const editorMode = articleId ? "edit" : "create";
       const label = approvePublishButton.querySelector("span");
       if (label) label.textContent = saving ? "Publishing…" : "Approve & Publish";
     }
+    if (returnChangesButton) returnChangesButton.disabled = saving;
 
     if (saving) {
       setSaveStatus(isAutosave ? "Autosaving…" : "Saving…");
@@ -2014,10 +2044,7 @@ const editorMode = articleId ? "edit" : "create";
 
     updatePrimaryAction();
 
-    if (approvePublishButton) {
-      approvePublishButton.hidden =
-        isCommissioner || article.status !== "ready_for_review";
-    }
+    if (reviewWorkflow) reviewWorkflow.hidden = isCommissioner || article.status !== "ready_for_review";
 
     if (viewPublishedStory) {
       const canView =
@@ -2036,6 +2063,28 @@ const editorMode = articleId ? "edit" : "create";
     }
 
     markCurrentStateAsSaved(article.updated_at);
+  }
+
+  async function loadReviewHistory(): Promise<void> {
+    if (!articleId || !reviewHistory || !reviewHistoryList) return;
+    const { data, error } = await supabaseBrowser
+      .from("editorial_review_events")
+      .select("id,action,note,created_at")
+      .eq("article_id", articleId)
+      .order("created_at", { ascending: false });
+    if (error || !data?.length) { reviewHistory.hidden = true; return; }
+    reviewHistoryList.replaceChildren();
+    const labels: Record<string, string> = { submitted: "Submitted for review", changes_requested: "Changes requested", approved: "Approved and published" };
+    for (const event of data as ReviewEvent[]) {
+      const item = document.createElement("article"); item.className = `review-event review-event--${event.action}`;
+      const heading = document.createElement("div");
+      const title = document.createElement("h3"); title.textContent = labels[event.action] ?? "Editorial update";
+      const date = document.createElement("time"); date.dateTime = event.created_at; date.textContent = formatDisplayDate(event.created_at);
+      heading.append(title, date); item.append(heading);
+      if (event.note) { const note = document.createElement("p"); note.textContent = event.note; item.append(note); }
+      reviewHistoryList.append(item);
+    }
+    reviewHistory.hidden = false;
   }
 
   async function verifyAdmin(): Promise<boolean> {
@@ -2526,6 +2575,7 @@ const editorMode = articleId ? "edit" : "create";
     }
 
     populateForm(data as ArticleRecord);
+    await loadReviewHistory();
     form?.removeAttribute("hidden");
   }
 
@@ -2983,6 +3033,25 @@ const editorMode = articleId ? "edit" : "create";
     }
   });
 
+  returnChangesButton?.addEventListener("click", () => {
+    if (!isCommissioner && currentArticleStatus === "ready_for_review") {
+      returnChangesDialog?.showModal(); returnChangesNote?.focus();
+    }
+  });
+  cancelReturnChanges?.addEventListener("click", () => returnChangesDialog?.close());
+  returnChangesForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const note = returnChangesNote?.value.trim() ?? "";
+    if (!articleId || !note) { returnChangesNote?.focus(); return; }
+    setSavingState(true);
+    const { error } = await supabaseBrowser.rpc("admin_return_article_for_changes", { target_article_id: articleId, review_note: note });
+    setSavingState(false);
+    if (error) { setMessage(`Unable to return the story: ${error.message}`, "error"); return; }
+    returnChangesDialog?.close(); if (returnChangesNote) returnChangesNote.value = "";
+    setMessage("Story returned to the contributor with your review note.", "success");
+    await loadArticle();
+  });
+
   previewButton?.addEventListener("click", openPreview);
 
   closePreviewButton?.addEventListener("click", closePreview);
@@ -3147,13 +3216,9 @@ const editorMode = articleId ? "edit" : "create";
   }
 
   .approve-publish-button {
-    position: fixed;
-    z-index: 30;
-    right: clamp(1rem, 3vw, 2rem);
-    bottom: clamp(1rem, 3vw, 2rem);
     display: grid;
     gap: 0.15rem;
-    min-width: min(18rem, calc(100vw - 2rem));
+    min-width: 15rem;
     padding: 0.9rem 1.15rem;
     border: 0;
     border-radius: var(--radius-md);
@@ -3181,6 +3246,39 @@ const editorMode = articleId ? "edit" : "create";
     cursor: wait;
     opacity: 0.7;
   }
+
+  .review-workflow,
+  .review-history {
+    border: 1px solid color-mix(in srgb, var(--color-green) 32%, var(--color-rule));
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--color-green) 5%, var(--color-surface));
+    box-shadow: var(--shadow-card);
+  }
+
+  .review-workflow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+    padding: 1.25rem 1.5rem;
+  }
+
+  .review-workflow[hidden],
+  .review-history[hidden] { display: none; }
+
+  .review-workflow h2,
+  .review-history h2 { margin: 0.2rem 0 0; font-size: 1.45rem; }
+
+  .review-workflow__actions { display: flex; align-items: center; gap: var(--space-2); }
+
+  .review-history__heading { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--color-rule); }
+  .review-history__list { display: grid; }
+  .review-event { padding: 1rem 1.5rem; border-top: 1px solid var(--color-rule); }
+  .review-event:first-child { border-top: 0; }
+  .review-event > div { display: flex; justify-content: space-between; gap: 1rem; }
+  .review-event h3, .review-event p { margin: 0; }
+  .review-event time { color: var(--color-ink-soft); font-size: var(--text-sm); }
+  .review-event p { margin-top: 0.65rem; padding-left: 1rem; border-left: 3px solid #a32320; line-height: 1.6; }
 
   .editor-layout {
     display: grid;
@@ -3723,6 +3821,11 @@ const editorMode = articleId ? "edit" : "create";
     line-height: 1.65;
   }
 
+  .return-changes__body { display: grid; gap: 0.75rem; padding: 1.5rem; }
+  .return-changes__body p { margin: 0 0 0.25rem; color: var(--color-ink-soft); line-height: 1.55; }
+  .return-changes__body label { font-weight: 750; }
+  .return-changes__body textarea { width: 100%; padding: 0.8rem; border: 1px solid var(--color-rule-dark); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-ink); font: inherit; resize: vertical; }
+
   .status-confirmation__actions {
     display: flex;
     justify-content: flex-end;
@@ -3741,6 +3844,9 @@ const editorMode = articleId ? "edit" : "create";
   }
 
   @media (max-width: 36rem) {
+    .review-workflow, .review-workflow__actions { align-items: stretch; flex-direction: column; }
+    .review-workflow__actions > * { width: 100%; }
+    .review-event > div { align-items: flex-start; flex-direction: column; gap: 0.25rem; }
     .status-confirmation__actions {
       display: grid;
     }
