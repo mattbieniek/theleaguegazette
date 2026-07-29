@@ -1,0 +1,79 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Contributors | The League Gazette">
+  <main class="admin-shell contributors" hidden id="contributors-page">
+    <header class="contributors__header">
+      <div><p class="eyebrow">Editorial access</p><h1>Contributors</h1><p>Grant Commissioner's Corner access to an existing Supabase user.</p></div>
+    </header>
+    <section class="contributors__panel">
+      <h2>Add a contributor</h2>
+      <p>The person must already have an account in Supabase Authentication. Adding them here grants publication access; it does not send an invitation.</p>
+      <form id="contributor-form">
+        <label>Email address<input id="contributor-email" type="email" required autocomplete="off" placeholder="name@example.com" /></label>
+        <label>Display name<input id="contributor-name" type="text" required autocomplete="off" placeholder="The Commissioner" /></label>
+        <button type="submit">Grant contributor access</button>
+      </form>
+      <p id="contributor-message" role="status" aria-live="polite"></p>
+    </section>
+    <section class="contributors__panel"><h2>Current contributors</h2><div id="contributor-list"></div></section>
+  </main>
+
+  <script>
+    import { supabaseBrowser } from "../../lib/supabase-browser";
+    type Contributor = { user_id: string; email: string; display_name: string; role: string; created_at: string };
+    const page = document.querySelector<HTMLElement>("#contributors-page");
+    const form = document.querySelector<HTMLFormElement>("#contributor-form");
+    const list = document.querySelector<HTMLElement>("#contributor-list");
+    const message = document.querySelector<HTMLElement>("#contributor-message");
+    const emailInput = document.querySelector<HTMLInputElement>("#contributor-email");
+    const nameInput = document.querySelector<HTMLInputElement>("#contributor-name");
+
+    function setMessage(text: string, error = false) { if (message) { message.textContent = text; message.dataset.error = String(error); } }
+    function render(contributors: Contributor[]) {
+      if (!list) return; list.replaceChildren();
+      if (!contributors.length) { list.textContent = "No contributors have been added yet."; return; }
+      for (const contributor of contributors) {
+        const row = document.createElement("article"); row.className = "contributor-row";
+        const copy = document.createElement("div");
+        const title = document.createElement("h3"); title.textContent = contributor.display_name;
+        const detail = document.createElement("p"); detail.textContent = `${contributor.email} · Commissioner's Corner`;
+        const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Remove access"; remove.className = "secondary";
+        remove.addEventListener("click", async () => {
+          if (!confirm(`Remove publication access for ${contributor.display_name}? Their existing stories will remain.`)) return;
+          remove.disabled = true;
+          const { error } = await supabaseBrowser.rpc("admin_remove_publication_contributor", { contributor_user_id: contributor.user_id });
+          if (error) { setMessage(error.message, true); remove.disabled = false; return; }
+          setMessage(`Access removed for ${contributor.display_name}.`); await load();
+        });
+        copy.append(title, detail); row.append(copy, remove); list.append(row);
+      }
+    }
+    async function load() {
+      const { data, error } = await supabaseBrowser.rpc("admin_publication_contributors");
+      if (error) { setMessage(error.message, true); return; }
+      render((data ?? []) as Contributor[]);
+    }
+    async function initialize() {
+      const { data: { user } } = await supabaseBrowser.auth.getUser();
+      if (!user) { window.location.replace("/admin/login"); return; }
+      const { data: admin } = await supabaseBrowser.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle();
+      if (!admin) { window.location.replace("/admin/articles"); return; }
+      if (page) page.hidden = false; await load();
+    }
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault(); if (!emailInput || !nameInput) return;
+      const button = form.querySelector<HTMLButtonElement>("button"); if (button) button.disabled = true; setMessage("Adding contributor…");
+      const { error } = await supabaseBrowser.rpc("admin_add_publication_contributor", { contributor_email: emailInput.value, contributor_display_name: nameInput.value });
+      if (button) button.disabled = false;
+      if (error) { setMessage(error.message, true); return; }
+      setMessage(`${nameInput.value.trim()} now has contributor access.`); form.reset(); await load();
+    });
+    void initialize();
+  </script>
+</AdminLayout>
+
+<style>
+  .contributors{display:grid;gap:1.5rem}.contributors__header h1{margin:.25rem 0;font-family:Georgia,serif;font-size:clamp(2rem,4vw,3.25rem)}.contributors__header p:last-child,.contributors__panel>p{color:#625d55}.contributors__panel{padding:1.5rem;border:1px solid #d8d1c5;background:#fff}.contributors__panel h2{margin-top:0;font-family:Georgia,serif}.contributors form{display:grid;grid-template-columns:1fr 1fr auto;gap:1rem;align-items:end;margin-top:1.25rem}.contributors label{display:grid;gap:.4rem;font-weight:700}.contributors input{min-height:2.75rem;padding:.65rem;border:1px solid #aaa39a}.contributors button{min-height:2.75rem;padding:.65rem 1rem;border:1px solid #1d1b19;background:#1d1b19;color:#fff;font-weight:700;cursor:pointer}.contributors button.secondary{background:transparent;color:#7d211f;border-color:#7d211f}.contributors button:disabled{opacity:.55}.contributor-row{display:flex;justify-content:space-between;gap:1rem;align-items:center;padding:1rem 0;border-top:1px solid #e2ddd5}.contributor-row:first-child{border-top:0}.contributor-row h3,.contributor-row p{margin:0}.contributor-row p{margin-top:.25rem;color:#625d55}#contributor-message[data-error="true"]{color:#a32320}@media(max-width:760px){.contributors form{grid-template-columns:1fr}.contributor-row{align-items:flex-start;flex-direction:column}}
+</style>

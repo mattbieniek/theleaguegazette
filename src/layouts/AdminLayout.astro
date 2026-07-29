@@ -125,6 +125,28 @@ function isActive(path: string, exact = false) {
 
                 <span>New Story</span>
               </a>
+
+              <a
+                class:list={["admin-navigation__link", { "admin-navigation__link--active": currentPath === "/admin/notifications" }]}
+                href="/admin/notifications"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" />
+                </svg>
+                <span>Notifications</span>
+                <span id="admin-notification-count" class="admin-navigation__count" hidden></span>
+              </a>
+
+              <a
+                class:list={["admin-navigation__link", { "admin-navigation__link--active": currentPath === "/admin/contributors" }]}
+                href="/admin/contributors"
+                data-admin-only
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M16 11h6" />
+                </svg>
+                <span>Contributors</span>
+              </a>
             </div>
 
             <div class="admin-navigation__group" data-admin-only>
@@ -381,6 +403,15 @@ function isActive(path: string, exact = false) {
         async function personalizeNavigation() {
           const { data: { user } } = await supabaseBrowser.auth.getUser();
           if (!user) return;
+          const { count } = await supabaseBrowser
+            .from("editorial_notifications")
+            .select("id", { count: "exact", head: true })
+            .is("read_at", null);
+          const notificationCount = document.querySelector<HTMLElement>("#admin-notification-count");
+          if (notificationCount && count) {
+            notificationCount.textContent = count > 99 ? "99+" : String(count);
+            notificationCount.hidden = false;
+          }
           const { data: contributor } = await supabaseBrowser
             .from("publication_contributors")
             .select("role")
@@ -609,6 +640,18 @@ function isActive(path: string, exact = false) {
 
   [data-admin-only][hidden] {
     display: none !important;
+  }
+
+  .admin-navigation__count {
+    margin-left: auto;
+    min-width: 1.4rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    background: #a32320;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
   }
 
   .admin-navigation__label {

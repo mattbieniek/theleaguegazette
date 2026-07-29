@@ -2520,6 +2520,11 @@ const editorMode = articleId ? "edit" : "create";
       return;
     }
 
+    if (isCommissioner && data.status !== "draft" && data.status !== "ready_for_review") {
+      window.location.replace(data.slug ? `/gazette/${data.slug}` : "/admin/articles");
+      return;
+    }
+
     populateForm(data as ArticleRecord);
     form?.removeAttribute("hidden");
   }

@@ -1,0 +1,73 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Notifications | The League Gazette">
+  <main class="admin-shell notifications" hidden id="notifications-page">
+    <header class="notifications__header">
+      <div><p class="eyebrow">Editorial activity</p><h1>Notifications</h1><p>Review requests, publishing updates, and contributor feedback in one place.</p></div>
+      <button id="mark-all-read" type="button" class="secondary" hidden>Mark all as read</button>
+    </header>
+    <p id="notifications-message" role="status" aria-live="polite"></p>
+    <section id="notifications-list" class="notifications__list"></section>
+    <section id="notifications-empty" class="notifications__empty" hidden><h2>You're all caught up</h2><p>Editorial updates will appear here as stories move through review and publication.</p></section>
+  </main>
+
+  <script>
+    import { supabaseBrowser } from "../../lib/supabase-browser";
+    type Notification = { id: string; kind: string; title: string; message: string; action_url: string | null; read_at: string | null; created_at: string };
+    const page = document.querySelector<HTMLElement>("#notifications-page");
+    const list = document.querySelector<HTMLElement>("#notifications-list");
+    const empty = document.querySelector<HTMLElement>("#notifications-empty");
+    const markAll = document.querySelector<HTMLButtonElement>("#mark-all-read");
+    const message = document.querySelector<HTMLElement>("#notifications-message");
+    let notifications: Notification[] = [];
+    const labels: Record<string, string> = { review_requested: "Review requested", story_published: "Published", changes_requested: "Changes requested" };
+    function formatDate(value: string) { return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value)); }
+    async function markRead(notification: Notification) {
+      if (notification.read_at) return;
+      await supabaseBrowser.from("editorial_notifications").update({ read_at: new Date().toISOString() }).eq("id", notification.id);
+      notification.read_at = new Date().toISOString();
+    }
+    function render() {
+      if (!list || !empty || !markAll) return; list.replaceChildren(); empty.hidden = notifications.length > 0;
+      markAll.hidden = !notifications.some((item) => !item.read_at);
+      for (const item of notifications) {
+        const card = document.createElement("article"); card.className = `notification-card${item.read_at ? "" : " notification-card--unread"}`;
+        const copy = document.createElement("div");
+        const meta = document.createElement("p"); meta.className = "notification-card__meta"; meta.textContent = `${labels[item.kind] ?? "Editorial update"} · ${formatDate(item.created_at)}`;
+        const title = document.createElement("h2"); title.textContent = item.title;
+        const body = document.createElement("p"); body.textContent = item.message;
+        copy.append(meta, title, body); card.append(copy);
+        const actions = document.createElement("div"); actions.className = "notification-card__actions";
+        if (!item.read_at) { const read = document.createElement("button"); read.type = "button"; read.className = "text-button"; read.textContent = "Mark read"; read.addEventListener("click", async () => { await markRead(item); render(); }); actions.append(read); }
+        if (item.action_url) { const open = document.createElement("a"); open.href = item.action_url; open.textContent = item.kind === "story_published" ? "View story" : "Open story"; open.addEventListener("click", () => { void markRead(item); }); actions.append(open); }
+        card.append(actions); list.append(card);
+      }
+    }
+    async function initialize() {
+      const { data: { user } } = await supabaseBrowser.auth.getUser();
+      if (!user) { window.location.replace("/admin/login"); return; }
+      const [{ data: admin }, { data: contributor }] = await Promise.all([
+        supabaseBrowser.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle(),
+        supabaseBrowser.from("publication_contributors").select("user_id").eq("user_id", user.id).maybeSingle(),
+      ]);
+      if (!admin && !contributor) { await supabaseBrowser.auth.signOut(); window.location.replace("/admin/login"); return; }
+      const { data, error } = await supabaseBrowser.from("editorial_notifications").select("id,kind,title,message,action_url,read_at,created_at").order("created_at", { ascending: false });
+      if (error) { if (message) message.textContent = `Unable to load notifications: ${error.message}`; }
+      notifications = (data ?? []) as Notification[]; if (page) page.hidden = false; render();
+    }
+    markAll?.addEventListener("click", async () => {
+      markAll.disabled = true;
+      const { error } = await supabaseBrowser.from("editorial_notifications").update({ read_at: new Date().toISOString() }).is("read_at", null);
+      markAll.disabled = false;
+      if (error) { if (message) message.textContent = error.message; return; }
+      for (const item of notifications) item.read_at ||= new Date().toISOString(); render();
+    });
+    void initialize();
+  </script>
+</AdminLayout>
+
+<style>
+  .notifications{display:grid;gap:1.5rem}.notifications__header{display:flex;justify-content:space-between;gap:1rem;align-items:end}.notifications__header h1{margin:.25rem 0;font-family:Georgia,serif;font-size:clamp(2rem,4vw,3.25rem)}.notifications__header p:last-child{margin-bottom:0;color:#625d55}.notifications__header button{padding:.7rem 1rem;border:1px solid #706a62;background:transparent;font-weight:700;cursor:pointer}.notifications__list{display:grid;gap:.75rem}.notification-card{display:flex;justify-content:space-between;gap:1.5rem;padding:1.25rem 1.5rem;border:1px solid #d8d1c5;background:#fff}.notification-card--unread{border-left:4px solid #a32320}.notification-card h2{margin:.25rem 0;font-family:Georgia,serif;font-size:1.25rem}.notification-card p{margin:.25rem 0;color:#625d55}.notification-card__meta{color:#7d211f!important;font-size:.75rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}.notification-card__actions{display:flex;gap:.75rem;align-items:center;white-space:nowrap}.notification-card__actions a{padding:.55rem .8rem;background:#1d1b19;color:#fff;text-decoration:none;font-weight:700}.text-button{border:0;background:transparent;color:#625d55;text-decoration:underline;cursor:pointer}.notifications__empty{padding:3rem 1.5rem;border:1px dashed #bbb3a8;text-align:center}.notifications__empty h2{font-family:Georgia,serif}@media(max-width:700px){.notifications__header,.notification-card{align-items:flex-start;flex-direction:column}.notification-card__actions{width:100%;justify-content:flex-end}}
+</style>
