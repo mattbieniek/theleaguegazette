@@ -3,7 +3,7 @@ import { teams } from "../data/teams";
 import { seasonHistoryMetadata } from "../data/seasonHistory";
 import { getPublishedArticles } from "../lib/queries/gazette";
 
-export const prerender = true;
+export const prerender = false;
 
 const staticPaths = [
   "/",
@@ -55,4 +55,3 @@ export const GET: APIRoute = async ({ site }) => {
     { headers: { "Content-Type": "application/xml; charset=utf-8" } }
   );
 };
-

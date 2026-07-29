@@ -4,6 +4,8 @@ import { COMMISSIONERS_CORNER_CATEGORY, getPublishedArticles } from "../../lib/q
 import { formatPublicationDate } from "../../lib/formatDate";
 import CommissionersCorner from "../../components/gazette/CommissionersCorner.astro";
 
+export const prerender = false;
+
 const articles = await getPublishedArticles();
 const commissionersCornerArticles = articles.filter(
   (article) => article.category === COMMISSIONERS_CORNER_CATEGORY,
