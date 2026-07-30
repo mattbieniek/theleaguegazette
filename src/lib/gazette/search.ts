@@ -21,6 +21,7 @@ export const searchDestinations: SearchDestination[] = [
   { title: "League Standings", description: "Current records, rankings and scoring totals.", href: "/standings", section: "League", keywords: ["rankings", "record", "wins", "losses"] },
   { title: "League Statistics", description: "Season leaders and franchise performance tables.", href: "/stats", section: "League", keywords: ["stats", "leaders", "points", "performance"] },
   { title: "Weekly Awards", description: "The best, worst and most painful weekly performances.", href: "/awards", section: "Gazette", keywords: ["honors", "golden box score", "bad beat", "bench"] },
+  { title: "Power Rankings", description: "The Computer Poll debates The Gazette Poll.", href: "/rankings", section: "Gazette", keywords: ["rankings", "computer", "poll", "gazette"] },
   { title: "League History", description: "Champions, seasons and the league timeline.", href: "/history", section: "Archive", keywords: ["champions", "seasons", "past", "timeline"] },
   { title: "Record Book", description: "The greatest and most dubious marks in league history.", href: "/records", section: "Archive", keywords: ["records", "highest", "lowest", "all time"] },
   { title: "Draft Archive", description: "Every recorded selection from the league draft room.", href: "/draft", section: "Archive", keywords: ["draft", "picks", "rookies", "round"] },
@@ -108,4 +109,3 @@ export function highlightSearchTerm(
     { text: value.slice(index + trimmedQuery.length), match: false },
   ].filter((part) => part.text.length > 0);
 }
-

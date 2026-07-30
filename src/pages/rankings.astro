@@ -1,0 +1,26 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { supabase } from "../lib/supabase";
+import { buildComputerPoll } from "../lib/gazette/powerRankings";
+export const prerender=false;
+type GazetteEntry={teamId:string;teamName:string;rank:number;previousRank:number|null;record:string;pointsFor:number;note:string};
+const db=supabase as any;
+const {data:edition}=await db.from("power_rankings").select("season_year,week,title,entries,updated_at").eq("status","ready").order("season_year",{ascending:false}).order("week",{ascending:false}).limit(1).maybeSingle();
+const {data:results}=edition?await supabase.from("team_weekly_results").select("fantasy_team_id,team_name,week,points_for,point_differential,result").eq("season_year",edition.season_year).lte("week",edition.week):{data:[]};
+const computer=buildComputerPoll(results??[],edition?.week??0);const gazette=(edition?.entries??[]) as GazetteEntry[];const computerByTeam=new Map(computer.map(item=>[item.teamId,item]));
+---
+<BaseLayout title="Power Rankings" description="The Computer Poll meets The Gazette Poll: performance data versus unapologetic editorial bias.">
+  <main class="rankings-page site-shell">
+    <header class="rankings-hero"><p class="eyebrow">Data Meets Editorial Mischief</p><h1>Power Rankings</h1><p>The Computer Poll follows the numbers. The Gazette Poll follows instinct, grudges, narrative convenience and whatever else the editorial board finds persuasive.</p>{edition&&<div><strong>{edition.season_year} · Week {edition.week}</strong><span>{edition.title}</span></div>}</header>
+    {edition&&computer.length? <>
+      <aside class="formula"><strong>Computer Poll formula</strong><span>35% season scoring · 35% last-three scoring · 20% win rate · 10% point differential</span></aside>
+      <section class="poll-grid">
+        <div class="poll"><header><p class="eyebrow">No Feelings Allowed</p><h2>Computer Poll</h2></header>{computer.map(team=><article><b>{team.rank}</b><div><h3>{team.teamName}</h3><p>{team.record} · {team.score.toFixed(1)} rating</p></div><span>{team.recentAverage.toFixed(2)} recent avg</span></article>)}</div>
+        <div class="poll poll--gazette"><header><p class="eyebrow">Editorial Agenda</p><h2>Gazette Poll</h2></header>{gazette.map(team=>{const computerTeam=computerByTeam.get(team.teamId);const difference=computerTeam?computerTeam.rank-team.rank:0;return <article><b>{team.rank}</b><div><h3>{team.teamName}</h3><p>{team.note||"The editorial board declines to elaborate."}</p></div><span class:list={[difference>0&&"favored",difference<0&&"snubbed"]}>{computerTeam?difference===0?"Agrees":difference>0?`${difference} spot${difference===1?"":"s"} favored`:`${Math.abs(difference)} spot${difference===-1?"":"s"} snubbed`:"Unranked"}</span></article>})}</div>
+      </section>
+    </>:<section class="empty"><p class="eyebrow">Rankings Desk</p><h2>No edition is ready yet.</h2><p>The argument begins as soon as the editorial board marks its first Gazette Poll ready.</p></section>}
+  </main>
+</BaseLayout>
+<style>
+  .rankings-page{padding-block:clamp(2.5rem,6vw,5rem) var(--space-9)}.rankings-hero{padding-bottom:2rem;border-bottom:3px double var(--color-rule-dark)}.rankings-hero h1{margin:.2rem 0;font-size:clamp(4rem,10vw,8rem)}.rankings-hero>p:last-of-type{max-width:55rem;color:var(--color-ink-soft);font-family:var(--font-editorial);font-size:1.25rem;line-height:1.5}.rankings-hero>div{display:flex;gap:1rem;margin-top:1.5rem}.rankings-hero>div span{color:var(--color-ink-soft)}.formula{display:flex;justify-content:space-between;gap:1rem;margin-block:1.5rem;padding:1rem;border:1px solid var(--color-rule);background:var(--color-surface)}.formula span{color:var(--color-ink-soft)}.poll-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.5rem}.poll{border:1px solid var(--color-rule);background:var(--color-surface)}.poll>header{padding:1.5rem;border-bottom:3px solid var(--color-green)}.poll--gazette>header{border-color:#9b352d}.poll h2{margin:0;font-size:2.5rem}.poll article{display:grid;grid-template-columns:3rem minmax(0,1fr) auto;align-items:center;gap:1rem;padding:1rem;border-bottom:1px solid var(--color-rule)}.poll article:last-child{border-bottom:0}.poll article>b{font-family:var(--font-display);font-size:2rem;text-align:center}.poll h3,.poll article p{margin:0}.poll article p{margin-top:.25rem;color:var(--color-ink-soft);font-size:.78rem;line-height:1.4}.poll article>span{max-width:8rem;color:var(--color-ink-soft);font-size:.68rem;font-weight:800;text-align:right;text-transform:uppercase}.poll article>span.favored{color:var(--color-green)}.poll article>span.snubbed{color:#9b352d}.empty{padding:5rem 1rem;text-align:center}.empty h2{font-size:3rem}@media(max-width:850px){.poll-grid{grid-template-columns:1fr}.formula{flex-direction:column}}@media(max-width:520px){.poll article{grid-template-columns:2.5rem 1fr}.poll article>span{grid-column:2;text-align:left}}
+</style>
