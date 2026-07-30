@@ -381,6 +381,15 @@ const editorMode = articleId ? "edit" : "create";
 
             <div class="featured-image-actions">
               <button
+                id="choose-library-image-button"
+                class="editor-button editor-button--secondary"
+                type="button"
+                hidden
+              >
+                Choose from Photo Desk
+              </button>
+
+              <button
                 id="upload-image-button"
                 class="editor-button editor-button--secondary"
                 type="button"
@@ -588,6 +597,17 @@ const editorMode = articleId ? "edit" : "create";
       </div>
     </div>
   </dialog>
+  <dialog id="image-library-dialog" class="image-library-dialog" aria-labelledby="image-library-title">
+    <div class="image-library-panel">
+      <header>
+        <div><p class="eyebrow">Photo Desk</p><h2 id="image-library-title">Choose existing artwork</h2></div>
+        <button id="close-image-library" type="button" aria-label="Close artwork library">×</button>
+      </header>
+      <label class="image-library-search">Find artwork<input id="image-library-search" type="search" placeholder="Search by story or image description" /></label>
+      <p id="image-library-message" role="status" aria-live="polite"></p>
+      <section id="image-library-grid" class="image-library-grid" aria-label="Available artwork"></section>
+    </div>
+  </dialog>
   <dialog id="return-changes-dialog" class="status-confirmation" aria-labelledby="return-changes-title">
     <form id="return-changes-form" class="status-confirmation__panel">
       <div class="status-confirmation__heading"><p class="eyebrow">Editorial feedback</p><h2 id="return-changes-title">Return story for changes</h2></div>
@@ -789,6 +809,12 @@ const editorMode = articleId ? "edit" : "create";
   const uploadImageButton = document.querySelector<HTMLButtonElement>(
     "#upload-image-button",
   );
+  const chooseLibraryImageButton = document.querySelector<HTMLButtonElement>("#choose-library-image-button");
+  const imageLibraryDialog = document.querySelector<HTMLDialogElement>("#image-library-dialog");
+  const closeImageLibraryButton = document.querySelector<HTMLButtonElement>("#close-image-library");
+  const imageLibrarySearch = document.querySelector<HTMLInputElement>("#image-library-search");
+  const imageLibraryGrid = document.querySelector<HTMLElement>("#image-library-grid");
+  const imageLibraryMessage = document.querySelector<HTMLElement>("#image-library-message");
 
   const removeImageButton = document.querySelector<HTMLButtonElement>(
     "#remove-image-button",
@@ -953,6 +979,7 @@ const editorMode = articleId ? "edit" : "create";
   let currentUserId = "";
   let isCommissioner = false;
   let contributorDisplayName = "";
+  let libraryImages: Array<{ image_url: string; image_alt: string | null; headline: string }> = [];
 
   let richTextEditor: Editor | null = null;
 
@@ -1844,6 +1871,66 @@ const editorMode = articleId ? "edit" : "create";
     renderPublishingReadiness();
   }
 
+  function renderImageLibrary(): void {
+    if (!imageLibraryGrid) return;
+    const query = imageLibrarySearch?.value.trim().toLowerCase() ?? "";
+    const visible = libraryImages.filter((image) =>
+      !query || image.headline.toLowerCase().includes(query) ||
+      image.image_alt?.toLowerCase().includes(query)
+    );
+    imageLibraryGrid.replaceChildren();
+    for (const image of visible) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "image-library-item";
+      const preview = document.createElement("img");
+      preview.src = image.image_url;
+      preview.alt = image.image_alt ?? "";
+      preview.loading = "lazy";
+      const copy = document.createElement("span");
+      const title = document.createElement("strong");
+      title.textContent = image.headline;
+      const description = document.createElement("small");
+      description.textContent = image.image_alt || "No alternative text saved";
+      copy.append(title, description);
+      button.append(preview, copy);
+      button.addEventListener("click", () => {
+        if (imageUrlInput) imageUrlInput.value = image.image_url;
+        if (imageAltInput && !imageAltInput.value.trim() && image.image_alt) imageAltInput.value = image.image_alt;
+        updateFeaturedImagePreview(image.image_url, imageAltInput?.value.trim() ?? "");
+        updateDirtyState();
+        scheduleAutosave();
+        imageLibraryDialog?.close();
+        setImageUploadStatus("Existing artwork selected.", "success");
+      });
+      imageLibraryGrid.append(button);
+    }
+    if (imageLibraryMessage) imageLibraryMessage.textContent = visible.length ? "" : "No artwork matches this search.";
+  }
+
+  async function openImageLibrary(): Promise<void> {
+    if (!imageLibraryDialog) return;
+    imageLibraryDialog.showModal();
+    if (imageLibraryMessage) imageLibraryMessage.textContent = "Loading artwork…";
+    const { data, error } = await supabaseBrowser
+      .from("gazette_articles")
+      .select("image_url,image_alt,headline")
+      .not("image_url", "is", null)
+      .neq("status", "archived")
+      .order("updated_at", { ascending: false });
+    if (error) {
+      if (imageLibraryMessage) imageLibraryMessage.textContent = `Unable to load artwork: ${error.message}`;
+      return;
+    }
+    const seen = new Set<string>();
+    libraryImages = (data ?? []).flatMap((image) => {
+      if (!image.image_url || seen.has(image.image_url)) return [];
+      seen.add(image.image_url);
+      return [{ image_url: image.image_url, image_alt: image.image_alt, headline: image.headline }];
+    });
+    renderImageLibrary();
+  }
+
   function getFileExtension(file: File): string {
     const extensionByType: Record<string, string> = {
       "image/jpeg": "jpg",
@@ -1894,6 +1981,16 @@ const editorMode = articleId ? "edit" : "create";
     const storagePath = getStoragePathFromPublicUrl(imageUrl);
 
     if (!storagePath) {
+      return;
+    }
+
+    const { count } = await supabaseBrowser
+      .from("gazette_articles")
+      .select("id", { count: "exact", head: true })
+      .eq("image_url", imageUrl)
+      .neq("id", articleId || "00000000-0000-0000-0000-000000000000");
+
+    if ((count ?? 0) > 0) {
       return;
     }
 
@@ -2107,6 +2204,7 @@ const editorMode = articleId ? "edit" : "create";
       .maybeSingle();
 
     if (!adminError && adminRecord) {
+      if (chooseLibraryImageButton) chooseLibraryImageButton.hidden = false;
       return true;
     }
 
@@ -2937,6 +3035,10 @@ const editorMode = articleId ? "edit" : "create";
   uploadImageButton?.addEventListener("click", () => {
     imageFileInput?.click();
   });
+
+  chooseLibraryImageButton?.addEventListener("click", () => void openImageLibrary());
+  closeImageLibraryButton?.addEventListener("click", () => imageLibraryDialog?.close());
+  imageLibrarySearch?.addEventListener("input", renderImageLibrary);
 
   imageFileInput?.addEventListener("change", () => {
     const file = imageFileInput.files?.[0];
@@ -4166,4 +4268,21 @@ const editorMode = articleId ? "edit" : "create";
     border-color: #702323;
     background: #702323;
   }
+
+  .image-library-dialog { width:min(62rem,calc(100% - 2rem));max-height:85vh;padding:0;border:0;background:transparent; }
+  .image-library-dialog::backdrop { background:rgba(20,18,15,.72); }
+  .image-library-panel { display:grid;gap:1rem;max-height:85vh;padding:1.5rem;overflow:auto;border:1px solid var(--color-rule-dark);background:var(--color-paper);box-shadow:0 2rem 5rem rgba(0,0,0,.28); }
+  .image-library-panel>header { display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding-bottom:1rem;border-bottom:3px double var(--color-rule-dark); }
+  .image-library-panel h2,.image-library-panel p { margin:0; }
+  .image-library-panel>header button { width:2.5rem;height:2.5rem;border:1px solid var(--color-rule-dark);background:var(--color-surface);font-size:1.5rem; }
+  .image-library-search { display:grid;gap:.35rem;font-weight:750; }
+  .image-library-search input { min-height:2.75rem;padding:.65rem;border:1px solid var(--color-rule-dark);background:#fff; }
+  .image-library-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem; }
+  .image-library-item { display:grid;padding:0;overflow:hidden;border:1px solid var(--color-rule);background:var(--color-surface);color:inherit;text-align:left;cursor:pointer; }
+  .image-library-item:hover { border-color:var(--color-green); }
+  .image-library-item img { width:100%;aspect-ratio:16/9;object-fit:cover;background:#e9e5dc; }
+  .image-library-item span { display:grid;gap:.3rem;padding:.8rem; }
+  .image-library-item small { color:var(--color-ink-soft);line-height:1.4; }
+  @media(max-width:760px){.image-library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:520px){.image-library-grid{grid-template-columns:1fr}}
 </style>
