@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import HistoryNav from "../../components/history/HistoryNav.astro";
+import RankingJourney from "../../components/history/RankingJourney.astro";
 import { teams as leagueTeams } from "../../data/teams";
 import { getHistoricalResults } from "../../lib/queries/records";
 import { buildLeagueSeasonHistory } from "../../lib/gazette/history";
@@ -100,6 +101,8 @@ const championProfile = getTeamProfile(season.champion);
         ))}
       </div>
     </section>
+
+    <RankingJourney results={results} season={season.year} />
 
     <section class="performance" aria-labelledby="performance-title">
       <div class="section-heading">

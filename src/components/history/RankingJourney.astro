@@ -1,0 +1,99 @@
+---
+import { teams as leagueTeams } from "../../data/teams";
+import { buildComputerPoll } from "../../lib/gazette/powerRankings";
+import type { WeeklyTeamResult } from "../../lib/queries/awards";
+
+type Props = { results: WeeklyTeamResult[]; season: number };
+const { results, season } = Astro.props;
+const seasonResults = results.filter((result) => result.season_year === season);
+const weeks = [...new Set(seasonResults.map((result) => result.week))].sort((a, b) => a - b);
+const weeklyPolls = weeks.map((week) => ({ week, rankings: buildComputerPoll(seasonResults, week) }));
+const teamNames = [...new Set(weeklyPolls.flatMap((poll) => poll.rankings.map((team) => team.teamName)))];
+const fallbackColors = ["#17382b", "#9b352d", "#b37b22", "#425f75", "#7447c6", "#d8577c", "#5e8c3a", "#d96a1b", "#203b73", "#8a5a2b"];
+const chartTeams = teamNames.map((teamName, index) => {
+  const normalized = teamName.trim().toLowerCase();
+  const profile = leagueTeams.find((team) => team.name.toLowerCase() === normalized || team.legacyName.toLowerCase() === normalized);
+  return {
+    id: `team-${index}`,
+    name: teamName,
+    color: profile?.primary ?? fallbackColors[index % fallbackColors.length],
+    points: weeklyPolls.flatMap((poll, weekIndex) => {
+      const ranking = poll.rankings.find((team) => team.teamName === teamName);
+      return ranking ? [{ week: poll.week, weekIndex, rank: ranking.rank }] : [];
+    }),
+  };
+});
+
+const width = 1120;
+const height = 530;
+const left = 54;
+const right = 28;
+const top = 32;
+const bottom = 52;
+const plotWidth = width - left - right;
+const plotHeight = height - top - bottom;
+const teamCount = Math.max(chartTeams.length, 1);
+const xFor = (index: number) => left + (weeks.length <= 1 ? plotWidth / 2 : (index / (weeks.length - 1)) * plotWidth);
+const yFor = (rank: number) => top + ((rank - 1) / Math.max(teamCount - 1, 1)) * plotHeight;
+const pathFor = (points: typeof chartTeams[number]["points"]) => points.map((point, index) => `${index === 0 ? "M" : "L"} ${xFor(point.weekIndex).toFixed(1)} ${yFor(point.rank).toFixed(1)}`).join(" ");
+---
+
+{weeks.length > 0 && chartTeams.length > 0 && (
+  <section class="ranking-journey" data-ranking-journey aria-labelledby={`ranking-journey-${season}`}>
+    <div class="ranking-journey__heading">
+      <div><p class="eyebrow">Rise, Fall, Repeat</p><h2 id={`ranking-journey-${season}`}>Computer Poll Journey</h2></div>
+      <p>Follow every team’s calculated rank from week to week. Select a team to trace its path through the season.</p>
+    </div>
+
+    <div class="ranking-journey__legend" aria-label="Choose a team to highlight">
+      <button type="button" class="is-active" data-team-filter="all" aria-pressed="true">All teams</button>
+      {chartTeams.map((team) => <button type="button" data-team-filter={team.id} aria-pressed="false"><i style={`--team-color:${team.color}`}></i>{team.name}</button>)}
+    </div>
+
+    <div class="ranking-journey__chart" tabindex="0" role="img" aria-label={`${season} weekly Computer Poll ranking journey for ${chartTeams.length} teams`}>
+      <svg viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+        <g class="ranking-journey__grid">
+          {Array.from({ length: teamCount }, (_, index) => index + 1).map((rank) => <><line x1={left} x2={width-right} y1={yFor(rank)} y2={yFor(rank)} /><text x={left-18} y={yFor(rank)+4}>{rank}</text></>)}
+          {weeks.map((week, index) => <><line class="week-line" x1={xFor(index)} x2={xFor(index)} y1={top} y2={height-bottom} /><text class="week-label" x={xFor(index)} y={height-18}>W{week}</text></>)}
+        </g>
+        <g class="ranking-journey__lines">
+          {chartTeams.map((team) => <g data-team-line={team.id} style={`--team-color:${team.color}`}><path d={pathFor(team.points)} />{team.points.map((point) => <circle cx={xFor(point.weekIndex)} cy={yFor(point.rank)} r="4"><title>{team.name}: #{point.rank} after Week {point.week}</title></circle>)}</g>)}
+        </g>
+      </svg>
+    </div>
+    <p class="ranking-journey__note">Rank 1 is at the top. Rankings are reconstructed from the same Computer Poll formula used by the current publication.</p>
+  </section>
+)}
+
+<script>
+  for (const chart of document.querySelectorAll<HTMLElement>("[data-ranking-journey]")) {
+    const buttons = chart.querySelectorAll<HTMLButtonElement>("[data-team-filter]");
+    const lines = chart.querySelectorAll<SVGGElement>("[data-team-line]");
+    for (const button of buttons) button.addEventListener("click", () => {
+      const selected = button.dataset.teamFilter ?? "all";
+      for (const item of buttons) { const active = item === button; item.classList.toggle("is-active", active); item.setAttribute("aria-pressed", String(active)); }
+      chart.dataset.selectedTeam = selected;
+      for (const line of lines) line.classList.toggle("is-muted", selected !== "all" && line.dataset.teamLine !== selected);
+    });
+  }
+</script>
+
+<style>
+  .ranking-journey{padding-top:var(--space-9)}
+  .ranking-journey__heading{display:flex;align-items:end;justify-content:space-between;gap:var(--space-6);padding-bottom:var(--space-5);border-bottom:1px solid var(--color-rule-dark)}
+  .ranking-journey__heading h2{margin:0;font-size:clamp(2.4rem,5vw,4.25rem);letter-spacing:-.05em;line-height:.95}
+  .ranking-journey__heading>p{max-width:33rem;margin:0;color:var(--color-ink-muted);line-height:1.55;text-align:right}
+  .ranking-journey__legend{display:flex;flex-wrap:wrap;gap:.5rem;padding-block:var(--space-5)}
+  .ranking-journey__legend button{display:flex;align-items:center;gap:.4rem;padding:.48rem .68rem;border:1px solid var(--color-rule);border-radius:999px;background:var(--color-surface);color:var(--color-ink-soft);font-family:var(--font-data);font-size:.58rem;font-weight:700;cursor:pointer}
+  .ranking-journey__legend button:hover,.ranking-journey__legend button.is-active{border-color:var(--color-rule-dark);background:var(--color-ink);color:#fff}
+  .ranking-journey__legend i{width:.65rem;height:.65rem;border-radius:50%;background:var(--team-color)}
+  .ranking-journey__chart{overflow-x:auto;border:1px solid var(--color-rule-dark);border-top:5px solid var(--color-green);background:linear-gradient(180deg,#fbfaf6,#f1ede4)}
+  .ranking-journey__chart svg{display:block;width:100%;min-width:58rem;height:auto}
+  .ranking-journey__grid line{stroke:#d8d1c5;stroke-width:1}.ranking-journey__grid .week-line{stroke-dasharray:3 6;opacity:.65}
+  .ranking-journey__grid text{fill:var(--color-ink-muted);font-family:var(--font-data);font-size:11px;font-weight:700;text-anchor:end}.ranking-journey__grid .week-label{text-anchor:middle}
+  .ranking-journey__lines g{transition:opacity .18s ease}.ranking-journey__lines g.is-muted{opacity:.07}
+  .ranking-journey__lines path{fill:none;stroke:var(--team-color);stroke-linecap:round;stroke-linejoin:round;stroke-width:4;paint-order:stroke;filter:drop-shadow(0 1px 0 #fff)}
+  .ranking-journey__lines circle{fill:var(--team-color);stroke:#fbfaf6;stroke-width:2}
+  .ranking-journey__note{margin-top:var(--space-3);color:var(--color-ink-muted);font-size:var(--text-sm)}
+  @media(max-width:700px){.ranking-journey__heading{align-items:flex-start;flex-direction:column}.ranking-journey__heading>p{text-align:left}}
+</style>
