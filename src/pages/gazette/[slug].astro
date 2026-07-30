@@ -98,7 +98,7 @@ function getArticleImage(
 ): string {
   return (
     imageUrl ??
-    "/images/homepage/lead-story-placeholder.webp"
+    "/images/gazette/article-placeholder.webp"
   );
 }
 
@@ -112,7 +112,7 @@ const canonicalUrl = new URL(
 <BaseLayout
   title={story.headline}
   description={story.summary}
-  image={story.image_url ?? "/images/homepage/lead-story-placeholder.webp"}
+  image={story.image_url ?? "/images/gazette/article-placeholder.webp"}
   imageAlt={story.image_alt ?? story.headline}
   type="article"
   publishedTime={story.published_at}
