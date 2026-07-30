@@ -13,6 +13,7 @@ const staticPaths = [
   "/teams",
   "/stats",
   "/awards",
+  "/rankings",
   "/history",
   "/records",
   "/draft",
