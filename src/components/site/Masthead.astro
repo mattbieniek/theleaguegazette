@@ -49,7 +49,7 @@ const dateTime = new Intl.DateTimeFormat("en-CA", {
     </a>
 
     <div class="masthead__meta masthead__meta--right">
-      <time datetime={dateTime}>
+      <time datetime={dateTime} data-current-publication-date>
         {publicationDate}
       </time>
 
@@ -59,6 +59,32 @@ const dateTime = new Intl.DateTimeFormat("en-CA", {
     </div>
   </div>
 </header>
+
+<script>
+  const currentDate = document.querySelector<HTMLTimeElement>(
+    "[data-current-publication-date]"
+  );
+
+  if (currentDate) {
+    const now = new Date();
+    const timeZone = "America/Chicago";
+
+    currentDate.dateTime = new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone,
+    }).format(now);
+
+    currentDate.textContent = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      timeZone,
+    }).format(now);
+  }
+</script>
 
 <style>
   .masthead {

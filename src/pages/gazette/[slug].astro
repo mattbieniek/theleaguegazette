@@ -469,7 +469,7 @@ const canonicalUrl = new URL(
 
   .article-header {
     padding-top: clamp(2rem, 5vw, 4rem);
-    padding-bottom: clamp(2.5rem, 6vw, 5rem);
+    padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
     border-bottom: 3px double var(--color-rule-dark);
   }
 
@@ -584,11 +584,16 @@ const canonicalUrl = new URL(
     font-weight: 650;
   }
 
+  .article-action-message:empty {
+    display: none;
+  }
+
   .article-image {
-  width: 100%;
-  min-width: 0;
-  padding-top: clamp(1.5rem, 4vw, 3rem);
-}
+    width: 100%;
+    max-width: 74rem;
+    min-width: 0;
+    padding-top: clamp(1rem, 2.5vw, 2rem);
+  }
 
 .article-image__frame {
   width: 100%;
