@@ -85,9 +85,7 @@ Deno.serve(async (req: Request) => {
       throw error;
     }
 
-    const { data: season, error: seasonError } = await supabase
-      .from("seasons")
-      .upsert({
+    const seasonRecord = {
         league_id: data.id,
         sleeper_league_id: league.league_id,
         year: Number(league.season),
@@ -105,7 +103,23 @@ Deno.serve(async (req: Request) => {
         metadata: league.metadata ?? {},
         raw_data: league,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "sleeper_league_id" })
+    };
+
+    const { data: existingSeason, error: existingSeasonError } = await supabase
+      .from("seasons")
+      .select("id")
+      .eq("sleeper_league_id", league.league_id)
+      .maybeSingle();
+
+    if (existingSeasonError) {
+      throw existingSeasonError;
+    }
+
+    const seasonQuery = existingSeason
+      ? supabase.from("seasons").update(seasonRecord).eq("id", existingSeason.id)
+      : supabase.from("seasons").insert(seasonRecord);
+
+    const { data: season, error: seasonError } = await seasonQuery
       .select()
       .single();
 
