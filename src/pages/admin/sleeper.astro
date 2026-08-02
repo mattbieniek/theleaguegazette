@@ -86,8 +86,11 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
       const original = button.innerHTML; button.disabled=true; button.textContent="Syncing…"; setMessage(`Running ${functionName.replaceAll("-", " ")}…`);
       const { data, error } = await supabaseBrowser.functions.invoke(functionName, { body });
       button.disabled=false; button.innerHTML=original;
-      if (result) result.textContent=JSON.stringify(error ? { error: error.message } : data, null, 2);
-      if (error || data?.success === false) { const detail=data?.error?.message ?? data?.error ?? error?.message ?? "Unknown sync error"; setMessage(`Sync failed: ${String(detail)}`, true); return; }
+      let responseError: unknown = null;
+      const errorResponse = (error as { context?: Response } | null)?.context;
+      if (errorResponse) responseError = await errorResponse.clone().json().catch(() => null);
+      if (result) result.textContent=JSON.stringify(error ? { error: error.message, response: responseError } : data, null, 2);
+      if (error || data?.success === false) { const responseDetail=(responseError as {error?:{message?:string}|string}|null)?.error; const detail=data?.error?.message ?? data?.error ?? (typeof responseDetail==="string"?responseDetail:responseDetail?.message) ?? error?.message ?? "Unknown sync error"; setMessage(`Sync failed: ${String(detail)}`, true); return; }
       setMessage(data?.message ?? "Sync completed successfully."); await loadStatus();
     }
     function selectedLeagueId(): string | null { const value=leagueIdInput?.value.trim()??""; if(!/^\d+$/.test(value)){setMessage("Enter a valid numeric Sleeper league ID.",true);return null} return value; }
