@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireAdmin } from "../_shared/requireAdmin.ts";
 
-const LEAGUE_ID = "1257085409687506944";
+const DEFAULT_LEAGUE_ID = "1257085409687506944";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -29,8 +29,19 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    const body = await req.json().catch(() => ({})) as {
+      sleeper_league_id?: string;
+    };
+    const sleeperLeagueId = String(
+      body.sleeper_league_id ?? DEFAULT_LEAGUE_ID,
+    ).trim();
+
+    if (!/^\d+$/.test(sleeperLeagueId)) {
+      throw new Error("sleeper_league_id must be a numeric Sleeper league ID.");
+    }
+
     const sleeperResponse = await fetch(
-      `https://api.sleeper.app/v1/league/${LEAGUE_ID}`,
+      `https://api.sleeper.app/v1/league/${sleeperLeagueId}`,
     );
 
     if (!sleeperResponse.ok) {
@@ -74,11 +85,40 @@ Deno.serve(async (req: Request) => {
       throw error;
     }
 
+    const { data: season, error: seasonError } = await supabase
+      .from("seasons")
+      .upsert({
+        league_id: data.id,
+        sleeper_league_id: league.league_id,
+        year: Number(league.season),
+        league_name: league.name ?? null,
+        status: league.status ?? "complete",
+        season_type: league.season_type ?? "regular",
+        total_rosters: league.total_rosters ?? null,
+        playoff_start_week: league.settings?.playoff_week_start ?? null,
+        playoff_teams: league.settings?.playoff_teams ?? null,
+        regular_season_weeks: league.settings?.playoff_week_start
+          ? Number(league.settings.playoff_week_start) - 1
+          : null,
+        scoring_settings: league.scoring_settings ?? {},
+        roster_positions: league.roster_positions ?? [],
+        metadata: league.metadata ?? {},
+        raw_data: league,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "sleeper_league_id" })
+      .select()
+      .single();
+
+    if (seasonError) {
+      throw seasonError;
+    }
+
     return Response.json(
       {
         success: true,
         message: `Synced ${league.name}`,
         league: data,
+        season,
       },
       {
         status: 200,

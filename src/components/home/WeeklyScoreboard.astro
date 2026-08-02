@@ -18,7 +18,7 @@ function normalizeName(value: string): string {
 
 function getTeam(team: MatchupTeam): Team | null {
   return teams.find((profile) =>
-    [profile.name, profile.legacyName].some(
+    [profile.name, profile.legacyName, ...(profile.aliases ?? [])].some(
       (name) => normalizeName(name) === normalizeName(team.teamName)
     )
   ) ?? null;

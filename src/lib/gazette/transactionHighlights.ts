@@ -7,10 +7,10 @@ function normalizeName(value: string | null | undefined): string {
 
 export function transactionInvolvesTeam(
   transaction: LeagueTransaction,
-  team: Pick<Team, "name" | "legacyName">
+  team: Pick<Team, "name" | "legacyName" | "aliases">
 ): boolean {
   const names = new Set(
-    [team.name, team.legacyName].map(normalizeName)
+    [team.name, team.legacyName, ...(team.aliases ?? [])].map(normalizeName)
   );
 
   return (
@@ -47,11 +47,10 @@ export function getHomepageTransactionHighlights(
 
 export function getTeamTransactionHighlights(
   transactions: LeagueTransaction[],
-  team: Pick<Team, "name" | "legacyName">,
+  team: Pick<Team, "name" | "legacyName" | "aliases">,
   limit = 4
 ): LeagueTransaction[] {
   return transactions
     .filter((transaction) => transactionInvolvesTeam(transaction, team))
     .slice(0, limit);
 }
-

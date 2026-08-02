@@ -6,8 +6,7 @@ import { buildLeagueRecords } from "../lib/gazette/records";
 
 export const prerender = false;
 
-const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
-const results = await getHistoricalResults(sleeperLeagueId);
+const results = await getHistoricalResults();
 const records = buildLeagueRecords(results);
 const seasons = [...new Set(results.map((result) => result.season_year))]
   .sort((first, second) => second - first);

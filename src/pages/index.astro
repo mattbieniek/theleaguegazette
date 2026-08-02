@@ -66,9 +66,7 @@ const weeklyAwards = awardsData.selectedOption
     )
   : [];
 
-const historicalResults = await getHistoricalResults(
-  sleeperLeagueId
-);
+const historicalResults = await getHistoricalResults();
 const leagueRecords = buildLeagueRecords(historicalResults);
 const reigningSeason = [...seasonHistoryMetadata]
   .filter((season) => season.champion)

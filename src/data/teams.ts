@@ -3,6 +3,7 @@ export type Team = {
   name: string;
   owner: string;
   legacyName: string;
+  aliases?: string[];
   primary: string;
   secondary: string;
   logo: string;
@@ -11,7 +12,7 @@ export type Team = {
 export const teams: Team[] = [
   { slug: 'haddonfield-slashers', name: 'Haddonfield Slashers', owner: 'Matt Bieniek', legacyName: 'Haddonfield Slashers', primary: '#D96A1B', secondary: '#9E1F1F', logo: '/logos/haddonfield.webp' },
   { slug: 'the-reapers', name: 'The Reapers', owner: 'Nick Lewandowski', legacyName: 'Spooky Football', primary: '#8B1E2D', secondary: '#E8E2D6', logo: '/logos/reapers.webp' },
-  { slug: 'super-qb-hut-general', name: 'Super QB Hut General', owner: 'Julia Kurdys', legacyName: 'The Watergirl', primary: '#D8A227', secondary: '#B42C2C', logo: '/logos/qb-hut.webp' },
+  { slug: 'super-qb-hut-general', name: 'Super QB Hut General', owner: 'Julia Kurdys', legacyName: 'The Watergirl', aliases: ['The Bloody Marys'], primary: '#D8A227', secondary: '#B42C2C', logo: '/logos/qb-hut.webp' },
   { slug: 'love-and-fantasy-football', name: 'Love and Fantasy Football', owner: 'Scott Baker', legacyName: 'Columbus Conqueeftadors', primary: '#D8577C', secondary: '#F4C3D0', logo: '/logos/love-football.webp' },
   { slug: 'naberhood-watch', name: 'Naberhood Watch', owner: 'Brandon Smith', legacyName: 'Brimhaven Pirates', primary: '#203B73', secondary: '#C89C2B', logo: '/logos/naberhood.webp' },
   { slug: 'jamario-kart-racers', name: 'JaMario Kart Racers', owner: 'AJ Kurdys', legacyName: 'Washington Fantasy Team', primary: '#D73B2F', secondary: '#3A7BD5', logo: '/logos/jamario.webp' },

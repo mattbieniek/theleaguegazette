@@ -6,8 +6,7 @@ import { buildLeagueHistory } from "../../lib/gazette/history";
 
 export const prerender = false;
 
-const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
-const results = await getHistoricalResults(sleeperLeagueId);
+const results = await getHistoricalResults();
 const seasons = buildLeagueHistory(results);
 const recordedMatchups = new Set(results.map((result) => result.matchup_id)).size;
 

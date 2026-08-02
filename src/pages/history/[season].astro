@@ -10,8 +10,7 @@ import { formatTeamRecord } from "../../lib/gazette/statistics";
 export const prerender = false;
 
 const requestedYear = Number(Astro.params.season);
-const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
-const results = await getHistoricalResults(sleeperLeagueId);
+const results = await getHistoricalResults();
 const season = Number.isInteger(requestedYear)
   ? buildLeagueSeasonHistory(results, requestedYear)
   : null;
@@ -33,7 +32,8 @@ function getTeamProfile(teamName: string | null) {
   return leagueTeams.find(
     (team) =>
       team.name.trim().toLowerCase() === normalized ||
-      team.legacyName.trim().toLowerCase() === normalized
+      team.legacyName.trim().toLowerCase() === normalized ||
+      team.aliases?.some((alias) => alias.trim().toLowerCase() === normalized)
   ) ?? null;
 }
 

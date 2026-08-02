@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireAdmin } from "../_shared/requireAdmin.ts";
 
-const SLEEPER_LEAGUE_ID = "1257085409687506944";
+const DEFAULT_LEAGUE_ID = "1257085409687506944";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +35,11 @@ type SleeperRoster = {
   } | null;
   metadata?: JsonObject | null;
   [key: string]: unknown;
+};
+
+type SleeperUser = {
+  user_id: string;
+  metadata?: JsonObject | null;
 };
 
 type ManagerRow = {
@@ -94,6 +99,7 @@ function combineSleeperPoints(
 function getTeamName(
   roster: SleeperRoster,
   manager?: ManagerRow,
+  ownerTeamName?: string | null,
 ): string | null {
   const rosterTeamName = roster.metadata?.team_name;
 
@@ -102,6 +108,10 @@ function getTeamName(
     rosterTeamName.trim().length > 0
   ) {
     return rosterTeamName.trim();
+  }
+
+  if (ownerTeamName?.trim()) {
+    return ownerTeamName.trim();
   }
 
   const managerTeamName = manager?.metadata?.team_name;
@@ -184,6 +194,24 @@ Deno.serve(async (req: Request) => {
 
   const startedAt = new Date().toISOString();
   let syncRunId: string | null = null;
+  const body = await req.json().catch(() => ({})) as {
+    sleeper_league_id?: string;
+  };
+  const sleeperLeagueId = String(
+    body.sleeper_league_id ?? DEFAULT_LEAGUE_ID,
+  ).trim();
+
+  if (!/^\d+$/.test(sleeperLeagueId)) {
+    return jsonResponse(
+      {
+        success: false,
+        error: {
+          message: "sleeper_league_id must be a numeric Sleeper league ID.",
+        },
+      },
+      400,
+    );
+  }
 
   /**
    * Logging is intentionally nonfatal. If the status check constraint in
@@ -194,7 +222,7 @@ Deno.serve(async (req: Request) => {
       .from("sync_runs")
       .insert({
         sync_type: "sleeper_rosters",
-        sleeper_league_id: SLEEPER_LEAGUE_ID,
+        sleeper_league_id: sleeperLeagueId,
         status: "running",
         records_processed: 0,
         details: {
@@ -228,7 +256,7 @@ Deno.serve(async (req: Request) => {
     const { data: league, error: leagueError } = await supabase
       .from("leagues")
       .select("id, sleeper_league_id, name")
-      .eq("sleeper_league_id", SLEEPER_LEAGUE_ID)
+      .eq("sleeper_league_id", sleeperLeagueId)
       .single();
 
     if (leagueError) {
@@ -237,14 +265,14 @@ Deno.serve(async (req: Request) => {
 
     if (!league) {
       throw new Error(
-        `League ${SLEEPER_LEAGUE_ID} was not found in the leagues table.`,
+        `League ${sleeperLeagueId} was not found in the leagues table.`,
       );
     }
 
     const { data: season, error: seasonError } = await supabase
       .from("seasons")
       .select("id")
-      .eq("sleeper_league_id", SLEEPER_LEAGUE_ID)
+      .eq("sleeper_league_id", sleeperLeagueId)
       .single();
 
     if (seasonError) {
@@ -278,15 +306,10 @@ Deno.serve(async (req: Request) => {
      * Step 3:
      * Fetch current rosters from Sleeper.
      */
-    const sleeperResponse = await fetch(
-      `https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}/rosters`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      },
-    );
+    const [sleeperResponse, sleeperUsersResponse] = await Promise.all([
+      fetch(`https://api.sleeper.app/v1/league/${sleeperLeagueId}/rosters`),
+      fetch(`https://api.sleeper.app/v1/league/${sleeperLeagueId}/users`),
+    ]);
 
     if (!sleeperResponse.ok) {
       const responseText = await sleeperResponse.text();
@@ -299,6 +322,22 @@ Deno.serve(async (req: Request) => {
 
     const sleeperRosters =
       await sleeperResponse.json() as SleeperRoster[];
+
+    if (!sleeperUsersResponse.ok) {
+      throw new Error(
+        `Sleeper users API returned ${sleeperUsersResponse.status}: ${sleeperUsersResponse.statusText}`,
+      );
+    }
+
+    const sleeperUsers = await sleeperUsersResponse.json() as SleeperUser[];
+    const teamNameByOwner = new Map(
+      sleeperUsers.map((user) => [
+        String(user.user_id),
+        typeof user.metadata?.team_name === "string"
+          ? user.metadata.team_name
+          : null,
+      ]),
+    );
 
     if (!Array.isArray(sleeperRosters)) {
       throw new Error(
@@ -341,7 +380,11 @@ Deno.serve(async (req: Request) => {
         season_id: season.id,
         manager_id: manager?.id ?? null,
         sleeper_roster_id: roster.roster_id,
-        team_name: getTeamName(roster, manager),
+        team_name: getTeamName(
+          roster,
+          manager,
+          ownerId ? teamNameByOwner.get(ownerId) : null,
+        ),
         avatar: manager?.avatar ?? null,
         wins: Number(settings.wins ?? 0),
         losses: Number(settings.losses ?? 0),
