@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getSeasonStandings } from "../../lib/queries/standings";
-import { teams } from "../../data/teams";
+import { getFormerTeamNames, teams } from "../../data/teams";
 
 const sleeperLeagueId =
   import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
@@ -99,6 +99,7 @@ function formatPoints(value: number | null): string {
         {
           teams.map((team) => {
             const standing = getTeamStanding(team.name);
+            const formerNames = getFormerTeamNames(team);
 
             const record = standing
               ? formatRecord(
@@ -158,9 +159,9 @@ function formatPoints(value: number | null): string {
                     <h3>{team.name}</h3>
 
                     {
-                      team.legacyName !== team.name && (
+                      formerNames.length > 0 && (
                         <p class="team-card__legacy">
-                          Formerly {team.legacyName}
+                          Formerly {formerNames.join(" · ")}
                         </p>
                       )
                     }
