@@ -14,11 +14,16 @@ export type LineupEntry = PlayerWeeklyScore & { slot: string };
 
 export async function getPlayerWeeklyScores(season?: number): Promise<PlayerWeeklyScore[]> {
   const db = supabase as any;
-  let query = db.from("player_weekly_scores").select("season_year,week,sleeper_player_id,player_name,position,nfl_team,points").order("points", { ascending: false });
-  if (season) query = query.eq("season_year", season);
-  const { data, error } = await query;
-  if (error) throw new Error(`Unable to load player scores: ${error.message}`);
-  return (data ?? []).map((row: PlayerWeeklyScore) => ({ ...row, points: Number(row.points ?? 0) }));
+  const rows: PlayerWeeklyScore[] = [];
+  for (let start = 0; ; start += 1000) {
+    let query = db.from("player_weekly_scores").select("season_year,week,sleeper_player_id,player_name,position,nfl_team,points").order("week").order("points", { ascending: false }).range(start, start + 999);
+    if (season) query = query.eq("season_year", season);
+    const { data, error } = await query;
+    if (error) throw new Error(`Unable to load player scores: ${error.message}`);
+    rows.push(...(data ?? []).map((row: PlayerWeeklyScore) => ({ ...row, points: Number(row.points ?? 0) })));
+    if ((data?.length ?? 0) < 1000) break;
+  }
+  return rows;
 }
 
 function take(scores: PlayerWeeklyScore[], position: string, count: number, used?: Set<string>): PlayerWeeklyScore[] {
