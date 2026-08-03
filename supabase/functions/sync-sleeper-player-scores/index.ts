@@ -4,6 +4,10 @@ import { requireAdmin } from "../_shared/requireAdmin.ts";
 
 const DEFAULT_LEAGUE_ID = "1257085409687506944";
 const ELIGIBLE = new Set(["QB", "RB", "WR", "TE", "K", "DEF"]);
+const DEFENSE_SCORING_KEYS = new Set([
+  "sack", "int", "ff", "fum_rec", "safe", "blk_kick", "def_td",
+  "def_st_td", "def_st_ff", "def_st_fum_rec", "st_td", "st_ff", "st_fum_rec",
+]);
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -22,6 +26,7 @@ function fantasyPoints(stats: NumberMap, scoring: NumberMap, position: string): 
   let total = 0;
   for (const [key, weight] of Object.entries(scoring)) {
     if (key.startsWith("pts_allow_")) continue;
+    if (position === "DEF" && !DEFENSE_SCORING_KEYS.has(key)) continue;
     total += Number(stats[key] ?? 0) * Number(weight ?? 0);
   }
   if (position === "DEF") total += defensePointsAllowedScore(stats, scoring);
@@ -45,9 +50,14 @@ Deno.serve(async (req: Request) => {
     const { data: season, error: seasonError } = await db.from("seasons").select("id,year,scoring_settings").eq("sleeper_league_id", leagueId).single();
     if (seasonError || !season) throw new Error(seasonError?.message ?? `Season for league ${leagueId} was not found.`);
     const scoring = (season.scoring_settings ?? {}) as NumberMap;
-    const { data: players, error: playerError } = await db.from("players").select("sleeper_player_id,full_name,position,nfl_team").in("position", [...ELIGIBLE]);
-    if (playerError) throw playerError;
-    const playerById = new Map((players as PlayerRow[]).map((player) => [player.sleeper_player_id, player]));
+    const players: PlayerRow[] = [];
+    for (let start = 0; ; start += 1000) {
+      const { data: page, error: playerError } = await db.from("players").select("sleeper_player_id,full_name,position,nfl_team").in("position", [...ELIGIBLE]).range(start, start + 999);
+      if (playerError) throw playerError;
+      players.push(...((page ?? []) as PlayerRow[]));
+      if ((page?.length ?? 0) < 1000) break;
+    }
+    const playerById = new Map(players.map((player) => [player.sleeper_player_id, player]));
     let processed = 0;
 
     for (let week = startWeek; week <= endWeek; week++) {
