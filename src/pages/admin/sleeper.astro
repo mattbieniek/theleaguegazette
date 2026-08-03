@@ -36,6 +36,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
         <div class="week-control"><label for="sync-week">Week</label><input id="sync-week" type="number" min="1" max="18" value="1" /></div>
         <div class="sync-actions">
           <button id="backfill-season" type="button"><strong>Import full season scores</strong><small>Completed matchups from Weeks 1–17</small></button>
+          <button data-sync-function="sync-sleeper-player-scores" type="button"><strong>Import all NFL player scores</strong><small>Perfect-lineup pool from Weeks 1–17</small></button>
           <button data-week-sync="sync-sleeper-matchups" type="button"><strong>Matchups</strong><small>Scores, starters, and results</small></button>
           <button data-week-sync="sync-sleeper-roster-snapshots" type="button"><strong>Roster snapshot</strong><small>Preserve each team's weekly roster</small></button>
           <button data-week-sync="sync-sleeper-transactions" type="button"><strong>Transactions</strong><small>Trades, waivers, and free agents for this week</small></button>
