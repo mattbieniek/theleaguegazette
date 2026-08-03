@@ -49,7 +49,11 @@ Deno.serve(async (req: Request) => {
 
     const { data: season, error: seasonError } = await db.from("seasons").select("id,year,scoring_settings").eq("sleeper_league_id", leagueId).single();
     if (seasonError || !season) throw new Error(seasonError?.message ?? `Season for league ${leagueId} was not found.`);
-    const scoring = (season.scoring_settings ?? {}) as NumberMap;
+    const { data: league, error: leagueError } = await db.from("leagues").select("scoring_settings").eq("sleeper_league_id", leagueId).single();
+    if (leagueError || !league) throw new Error(leagueError?.message ?? `League ${leagueId} was not found.`);
+    const seasonScoring = (season.scoring_settings ?? {}) as NumberMap;
+    const scoring = Object.keys(seasonScoring).length > 0 ? seasonScoring : (league.scoring_settings ?? {}) as NumberMap;
+    if (Object.keys(scoring).length === 0) throw new Error(`No scoring settings are stored for ${season.year}.`);
     const players: PlayerRow[] = [];
     for (let start = 0; ; start += 1000) {
       const { data: page, error: playerError } = await db.from("players").select("sleeper_player_id,full_name,position,nfl_team").in("position", [...ELIGIBLE]).range(start, start + 999);
