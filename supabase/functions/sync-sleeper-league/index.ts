@@ -90,7 +90,7 @@ Deno.serve(async (req: Request) => {
         sleeper_league_id: league.league_id,
         year: Number(league.season),
         league_name: league.name ?? null,
-        status: league.status ?? "complete",
+        status: league.status === "complete" ? "completed" : "active",
         season_type: league.season_type ?? "regular",
         total_rosters: league.total_rosters ?? null,
         playoff_start_week: league.settings?.playoff_week_start ?? null,
