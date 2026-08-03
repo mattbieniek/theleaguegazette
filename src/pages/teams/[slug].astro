@@ -158,9 +158,20 @@ const surroundingStandings =
       })
     : standings.slice(0, 5);
 
-const hasLegacyIdentity =
-  team.legacyName.trim().toLowerCase() !==
-  team.name.trim().toLowerCase();
+const currentIdentity = team.name.trim().toLowerCase();
+const formerIdentities = [...(team.aliases ?? []), team.legacyName]
+  .map((identity) => identity.trim())
+  .filter(
+    (identity, index, identities) =>
+      identity.length > 0 &&
+      identity.toLowerCase() !== currentIdentity &&
+      identities.findIndex(
+        (candidate) =>
+          candidate.toLowerCase() === identity.toLowerCase()
+      ) === index
+  );
+const hasFormerIdentities = formerIdentities.length > 0;
+const formerIdentitySummary = formerIdentities.join(" · ");
 
 function formatPoints(value: number | null): string {
   return Number(value ?? 0).toLocaleString("en-US", {
@@ -207,12 +218,12 @@ function formatPoints(value: number | null): string {
           </span>
 
           {
-            hasLegacyIdentity && (
+            hasFormerIdentities && (
               <>
                 <span aria-hidden="true">·</span>
 
                 <span>
-                  Formerly {team.legacyName}
+                  Formerly {formerIdentitySummary}
                 </span>
               </>
             )
@@ -630,14 +641,16 @@ function formatPoints(value: number | null): string {
             </div>
 
             {
-              hasLegacyIdentity && (
+              hasFormerIdentities && (
                 <div>
                   <p class="franchise-summary__label">
-                    Previous Identity
+                    {formerIdentities.length === 1
+                      ? "Previous Identity"
+                      : "Previous Identities"}
                   </p>
 
                   <p class="franchise-summary__value">
-                    {team.legacyName}
+                    {formerIdentitySummary}
                   </p>
                 </div>
               )
