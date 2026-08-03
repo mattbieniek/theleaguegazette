@@ -23,7 +23,7 @@ import {
 } from "../../lib/gazette/recentForm";
 import { buildTeamDraftHistory } from "../../lib/gazette/teamDrafts";
 import { getTeamTransactionHighlights } from "../../lib/gazette/transactionHighlights";
-import { teams } from "../../data/teams";
+import { getFormerTeamNames, teams } from "../../data/teams";
 
 type Team = (typeof teams)[number];
 
@@ -158,18 +158,7 @@ const surroundingStandings =
       })
     : standings.slice(0, 5);
 
-const currentIdentity = team.name.trim().toLowerCase();
-const formerIdentities = [...(team.aliases ?? []), team.legacyName]
-  .map((identity) => identity.trim())
-  .filter(
-    (identity, index, identities) =>
-      identity.length > 0 &&
-      identity.toLowerCase() !== currentIdentity &&
-      identities.findIndex(
-        (candidate) =>
-          candidate.toLowerCase() === identity.toLowerCase()
-      ) === index
-  );
+const formerIdentities = getFormerTeamNames(team);
 const hasFormerIdentities = formerIdentities.length > 0;
 const formerIdentitySummary = formerIdentities.join(" · ");
 
