@@ -1,8 +1,8 @@
 ---
-import type { SeasonStanding } from "../lib/queries/standings";
+import type { HistoricalStanding } from "../lib/queries/standings";
 
 interface Props {
-  standings: SeasonStanding[];
+  standings: HistoricalStanding[];
   compact?: boolean;
   limit?: number;
   caption?: string;
@@ -27,7 +27,7 @@ function formatPoints(value: number | null): string {
   });
 }
 
-function formatRecord(team: SeasonStanding): string {
+function formatRecord(team: HistoricalStanding): string {
   const record = `${team.wins ?? 0}-${team.losses ?? 0}`;
 
   return (team.ties ?? 0) > 0

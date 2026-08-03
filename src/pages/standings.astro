@@ -1,25 +1,18 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import StandingsTable from "../components/StandingsTable.astro";
-import { getSeasonStandings } from "../lib/queries/standings";
+import { buildStandingsThroughWeek } from "../lib/queries/standings";
+import { getHistoricalResults } from "../lib/queries/records";
 
-const sleeperLeagueId =
-  import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
-
-if (!sleeperLeagueId) {
-  throw new Error(
-    "Missing PUBLIC_SLEEPER_LEAGUE_ID."
-  );
-}
-
-const standings =
-  await getSeasonStandings(sleeperLeagueId);
-
-const seasonYear =
-  standings.find(
-    (standing) =>
-      typeof standing.season_year === "number"
-  )?.season_year ?? null;
+export const prerender = false;
+const results = await getHistoricalResults();
+const seasons = [...new Set(results.map((row) => row.season_year))].sort((a, b) => b - a);
+const requestedSeason = Number(Astro.url.searchParams.get("season"));
+const seasonYear = Number.isInteger(requestedSeason) && seasons.includes(requestedSeason) ? requestedSeason : seasons[0] ?? null;
+const weeks = [...new Set(results.filter((row) => row.season_year === seasonYear).map((row) => row.week))].sort((a, b) => a - b);
+const requestedWeek = Number(Astro.url.searchParams.get("week"));
+const selectedWeek = Number.isInteger(requestedWeek) && weeks.includes(requestedWeek) ? requestedWeek : weeks.at(-1) ?? null;
+const standings = seasonYear && selectedWeek ? buildStandingsThroughWeek(results, seasonYear, selectedWeek) : [];
 
 const leader = standings[0] ?? null;
 
@@ -63,6 +56,13 @@ function formatPoints(value: number | null): string {
         </p>
       </div>
     </header>
+
+    <form class="standings-filter" method="get" action="/standings">
+      <div><p class="eyebrow">Historical table</p><strong>Standings through any week</strong></div>
+      <label>Season<select name="season" aria-label="Select standings season">{seasons.map((season) => <option value={season} selected={season === seasonYear}>{season}</option>)}</select></label>
+      <label>Through week<select name="week" aria-label="Select standings week">{weeks.map((week) => <option value={week} selected={week === selectedWeek}>Week {week}</option>)}</select></label>
+      <button type="submit">View standings</button>
+    </form>
 
     {
       standings.length > 0 && (
@@ -133,20 +133,19 @@ function formatPoints(value: number | null): string {
           </p>
 
           <h2 id="standings-table-title">
-            Current Order
+            {selectedWeek ? `Order Through Week ${selectedWeek}` : "Current Order"}
           </h2>
         </div>
 
         <p>
-          Ranked by the league standings rules reflected
-          in the synced season data.
+          Cumulative records and scoring through the selected week, including playoff weeks.
         </p>
       </div>
 
       <div class="standings-card">
         <StandingsTable
           standings={standings}
-          caption="Current league standings"
+          caption={`${seasonYear ?? "League"} standings through Week ${selectedWeek ?? "—"}`}
         />
       </div>
     </section>
@@ -194,6 +193,9 @@ function formatPoints(value: number | null): string {
     border-radius: var(--radius-lg);
     background: var(--color-surface);
   }
+
+  .standings-filter { display:grid;grid-template-columns:minmax(13rem,1fr) auto auto auto;align-items:end;gap:var(--space-4);margin-top:var(--space-6);padding:var(--space-5);border:1px solid var(--color-rule-dark);border-left:5px solid var(--color-green);background:var(--color-surface); }
+  .standings-filter p,.standings-filter strong { display:block;margin:0; }.standings-filter label{display:grid;gap:.35rem;color:var(--color-ink-muted);font-family:var(--font-data);font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}.standings-filter select,.standings-filter button{min-height:2.8rem;padding:.55rem .8rem;border:1px solid var(--color-rule-dark);background:white;color:var(--color-ink);font:inherit}.standings-filter button{border-color:var(--color-green);background:var(--color-green);color:white;font-weight:750;cursor:pointer}
 
   .summary-card {
     min-width: 0;
@@ -273,6 +275,7 @@ function formatPoints(value: number | null): string {
   }
 
   @media (max-width: 780px) {
+    .standings-filter { grid-template-columns:1fr 1fr; }.standings-filter>div,.standings-filter button{grid-column:1/-1}
     .page-header {
       grid-template-columns: 1fr;
       gap: var(--space-5);
