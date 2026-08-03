@@ -58,9 +58,7 @@ const standings = sleeperLeagueId
   ? await getSeasonStandings(sleeperLeagueId)
   : [];
 
-const historicalResults = await getHistoricalResults(
-  sleeperLeagueId
-);
+const historicalResults = await getHistoricalResults();
 
 const roster = sleeperLeagueId
   ? await getTeamRoster(sleeperLeagueId, team.name)

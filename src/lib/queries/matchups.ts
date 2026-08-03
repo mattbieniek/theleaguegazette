@@ -45,12 +45,11 @@ function toMatchupTeam(
 }
 
 export async function getSeasonMatchups(
-  sleeperLeagueId: string
+  sleeperLeagueId?: string
 ): Promise<MatchupWeek[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("team_weekly_results")
     .select("*")
-    .eq("sleeper_league_id", sleeperLeagueId)
     .not("week", "is", null)
     .not("matchup_id", "is", null)
     .order("week", {
@@ -60,6 +59,12 @@ export async function getSeasonMatchups(
       ascending: true,
       nullsFirst: false,
     });
+
+  if (sleeperLeagueId) {
+    query = query.eq("sleeper_league_id", sleeperLeagueId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(
@@ -120,25 +125,35 @@ export async function getSeasonMatchups(
     });
   }
 
-  const weeks = new Map<number, WeeklyMatchup[]>();
+  const weeks = new Map<
+    string,
+    {
+      week: number;
+      seasonYear: number | null;
+      matchups: WeeklyMatchup[];
+    }
+  >();
 
   for (const matchup of weeklyMatchups) {
-    const current =
-      weeks.get(matchup.week) ?? [];
+    const key = `${matchup.seasonYear ?? "unknown"}:${matchup.week}`;
+    const current = weeks.get(key) ?? {
+      week: matchup.week,
+      seasonYear: matchup.seasonYear,
+      matchups: [],
+    };
 
-    current.push(matchup);
-    weeks.set(matchup.week, current);
+    current.matchups.push(matchup);
+    weeks.set(key, current);
   }
 
-  return [...weeks.entries()]
-    .sort(([weekA], [weekB]) => weekA - weekB)
-    .map(([week, matchups]) => ({
+  return [...weeks.values()]
+    .sort((a, b) =>
+      (a.seasonYear ?? 0) - (b.seasonYear ?? 0) ||
+      a.week - b.week
+    )
+    .map(({ week, seasonYear, matchups }) => ({
       week,
-      seasonYear:
-        matchups.find(
-          (matchup) =>
-            matchup.seasonYear !== null
-        )?.seasonYear ?? null,
+      seasonYear,
       matchups: matchups.sort((a, b) =>
         String(a.sleeperMatchupId ?? "").localeCompare(
           String(b.sleeperMatchupId ?? ""),

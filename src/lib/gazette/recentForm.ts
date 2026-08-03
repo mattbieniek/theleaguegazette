@@ -35,7 +35,7 @@ export function buildTeamRecentForm(
   limit = 5,
 ): TeamRecentForm | null {
   const identities = new Set(
-    [team.name, team.legacyName].map(normalize),
+    [team.name, team.legacyName, ...(team.aliases ?? [])].map(normalize),
   );
 
   const teamResults = results

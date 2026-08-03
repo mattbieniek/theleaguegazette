@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireAdmin } from "../_shared/requireAdmin.ts";
 
-const SLEEPER_LEAGUE_ID = "1257085409687506944";
+const DEFAULT_LEAGUE_ID = "1257085409687506944";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +30,16 @@ Deno.serve(async (req: Request) => {
     await requireAdmin(req, supabaseUrl, serviceRoleKey);
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const body = await req.json().catch(() => ({})) as {
+      sleeper_league_id?: string;
+    };
+    const sleeperLeagueId = String(
+      body.sleeper_league_id ?? DEFAULT_LEAGUE_ID,
+    ).trim();
+
+    if (!/^\d+$/.test(sleeperLeagueId)) {
+      throw new Error("sleeper_league_id must be a numeric Sleeper league ID.");
+    }
 
     /*
      * Step 1:
@@ -38,7 +48,7 @@ Deno.serve(async (req: Request) => {
     const { data: leagueRow, error: leagueError } = await supabase
       .from("leagues")
       .select("id, sleeper_league_id, name")
-      .eq("sleeper_league_id", SLEEPER_LEAGUE_ID)
+      .eq("sleeper_league_id", sleeperLeagueId)
       .single();
 
     if (leagueError) {
@@ -47,7 +57,7 @@ Deno.serve(async (req: Request) => {
 
     if (!leagueRow) {
       throw new Error(
-        `League ${SLEEPER_LEAGUE_ID} was not found in the leagues table.`,
+        `League ${sleeperLeagueId} was not found in the leagues table.`,
       );
     }
 
@@ -56,7 +66,7 @@ Deno.serve(async (req: Request) => {
      * Retrieve the league's users from Sleeper.
      */
     const sleeperResponse = await fetch(
-      `https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}/users`,
+      `https://api.sleeper.app/v1/league/${sleeperLeagueId}/users`,
     );
 
     if (!sleeperResponse.ok) {

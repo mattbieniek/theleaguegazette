@@ -26,7 +26,7 @@ function belongsToTeam(pick: DraftPick, team: Team): boolean {
   if (pick.fantasyTeam?.slug === team.slug) return true;
 
   const pickName = normalize(pick.fantasyTeamName);
-  return [team.name, team.legacyName].some(
+  return [team.name, team.legacyName, ...(team.aliases ?? [])].some(
     (name) => normalize(name) === pickName
   );
 }

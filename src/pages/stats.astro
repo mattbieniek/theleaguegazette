@@ -10,8 +10,7 @@ import {
 
 export const prerender = false;
 
-const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
-const historicalResults = await getHistoricalResults(sleeperLeagueId);
+const historicalResults = await getHistoricalResults();
 const seasons = [...new Set(
   historicalResults.map((result) => result.season_year)
 )].sort((first, second) => second - first);
@@ -58,7 +57,8 @@ function getTeamProfile(teamName: string) {
   return leagueTeams.find(
     (team) =>
       team.name.trim().toLowerCase() === normalized ||
-      team.legacyName.trim().toLowerCase() === normalized
+      team.legacyName.trim().toLowerCase() === normalized ||
+      team.aliases?.some((alias) => alias.trim().toLowerCase() === normalized)
   ) ?? null;
 }
 

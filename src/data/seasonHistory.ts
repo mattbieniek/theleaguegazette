@@ -16,6 +16,14 @@ export type SeasonHistoryMetadata = {
  */
 export const seasonHistoryMetadata: SeasonHistoryMetadata[] = [
   {
+    year: 2024,
+    provider: "sleeper",
+    champion: "Egyptian Suns",
+    runnerUp: "The Bloody Marys",
+    championshipWeek: 17,
+    notes: "Championship result verified from the Sleeper winners bracket.",
+  },
+  {
     year: 2025,
     provider: "sleeper",
     champion: "The Reapers",

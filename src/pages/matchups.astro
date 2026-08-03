@@ -3,12 +3,31 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import MatchupCard from "../components/matchups/MatchupCard.astro";
 import { getSeasonMatchups } from "../lib/queries/matchups";
 
-const sleeperLeagueId =
-  import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+export const prerender = false;
 
-const matchupWeeks = sleeperLeagueId
-  ? await getSeasonMatchups(sleeperLeagueId)
-  : [];
+const allMatchupWeeks = await getSeasonMatchups();
+
+const availableSeasons = [
+  ...new Set(
+    allMatchupWeeks
+      .map((matchupWeek) => matchupWeek.seasonYear)
+      .filter((year): year is number => year !== null)
+  ),
+].sort((a, b) => b - a);
+
+const requestedSeason = Number(
+  Astro.url.searchParams.get("season")
+);
+
+const selectedSeason =
+  Number.isInteger(requestedSeason) &&
+  availableSeasons.includes(requestedSeason)
+    ? requestedSeason
+    : availableSeasons[0] ?? null;
+
+const matchupWeeks = allMatchupWeeks.filter(
+  (matchupWeek) => matchupWeek.seasonYear === selectedSeason
+);
 
 const availableWeeks = matchupWeeks.map(
   (matchupWeek) => matchupWeek.week
@@ -50,12 +69,7 @@ const nextWeek =
     : null;
 
 const seasonYear =
-  selectedMatchupWeek?.seasonYear ??
-  matchupWeeks.find(
-    (matchupWeek) =>
-      matchupWeek.seasonYear !== null
-  )?.seasonYear ??
-  null;
+  selectedMatchupWeek?.seasonYear ?? selectedSeason;
 
 const highestScoringMatchup =
   selectedMatchupWeek?.matchups.reduce(
@@ -173,10 +187,10 @@ function formatPoints(value: number): string {
               </h2>
             </div>
 
-            <div class="week-navigation__controls">
+            <form class="week-navigation__controls" method="get" action="/matchups">
               {
                 previousWeek ? (
-                  <a href={`/matchups?week=${previousWeek}`}>
+                  <a href={`/matchups?season=${selectedSeason}&week=${previousWeek}`}>
                     <span aria-hidden="true">←</span>
                     Week {previousWeek}
                   </a>
@@ -190,13 +204,24 @@ function formatPoints(value: number): string {
                 )
               }
 
-              <label>
-                <span class="sr-only">
-                  Select a matchup week
-                </span>
+              <label class="week-navigation__select">
+                <span>Season</span>
+
+                <select name="season" aria-label="Select matchup season">
+                  {availableSeasons.map((year) => (
+                    <option value={year} selected={year === selectedSeason}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label class="week-navigation__select">
+                <span>Week</span>
 
                 <select
                   id="matchup-week-select"
+                  name="week"
                   aria-label="Select matchup week"
                 >
                   {
@@ -218,7 +243,7 @@ function formatPoints(value: number): string {
 
               {
                 nextWeek ? (
-                  <a href={`/matchups?week=${nextWeek}`}>
+                  <a href={`/matchups?season=${selectedSeason}&week=${nextWeek}`}>
                     Week {nextWeek}
                     <span aria-hidden="true">→</span>
                   </a>
@@ -231,7 +256,9 @@ function formatPoints(value: number): string {
                   </span>
                 )
               }
-            </div>
+
+              <button type="submit">View</button>
+            </form>
           </section>
 
           <section
@@ -348,19 +375,6 @@ function formatPoints(value: number): string {
     }
   </div>
 
-  <script>
-    const select = document.querySelector<HTMLSelectElement>(
-      "#matchup-week-select"
-    );
-
-    select?.addEventListener("change", () => {
-      const week = Number(select.value);
-
-      if (Number.isInteger(week)) {
-        window.location.href = `/matchups?week=${week}`;
-      }
-    });
-  </script>
 </BaseLayout>
 
 <style>
@@ -429,7 +443,8 @@ function formatPoints(value: number): string {
   }
 
   .week-navigation__controls a,
-  .week-navigation__disabled {
+  .week-navigation__disabled,
+  .week-navigation__controls button {
     display: inline-flex;
     min-height: 2.75rem;
     align-items: center;
@@ -447,6 +462,13 @@ function formatPoints(value: number): string {
       border-color var(--transition-fast),
       background-color var(--transition-fast),
       color var(--transition-fast);
+  }
+
+  .week-navigation__controls button {
+    border-color: var(--color-green);
+    background: var(--color-green);
+    color: white;
+    cursor: pointer;
   }
 
   .week-navigation__controls a:hover {
@@ -469,6 +491,21 @@ function formatPoints(value: number): string {
     font: inherit;
     font-size: var(--text-sm);
     font-weight: 650;
+  }
+
+  .week-navigation__select {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .week-navigation__select > span {
+    padding-left: var(--space-3);
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
   }
 
   .week-summary {

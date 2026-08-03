@@ -48,7 +48,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
 
     function setMessage(text:string,error=false){if(message){message.textContent=text;message.dataset.error=String(error)}}
     function normalized(value:string|null|undefined){return value?.trim().toLowerCase()??""}
-    function publicTeam(name:string|null){return publicTeams.find(team=>normalized(team.name)===normalized(name)||normalized(team.legacyName)===normalized(name))}
+    function publicTeam(name:string|null){return publicTeams.find(team=>normalized(team.name)===normalized(name)||normalized(team.legacyName)===normalized(name)||team.aliases?.some(alias=>normalized(alias)===normalized(name)))}
     function formatRecord(team:TeamRow){const base=`${team.wins??0}-${team.losses??0}`;return team.ties?`${base}-${team.ties}`:base}
     function freshness(date:string){const elapsed=Date.now()-new Date(date).getTime();const days=Math.floor(elapsed/86400000);if(!Number.isFinite(days))return "Unknown";if(days===0)return "Today";if(days===1)return "Yesterday";return `${days} days ago`}
     function stat(label:string,value:string){const item=document.createElement("div");const small=document.createElement("span");small.textContent=label;const strong=document.createElement("strong");strong.textContent=value;item.append(small,strong);return item}

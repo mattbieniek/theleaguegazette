@@ -12,7 +12,7 @@ const teamNames = [...new Set(weeklyPolls.flatMap((poll) => poll.rankings.map((t
 const fallbackColors = ["#17382b", "#9b352d", "#b37b22", "#425f75", "#7447c6", "#d8577c", "#5e8c3a", "#d96a1b", "#203b73", "#8a5a2b"];
 const chartTeams = teamNames.map((teamName, index) => {
   const normalized = teamName.trim().toLowerCase();
-  const profile = leagueTeams.find((team) => team.name.toLowerCase() === normalized || team.legacyName.toLowerCase() === normalized);
+  const profile = leagueTeams.find((team) => team.name.toLowerCase() === normalized || team.legacyName.toLowerCase() === normalized || team.aliases?.some((alias) => alias.toLowerCase() === normalized));
   return {
     id: `team-${index}`,
     name: teamName,
