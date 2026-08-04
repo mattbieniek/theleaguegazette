@@ -1,0 +1,22 @@
+---
+import type { ReaderPollPreview } from "../../lib/queries/readerPoll";
+interface Props { poll: ReaderPollPreview | null }
+const { poll } = Astro.props;
+---
+<section class="readers-poll" aria-labelledby="readers-poll-title">
+  <header>
+    <div><p class="eyebrow">The public ballot</p><h2 id="readers-poll-title">Gazette Readers Poll</h2></div>
+    {poll && <p>{poll.season} · Week {poll.week}<br /><strong>{poll.ballotCount} {poll.ballotCount === 1 ? "ballot" : "ballots"}</strong></p>}
+  </header>
+  <div class="readers-poll__body">
+    {poll?.leaders.length ? (
+      <ol>{poll.leaders.map(entry => <li><b>{entry.rank}</b><div><strong>{entry.teamName}</strong><small>{entry.points} points · {entry.firstPlaceVotes} first-place {entry.firstPlaceVotes === 1 ? "vote" : "votes"}</small></div></li>)}</ol>
+    ) : (
+      <div class="readers-poll__empty"><strong>The readers have not spoken yet.</strong><span>Submit the first public ballot and establish this week’s poll.</span></div>
+    )}
+    <aside><p>Rank all ten teams once per week. Every named ballot is public, and every grudge counts equally.</p><a href="/poll">View results and cast a ballot <span aria-hidden="true">→</span></a></aside>
+  </div>
+</section>
+<style>
+  .readers-poll{margin-block:var(--space-7);overflow:hidden;border:1px solid var(--color-rule-dark);border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-card)}header{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding:clamp(1.3rem,3vw,2rem);border-bottom:3px double var(--color-rule-dark)}header h2{margin:.2rem 0;font-size:clamp(2.2rem,5vw,4rem);line-height:.9}header>p{margin:0;color:var(--color-ink-soft);font-family:var(--font-data);font-size:.7rem;text-align:right;text-transform:uppercase}.readers-poll__body{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(17rem,.75fr)}ol{padding:0;margin:0;list-style:none}li{display:grid;grid-template-columns:3rem minmax(0,1fr);align-items:center;gap:1rem;padding:.85rem 1.4rem;border-bottom:1px solid var(--color-rule)}li:last-child{border-bottom:0}li>b{font-family:var(--font-editorial);font-size:2rem;text-align:center}li>div{display:grid;gap:.15rem}li small{color:var(--color-ink-soft)}aside{display:flex;flex-direction:column;justify-content:center;padding:clamp(1.4rem,3vw,2.2rem);border-left:1px solid var(--color-rule);background:color-mix(in srgb,var(--color-gold) 9%,transparent)}aside p{color:var(--color-ink-soft);font-family:var(--font-editorial);font-size:1.15rem;line-height:1.5}aside a{color:var(--color-green);font-weight:850}.readers-poll__empty{display:grid;gap:.4rem;align-content:center;min-height:12rem;padding:2rem}.readers-poll__empty strong{font-family:var(--font-editorial);font-size:1.8rem}.readers-poll__empty span{color:var(--color-ink-soft)}@media(max-width:760px){header{align-items:start;flex-direction:column}header>p{text-align:left}.readers-poll__body{grid-template-columns:1fr}aside{border-top:1px solid var(--color-rule);border-left:0}}
+</style>

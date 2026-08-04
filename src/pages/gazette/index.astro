@@ -4,11 +4,14 @@ import { getPublishedArticles } from "../../lib/queries/gazette";
 import { formatPublicationDate } from "../../lib/formatDate";
 import GazetteRankings from "../../components/gazette/GazetteRankings.astro";
 import { getLatestPublishedPowerRanking } from "../../lib/queries/powerRankings";
+import ReadersPoll from "../../components/gazette/ReadersPoll.astro";
+import { getLatestReaderPollPreview } from "../../lib/queries/readerPoll";
 
 export const prerender = false;
 
 const articles = await getPublishedArticles();
 const latestGazetteRanking = await getLatestPublishedPowerRanking();
+const latestReaderPoll = await getLatestReaderPollPreview();
 const categories = [...new Set(articles.map((article) => article.category?.trim()).filter(Boolean))].sort();
 const requestedCategory = Astro.url.searchParams.get("category")?.trim() ?? "";
 const selectedCategory = categories.includes(requestedCategory) ? requestedCategory : "";
@@ -58,6 +61,8 @@ function getArticleImage(
     </header>
 
     <GazetteRankings ranking={latestGazetteRanking} context="gazette" />
+
+    <ReadersPoll poll={latestReaderPoll} />
 
     <nav class="category-filter" aria-label="Filter stories by category">
       <a href="/gazette" aria-current={!selectedCategory ? "page" : undefined}>All stories</a>
