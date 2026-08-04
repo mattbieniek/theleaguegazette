@@ -16,9 +16,11 @@ Deno.serve(async (request: Request) => {
   const supabase = createClient(supabaseUrl, serviceKey);
   let runId = "";
   try {
+    const requestBody = await request.json().catch(() => ({})) as { test_email?: string };
+    const testEmail = requestBody.test_email?.trim().toLowerCase() || "";
     const { data: weekly } = await supabase.from("team_weekly_results").select("season_year,week").order("season_year",{ascending:false}).order("week",{ascending:false}).limit(1).maybeSingle();
     const season = Number(weekly?.season_year ?? new Date().getFullYear()), week = Number(weekly?.week ?? 1);
-    const subject = `The League Gazette · ${season} Week ${week}`;
+    const subject = `${testEmail ? "[TEST] " : ""}The League Gazette · ${season} Week ${week}`;
     const digestStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const [{data:articles},{data:rankings},{data:profiles}] = await Promise.all([
       supabase.from("gazette_articles").select("slug,headline,summary,category").eq("status","published").gte("published_at",digestStart).order("published_at",{ascending:false}).limit(12),
@@ -29,6 +31,10 @@ Deno.serve(async (request: Request) => {
     for (const profile of profiles ?? []) {
       const { data } = await supabase.auth.admin.getUserById(profile.user_id);
       if (data.user?.email && data.user.email_confirmed_at) recipients.push({email:data.user.email,displayName:profile.display_name});
+    }
+    if (testEmail) {
+      const matchingRecipient = recipients.find((recipient) => recipient.email.toLowerCase() === testEmail);
+      recipients.splice(0, recipients.length, matchingRecipient ?? { email: testEmail, displayName: "Gazette Reader" });
     }
     const {data:run,error:runError}=await supabase.from("weekly_digest_runs").insert({season_year:season,week,subject,recipient_count:recipients.length}).select("id").single();
     if(runError)throw runError;runId=run.id;
