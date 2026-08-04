@@ -47,9 +47,25 @@ export function buildPerfectLineup(scores: PlayerWeeklyScore[]): LineupEntry[] {
 
 export function buildSeasonSlotRecords(scores: PlayerWeeklyScore[]): LineupEntry[] {
   const sorted = [...scores].sort((a, b) => b.points - a.points);
+  const used = new Set<string>();
   const slots: Array<[string, string[], number]> = [
     ["QB", ["QB"], 1], ["RB", ["RB"], 2], ["WR", ["WR"], 2], ["TE", ["TE"], 1],
     ["FLEX", ["RB", "WR", "TE"], 2], ["K", ["K"], 1], ["DEF", ["DEF"], 1],
   ];
-  return slots.flatMap(([slot, positions, count]) => sorted.filter((score) => positions.includes(score.position)).slice(0, count).map((score, index) => ({ ...score, slot: count > 1 ? `${slot}${index + 1}` : slot })));
+  return slots.flatMap(([slot, positions, count]) => {
+    const selections = sorted
+      .filter(
+        (score) =>
+          positions.includes(score.position) &&
+          !used.has(score.sleeper_player_id)
+      )
+      .slice(0, count);
+
+    selections.forEach((score) => used.add(score.sleeper_player_id));
+
+    return selections.map((score, index) => ({
+      ...score,
+      slot: count > 1 ? `${slot}${index + 1}` : slot,
+    }));
+  });
 }

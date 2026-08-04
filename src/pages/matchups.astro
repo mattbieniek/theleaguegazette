@@ -592,10 +592,6 @@ function formatPoints(value: number): string {
     padding-top: var(--space-6);
   }
 
-  .matchups-grid > :global(article:last-child:nth-child(odd)) {
-    grid-column: 1 / -1;
-  }
-
   .empty-state {
     max-width: 50rem;
     padding-block: var(--space-9);
@@ -619,9 +615,6 @@ function formatPoints(value: number): string {
       grid-template-columns: 1fr;
     }
 
-    .matchups-grid > :global(article:last-child:nth-child(odd)) {
-      grid-column: auto;
-    }
   }
 
   @media (max-width: 780px) {

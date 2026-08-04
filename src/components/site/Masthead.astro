@@ -53,7 +53,7 @@ const dateTime = new Intl.DateTimeFormat("en-CA", {
         {publicationDate}
       </time>
 
-      <span class="masthead__edition">
+      <span class="masthead__edition" data-reader-location>
         Houston, Texas
       </span>
     </div>
@@ -83,6 +83,16 @@ const dateTime = new Intl.DateTimeFormat("en-CA", {
       year: "numeric",
       timeZone,
     }).format(now);
+  }
+
+  const readerLocation = document.querySelector<HTMLElement>("[data-reader-location]");
+  if (readerLocation) {
+    fetch("/api/location.json", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (data?.location) readerLocation.textContent = data.location;
+      })
+      .catch(() => undefined);
   }
 </script>
 

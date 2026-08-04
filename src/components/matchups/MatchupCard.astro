@@ -4,7 +4,7 @@ import type {
   WeeklyMatchup,
 } from "../../lib/queries/matchups";
 import {
-  teams as leagueTeams,
+  findTeamByName,
   type Team,
 } from "../../data/teams";
 
@@ -14,20 +14,10 @@ interface Props {
 
 const { matchup } = Astro.props;
 
-function normalizeName(value: string): string {
-  return value.trim().toLowerCase();
-}
-
 function getTeamProfile(
   team: MatchupTeam
 ): Team | null {
-  return (
-    leagueTeams.find(
-      (leagueTeam) =>
-        normalizeName(leagueTeam.name) ===
-        normalizeName(team.teamName)
-    ) ?? null
-  );
+  return findTeamByName(team.teamName);
 }
 
 function formatPoints(

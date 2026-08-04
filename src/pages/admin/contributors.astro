@@ -5,7 +5,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
 <AdminLayout title="Contributors | The League Gazette">
   <main class="admin-shell contributors" hidden id="contributors-page">
     <header class="contributors__header">
-      <div><p class="eyebrow">Editorial access</p><h1>Contributors</h1><p>Grant Commissioner's Corner access to an existing Supabase user.</p></div>
+      <div><p class="eyebrow">Editorial access</p><h1>Contributors</h1><p>Grant limited Op-Ed writing access to an existing account.</p></div>
     </header>
     <section class="contributors__panel">
       <h2>Add a contributor</h2>
@@ -38,7 +38,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
         const row = document.createElement("article"); row.className = "contributor-row";
         const copy = document.createElement("div");
         const title = document.createElement("h3"); title.textContent = contributor.display_name;
-        const detail = document.createElement("p"); detail.textContent = `${contributor.email} · Commissioner's Corner`;
+        const detail = document.createElement("p"); detail.textContent = `${contributor.email} · Op Ed · approval required`;
         const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Remove access"; remove.className = "secondary";
         remove.addEventListener("click", async () => {
           if (!confirm(`Remove publication access for ${contributor.display_name}? Their existing stories will remain.`)) return;

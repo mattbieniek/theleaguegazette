@@ -1,0 +1,21 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import AccountCard from "../../components/account/AccountCard.astro";
+---
+<BaseLayout title="Account Sign In" noindex>
+  <AccountCard eyebrow="Member access" title="Sign in" intro="Access your Readers Poll ballots, account preferences, or editorial workspace.">
+    <form id="login-form" class="account-form">
+      <label>Email address<input id="email" type="email" autocomplete="email" required /></label>
+      <label>Password<input id="password" type="password" autocomplete="current-password" required /></label>
+      <p id="message" class="account-message" role="status" aria-live="polite"></p>
+      <button type="submit">Sign in</button>
+    </form>
+    <div class="account-links"><a href="/account/register">Create account</a><a href="/account/forgot-password">Forgot password?</a></div>
+  </AccountCard>
+  <script>
+    import { supabaseBrowser } from "../../lib/supabase-browser";
+    const form=document.querySelector<HTMLFormElement>("#login-form"),message=document.querySelector<HTMLElement>("#message"),button=form?.querySelector<HTMLButtonElement>("button");
+    void supabaseBrowser.auth.getSession().then(({data})=>{if(data.session)window.location.replace("/account")});
+    form?.addEventListener("submit",async(event)=>{event.preventDefault();if(!message||!button)return;button.disabled=true;button.textContent="Signing in…";const email=document.querySelector<HTMLInputElement>("#email")?.value.trim()??"",password=document.querySelector<HTMLInputElement>("#password")?.value??"";const{error}=await supabaseBrowser.auth.signInWithPassword({email,password});if(error){message.dataset.error="true";message.textContent="Unable to sign in. Check your email and password.";button.disabled=false;button.textContent="Sign in";return}window.location.assign("/account")});
+  </script>
+</BaseLayout>

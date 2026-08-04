@@ -392,6 +392,24 @@ export type Database = {
         }
         Relationships: []
       }
+      reader_profiles: {
+        Row: { user_id: string; display_name: string; digest_enabled: boolean; created_at: string; updated_at: string }
+        Insert: { user_id: string; display_name: string; digest_enabled?: boolean; created_at?: string; updated_at?: string }
+        Update: { user_id?: string; display_name?: string; digest_enabled?: boolean; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      reader_poll_windows: {
+        Row: { season_year: number; week: number; is_open: boolean; closes_at: string | null; updated_at: string }
+        Insert: { season_year: number; week: number; is_open?: boolean; closes_at?: string | null; updated_at?: string }
+        Update: { season_year?: number; week?: number; is_open?: boolean; closes_at?: string | null; updated_at?: string }
+        Relationships: []
+      }
+      reader_power_ballots: {
+        Row: { id: string; user_id: string; season_year: number; week: number; rankings: Json; created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; season_year: number; week: number; rankings: Json; created_at?: string; updated_at?: string }
+        Update: { id?: string; user_id?: string; season_year?: number; week?: number; rankings?: Json; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
       editorial_notifications: {
         Row: {
           action_url: string | null
@@ -1743,6 +1761,10 @@ export type Database = {
       admin_remove_publication_contributor: {
         Args: { contributor_user_id: string }
         Returns: undefined
+      }
+      article_login_identity: {
+        Args: { target_article_id: string }
+        Returns: { user_id: string; email: string; login: string }[]
       }
       is_gazette_admin: { Args: never; Returns: boolean }
     }

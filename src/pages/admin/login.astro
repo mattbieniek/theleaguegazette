@@ -49,6 +49,10 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
         <button id="login-button" type="submit">
           Sign in
         </button>
+        <div class="login-links">
+          <a href="/account/forgot-password">Forgot password?</a>
+          <a href="/account/login">Reader account sign in</a>
+        </div>
       </form>
     </section>
   </div>
@@ -212,4 +216,6 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
     color: #9a2f2f;
     font-size: var(--text-sm);
   }
+
+  .login-links { display:flex;justify-content:space-between;gap:1rem;font-size:.8rem; }
 </style>

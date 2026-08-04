@@ -8,6 +8,7 @@ const navigation = [
   { label: "Standings", href: "/standings" },
   { label: "Teams", href: "/teams" },
   { label: "History", href: "/history" },
+  { label: "Readers Poll", href: "/poll" },
 ];
 
 function isCurrentPage(href: string) {
@@ -58,6 +59,14 @@ function isCurrentPage(href: string) {
           </svg>
           Search
           <kbd aria-hidden="true">/</kbd>
+        </a>
+      </li>
+      <li class="site-nav__item site-nav__item--editorial">
+        <a class="site-nav__account" href="/account">
+          My Account
+        </a>
+        <a class="site-nav__editorial" href="/admin">
+          Editorial Desk
         </a>
       </li>
     </ul>
@@ -119,6 +128,45 @@ function isCurrentPage(href: string) {
   .site-nav__item--search {
     margin-left: var(--space-2);
     border-left: 1px solid var(--color-rule);
+  }
+
+  .site-nav__item--editorial {
+    margin-left: var(--space-2);
+  }
+
+  .site-nav__editorial {
+    display: flex;
+    align-items: center;
+    min-height: 3.25rem;
+    padding-inline: clamp(0.9rem, 1.8vw, 1.35rem);
+    background: var(--color-green);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 750;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .site-nav__account {
+    display:flex;
+    align-items:center;
+    min-height:3.25rem;
+    padding-inline:clamp(.8rem,1.5vw,1.1rem);
+    border:1px solid var(--color-green);
+    color:var(--color-green);
+    font-size:.7rem;
+    font-weight:750;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+
+  .site-nav__account:hover { background:color-mix(in srgb,var(--color-green) 8%,transparent); }
+
+  .site-nav__editorial:hover {
+    background: var(--color-ink);
+    color: white;
   }
 
   .site-nav__link {

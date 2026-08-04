@@ -3,8 +3,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import LeadStory from "../components/home/LeadStory.astro";
 import SecondaryStory from "../components/home/SecondaryStory.astro";
 import { getHomepageArticles } from "../lib/queries/gazette";
-import { getCommissionersCornerArticles } from "../lib/queries/gazette";
-import CommissionersCorner from "../components/gazette/CommissionersCorner.astro";
+import GazetteRankings from "../components/gazette/GazetteRankings.astro";
+import { getLatestPublishedPowerRanking } from "../lib/queries/powerRankings";
 import LeagueOverview from "../components/home/LeagueOverview.astro";
 import LeagueNotebook from "../components/home/LeagueNotebook.astro";
 import LeagueWire from "../components/home/LeagueWire.astro";
@@ -22,7 +22,7 @@ import { getSeasonMatchups } from "../lib/queries/matchups";
 export const prerender = false;
 
 const stories = await getHomepageArticles();
-const commissionersCornerArticles = await getCommissionersCornerArticles();
+const latestGazetteRanking = await getLatestPublishedPowerRanking();
 
 const leadStory =
   stories.find((story) => story.is_featured) ??
@@ -173,7 +173,7 @@ const transactionHighlights = getHomepageTransactionHighlights(
         </section>
       )
     }
-    <CommissionersCorner articles={commissionersCornerArticles} context="homepage" />
+    <GazetteRankings ranking={latestGazetteRanking} context="homepage" />
     <WeeklyScoreboard matchupWeek={homepageMatchupWeek} />
     <LeagueOverview standings={standings} />
     <LeagueWire transactions={transactionHighlights} />

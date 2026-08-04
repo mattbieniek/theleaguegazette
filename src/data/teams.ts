@@ -25,6 +25,20 @@ export function getFormerTeamNames(team: Team): string[] {
     );
 }
 
+export function findTeamByName(name: string | null): Team | null {
+  const normalizedName = name?.trim().toLowerCase();
+
+  if (!normalizedName) {
+    return null;
+  }
+
+  return teams.find((team) =>
+    [team.name, team.legacyName, ...(team.aliases ?? [])].some(
+      (candidate) => candidate.trim().toLowerCase() === normalizedName
+    )
+  ) ?? null;
+}
+
 export const teams: Team[] = [
   { slug: 'haddonfield-slashers', name: 'Haddonfield Slashers', owner: 'Matt Bieniek', legacyName: 'Haddonfield Slashers', primary: '#D96A1B', secondary: '#9E1F1F', logo: '/logos/haddonfield.webp' },
   { slug: 'the-reapers', name: 'The Reapers', owner: 'Nick Lewandowski', legacyName: 'Spooky Football', primary: '#8B1E2D', secondary: '#E8E2D6', logo: '/logos/reapers.webp' },
