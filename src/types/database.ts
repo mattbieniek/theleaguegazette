@@ -713,6 +713,7 @@ export type Database = {
           id: string
           is_starter: boolean
           matchup_team_id: string
+          nfl_team_at_week: string | null
           points: number
           sleeper_player_id: string
           updated_at: string
@@ -722,6 +723,7 @@ export type Database = {
           id?: string
           is_starter?: boolean
           matchup_team_id: string
+          nfl_team_at_week?: string | null
           points?: number
           sleeper_player_id: string
           updated_at?: string
@@ -731,6 +733,7 @@ export type Database = {
           id?: string
           is_starter?: boolean
           matchup_team_id?: string
+          nfl_team_at_week?: string | null
           points?: number
           sleeper_player_id?: string
           updated_at?: string
