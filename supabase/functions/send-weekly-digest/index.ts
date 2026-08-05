@@ -12,8 +12,15 @@ Deno.serve(async (request: Request) => {
   const sender = Deno.env.get("WEEKLY_DIGEST_FROM") ?? "The League Gazette <gazette@theleaguegazette.org>";
   const siteUrl = Deno.env.get("PUBLIC_SITE_URL") ?? "https://theleaguegazette.org";
   if (!supabaseUrl || !serviceKey || !resendKey || !cronSecret) return Response.json({success:false,error:"Digest secrets are not configured."},{status:503});
-  if (request.headers.get("x-cron-secret") !== cronSecret) return Response.json({success:false,error:"Unauthorized"},{status:401});
   const supabase = createClient(supabaseUrl, serviceKey);
+  if (request.headers.get("x-cron-secret") !== cronSecret) {
+    const accessToken = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+    const { data: userData } = await supabase.auth.getUser(accessToken);
+    const { data: admin } = userData.user
+      ? await supabase.from("admin_users").select("user_id").eq("user_id", userData.user.id).maybeSingle()
+      : { data: null };
+    if (!admin) return Response.json({success:false,error:"Unauthorized"},{status:401});
+  }
   let runId = "";
   try {
     const requestBody = await request.json().catch(() => ({})) as { test_email?: string };
