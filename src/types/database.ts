@@ -1774,6 +1774,17 @@ export type Database = {
           is_starter: boolean
         }[]
       }
+      public_computer_poll_lineups: {
+        Args: { target_season_year: number; target_through_week: number }
+        Returns: {
+          fantasy_team_id: string
+          week: number
+          sleeper_player_id: string
+          player_position: string
+          points: number
+          is_starter: boolean
+        }[]
+      }
       admin_return_article_for_changes: {
         Args: { review_note: string; target_article_id: string }
         Returns: undefined
