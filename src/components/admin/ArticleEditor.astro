@@ -1,5 +1,5 @@
 ---
-import { OP_ED_SUBCATEGORIES, STORY_CATEGORIES } from "../../lib/gazette/categories";
+import { ADMIN_STORY_CATEGORIES, OP_ED_SUBCATEGORIES } from "../../lib/gazette/categories";
 interface Props {
   articleId?: string;
 }
@@ -313,7 +313,7 @@ const editorMode = articleId ? "edit" : "create";
               <span>Category</span>
 
               <select id="category" name="category">
-                {STORY_CATEGORIES.map((category) => (
+                {ADMIN_STORY_CATEGORIES.map((category) => (
                   <option value={category}>{category}</option>
                 ))}
               </select>
@@ -1008,6 +1008,10 @@ const editorMode = articleId ? "edit" : "create";
   let currentArticleStatus: ArticleStatus = "draft";
   let selectedArticleStatus: ArticleStatus = "draft";
   let currentArticleSubcategory: string | null = null;
+
+  function getSelectedCategory(): string {
+    return isCommissioner ? "Op-Ed" : categoryInput?.value.trim() ?? "";
+  }
   let currentArticlePublishedAt: string | null = null;
 
   let lastSavedSnapshot = "";
@@ -1441,7 +1445,7 @@ const editorMode = articleId ? "edit" : "create";
 
     const normalizedSlug = slugify(slugSource);
 
-    const category = categoryInput?.value.trim() ?? "";
+    const category = getSelectedCategory();
 
     const summary = summaryInput?.value.trim() ?? "";
 
@@ -1849,7 +1853,7 @@ const editorMode = articleId ? "edit" : "create";
       headline: headlineInput?.value ?? "",
       summary: summaryInput?.value ?? "",
       body: getCurrentBody(),
-      category: categoryInput?.value ?? "",
+      category: getSelectedCategory(),
       subcategory: subcategoryInput?.value ?? "",
       authorName: authorInput?.value ?? "",
       slug: slugInput?.value ?? "",
@@ -2343,7 +2347,6 @@ const editorMode = articleId ? "edit" : "create";
 
   function applyContributorEditor(): void {
     if (!isCommissioner) return;
-    if (categoryInput) { categoryInput.value = "Op-Ed"; categoryInput.disabled = true; }
     if (categoryField) categoryField.hidden = true;
     if (subcategoryField) subcategoryField.hidden = false;
     if (authorInput) { authorInput.value = contributorDisplayName; authorInput.readOnly = true; }
@@ -2376,6 +2379,16 @@ const editorMode = articleId ? "edit" : "create";
     });
 
     if (categoryInput) {
+      if (
+        article.category === "Op-Ed" &&
+        !Array.from(categoryInput.options).some((option) => option.value === "Op-Ed")
+      ) {
+        const contributorOption = document.createElement("option");
+        contributorOption.value = "Op-Ed";
+        contributorOption.textContent = "Op-Ed (Contributor submission)";
+        contributorOption.disabled = true;
+        categoryInput.append(contributorOption);
+      }
       categoryInput.value = article.category;
     }
 
@@ -2447,7 +2460,7 @@ const editorMode = articleId ? "edit" : "create";
 
     const headline = headlineInput?.value.trim() ?? "";
     const summary = summaryInput?.value.trim() ?? "";
-    const category = categoryInput?.value.trim() ?? "";
+    const category = getSelectedCategory();
     const subcategory = category === "Op-Ed"
       ? isCommissioner
         ? subcategoryInput?.value.trim() || null
@@ -3048,7 +3061,7 @@ const editorMode = articleId ? "edit" : "create";
 
     const summary = summaryInput?.value.trim() || "";
 
-    const category = categoryInput?.value.trim() || "Uncategorized";
+    const category = getSelectedCategory() || "Uncategorized";
     const categoryLabel = category === "Op-Ed" && subcategoryInput?.value
       ? `${category} · ${subcategoryInput.value}`
       : category;

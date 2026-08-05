@@ -9,6 +9,10 @@ export const STORY_CATEGORIES = [
 
 export type StoryCategory = (typeof STORY_CATEGORIES)[number];
 
+export const ADMIN_STORY_CATEGORIES = STORY_CATEGORIES.filter(
+  (category) => category !== "Op-Ed",
+);
+
 export const OP_ED_SUBCATEGORIES = [
   "General",
   "Hot Takes",
