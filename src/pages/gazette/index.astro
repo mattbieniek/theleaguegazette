@@ -6,7 +6,7 @@ import GazetteRankings from "../../components/gazette/GazetteRankings.astro";
 import { getLatestPublishedPowerRanking } from "../../lib/queries/powerRankings";
 import ReadersPoll from "../../components/gazette/ReadersPoll.astro";
 import { getLatestReaderPollPreview } from "../../lib/queries/readerPoll";
-import { STORY_CATEGORIES, isStoryCategory } from "../../lib/gazette/categories";
+import { STORY_CATEGORIES, formatStoryCategory, isStoryCategory } from "../../lib/gazette/categories";
 
 export const prerender = false;
 
@@ -103,7 +103,7 @@ function getArticleImage(
 
             <div class="lead-story__content">
               <p class="eyebrow">
-                {leadArticle.category}
+                {formatStoryCategory(leadArticle.category, leadArticle.subcategory)}
               </p>
 
               <h2 id="lead-story-title">
@@ -218,7 +218,7 @@ function getArticleImage(
 
                           <div class="story-card__content">
                             <p class="eyebrow">
-                              {story.category}
+                              {formatStoryCategory(story.category, story.subcategory)}
                             </p>
 
                             <h3>

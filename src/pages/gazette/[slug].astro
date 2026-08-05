@@ -6,6 +6,7 @@ import {
   getPublishedArticles,
 } from "../../lib/queries/gazette";
 import { formatPublicationDate } from "../../lib/formatDate";
+import { formatStoryCategory } from "../../lib/gazette/categories";
 
 export const prerender = false;
 
@@ -131,12 +132,12 @@ const canonicalUrl = new URL(
 
         <span aria-hidden="true">/</span>
 
-        <span>{story.category}</span>
+        <span>{formatStoryCategory(story.category, story.subcategory)}</span>
       </nav>
 
       <div class="article-header__content">
         <p class="eyebrow">
-          {story.category}
+          {formatStoryCategory(story.category, story.subcategory)}
         </p>
 
         <h1>{story.headline}</h1>
@@ -240,7 +241,7 @@ const canonicalUrl = new URL(
         </a>
 
         <p>
-          {story.category}
+          {formatStoryCategory(story.category, story.subcategory)}
         </p>
       </aside>
 
@@ -342,7 +343,7 @@ const canonicalUrl = new URL(
 
                   <div class="related-story__content">
                     <p class="eyebrow">
-                      {article.category}
+                      {formatStoryCategory(article.category, article.subcategory)}
                     </p>
 
                     <h3>

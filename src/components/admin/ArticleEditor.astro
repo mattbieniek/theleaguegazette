@@ -1,5 +1,5 @@
 ---
-import { STORY_CATEGORIES } from "../../lib/gazette/categories";
+import { OP_ED_SUBCATEGORIES, STORY_CATEGORIES } from "../../lib/gazette/categories";
 interface Props {
   articleId?: string;
 }
@@ -317,6 +317,18 @@ const editorMode = articleId ? "edit" : "create";
                   <option value={category}>{category}</option>
                 ))}
               </select>
+            </label>
+
+            <label id="subcategory-field" hidden>
+              <span>Op-Ed category</span>
+
+              <select id="subcategory" name="subcategory">
+                {OP_ED_SUBCATEGORIES.map((subcategory) => (
+                  <option value={subcategory}>{subcategory}</option>
+                ))}
+              </select>
+
+              <small>Choose how this contribution should appear within the Op-Ed desk.</small>
             </label>
 
             <label id="author-field">
@@ -730,6 +742,7 @@ const editorMode = articleId ? "edit" : "create";
     id: string;
     slug: string;
     category: string;
+    subcategory: string | null;
     headline: string;
     summary: string;
     author_name: string;
@@ -747,6 +760,7 @@ const editorMode = articleId ? "edit" : "create";
   type ArticlePayload = {
     slug: string;
     category: string;
+    subcategory: string | null;
     headline: string;
     summary: string;
     author_name: string;
@@ -811,6 +825,9 @@ const editorMode = articleId ? "edit" : "create";
   );
 
   const categoryInput = document.querySelector<HTMLSelectElement>("#category");
+  const categoryField = document.querySelector<HTMLElement>("#category-field");
+  const subcategoryField = document.querySelector<HTMLElement>("#subcategory-field");
+  const subcategoryInput = document.querySelector<HTMLSelectElement>("#subcategory");
 
   const authorInput = document.querySelector<HTMLInputElement>("#author-name");
   const authorLogin = document.querySelector<HTMLElement>("#author-login");
@@ -990,6 +1007,7 @@ const editorMode = articleId ? "edit" : "create";
 
   let currentArticleStatus: ArticleStatus = "draft";
   let selectedArticleStatus: ArticleStatus = "draft";
+  let currentArticleSubcategory: string | null = null;
   let currentArticlePublishedAt: string | null = null;
 
   let lastSavedSnapshot = "";
@@ -1832,6 +1850,7 @@ const editorMode = articleId ? "edit" : "create";
       summary: summaryInput?.value ?? "",
       body: getCurrentBody(),
       category: categoryInput?.value ?? "",
+      subcategory: subcategoryInput?.value ?? "",
       authorName: authorInput?.value ?? "",
       slug: slugInput?.value ?? "",
       publishedAt: publishedAtInput?.value ?? "",
@@ -2325,6 +2344,8 @@ const editorMode = articleId ? "edit" : "create";
   function applyContributorEditor(): void {
     if (!isCommissioner) return;
     if (categoryInput) { categoryInput.value = "Op-Ed"; categoryInput.disabled = true; }
+    if (categoryField) categoryField.hidden = true;
+    if (subcategoryField) subcategoryField.hidden = false;
     if (authorInput) { authorInput.value = contributorDisplayName; authorInput.readOnly = true; }
     if (articleStatusInput) {
       for (const option of Array.from(articleStatusInput.options)) {
@@ -2356,6 +2377,11 @@ const editorMode = articleId ? "edit" : "create";
 
     if (categoryInput) {
       categoryInput.value = article.category;
+    }
+
+    currentArticleSubcategory = article.subcategory;
+    if (subcategoryInput && article.subcategory) {
+      subcategoryInput.value = article.subcategory;
     }
 
     if (authorInput) {
@@ -2422,6 +2448,11 @@ const editorMode = articleId ? "edit" : "create";
     const headline = headlineInput?.value.trim() ?? "";
     const summary = summaryInput?.value.trim() ?? "";
     const category = categoryInput?.value.trim() ?? "";
+    const subcategory = category === "Op-Ed"
+      ? isCommissioner
+        ? subcategoryInput?.value.trim() || null
+        : currentArticleSubcategory
+      : null;
     const authorName = authorInput?.value.trim() || "The Gazette Staff";
 
     const body = getCurrentBody();
@@ -2505,6 +2536,7 @@ const editorMode = articleId ? "edit" : "create";
     return {
       slug,
       category,
+      subcategory,
       headline,
       summary,
       author_name: authorName,
@@ -3017,6 +3049,9 @@ const editorMode = articleId ? "edit" : "create";
     const summary = summaryInput?.value.trim() || "";
 
     const category = categoryInput?.value.trim() || "Uncategorized";
+    const categoryLabel = category === "Op-Ed" && subcategoryInput?.value
+      ? `${category} · ${subcategoryInput.value}`
+      : category;
 
     const author = authorInput?.value.trim() || "The Gazette Staff";
 
@@ -3042,7 +3077,7 @@ const editorMode = articleId ? "edit" : "create";
     }
 
     if (previewCategory) {
-      previewCategory.textContent = category;
+      previewCategory.textContent = categoryLabel;
     }
 
     if (previewAuthor) {
@@ -3131,6 +3166,7 @@ const editorMode = articleId ? "edit" : "create";
   const autosaveInputs = [
     summaryInput,
     categoryInput,
+    subcategoryInput,
     authorInput,
     publishedAtInput,
     imageUrlInput,

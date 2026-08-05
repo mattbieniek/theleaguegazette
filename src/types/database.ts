@@ -330,6 +330,7 @@ export type Database = {
           published_at: string | null
           slug: string
           status: string
+          subcategory: string | null
           summary: string
           updated_at: string
         }
@@ -348,6 +349,7 @@ export type Database = {
           published_at?: string | null
           slug: string
           status?: string
+          subcategory?: string | null
           summary: string
           updated_at?: string
         }
@@ -366,6 +368,7 @@ export type Database = {
           published_at?: string | null
           slug?: string
           status?: string
+          subcategory?: string | null
           summary?: string
           updated_at?: string
         }
