@@ -1,12 +1,13 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import RankingJourney from "../components/history/RankingJourney.astro";
 import { supabase } from "../lib/supabase";
 import { buildComputerPoll } from "../lib/gazette/powerRankings";
 export const prerender=false;
 type GazetteEntry={teamId:string;teamName:string;rank:number;previousRank:number|null;record:string;pointsFor:number;note:string};
 const db=supabase as any;
 const {data:edition}=await db.from("power_rankings").select("season_year,week,title,entries,updated_at").eq("status","ready").order("season_year",{ascending:false}).order("week",{ascending:false}).limit(1).maybeSingle();
-const [{data:results},{data:lineups}]=edition?await Promise.all([supabase.from("team_weekly_results").select("fantasy_team_id,team_name,week,points_for,point_differential,result").eq("season_year",edition.season_year).lte("week",edition.week),supabase.rpc("public_computer_poll_lineups",{target_season_year:edition.season_year,target_through_week:edition.week})]):[{data:[]},{data:[]}];
+const [{data:results},{data:lineups}]=edition?await Promise.all([supabase.from("team_weekly_results").select("season_year,fantasy_team_id,team_name,week,points_for,point_differential,result").eq("season_year",edition.season_year).lte("week",edition.week),supabase.rpc("public_computer_poll_lineups",{target_season_year:edition.season_year,target_through_week:edition.week})]):[{data:[]},{data:[]}];
 const computer=buildComputerPoll(results??[],edition?.week??0,lineups??[]);const previousComputer=edition&&edition.week>1?buildComputerPoll(results??[],edition.week-1,lineups??[]):[];const previousComputerByTeam=new Map(previousComputer.map(item=>[item.teamId,item.rank]));const gazette=(edition?.entries??[]) as GazetteEntry[];const computerByTeam=new Map(computer.map(item=>[item.teamId,item]));
 ---
 <BaseLayout title="Power Rankings" description="The Computer Poll meets The Gazette Poll: performance data versus unapologetic editorial bias.">
@@ -18,6 +19,7 @@ const computer=buildComputerPoll(results??[],edition?.week??0,lineups??[]);const
         <div class="poll"><header><p class="eyebrow">No Feelings Allowed</p><h2>Computer Poll</h2></header>{computer.map(team=>{const previousRank=previousComputerByTeam.get(team.teamId);const movement=previousRank==null?null:previousRank-team.rank;return <article><b>{team.rank}</b><div><div class="poll-team-heading"><h3>{team.teamName}</h3><span class:list={["weekly-movement",movement&&movement>0&&"is-up",movement&&movement<0&&"is-down"]} title={previousRank==null?"No previous Computer Poll ranking":`Previously ranked ${previousRank}`}>{movement===null?"NEW":movement>0?`▲ ${movement}`:movement<0?`▼ ${Math.abs(movement)}`:"—"}</span></div><p>{team.record} · {team.score.toFixed(1)} rating</p></div><span>All-play {(team.leagueWinRate*100).toFixed(1)}% · Eff. {(team.efficiencyRate*100).toFixed(1)}%</span></article>})}</div>
         <div class="poll poll--gazette"><header><p class="eyebrow">Editorial Agenda</p><h2>Gazette Poll</h2></header>{gazette.map(team=>{const computerTeam=computerByTeam.get(team.teamId);const difference=computerTeam?computerTeam.rank-team.rank:0;const movement=team.previousRank==null?null:team.previousRank-team.rank;return <article><b>{team.rank}</b><div><div class="poll-team-heading"><h3>{team.teamName}</h3><span class:list={["weekly-movement",movement&&movement>0&&"is-up",movement&&movement<0&&"is-down"]} title={team.previousRank==null?"No previous Gazette Poll ranking":`Previously ranked ${team.previousRank}`}>{movement===null?"NEW":movement>0?`▲ ${movement}`:movement<0?`▼ ${Math.abs(movement)}`:"—"}</span></div><p>{team.note||"The editorial board declines to elaborate."}</p></div><span class:list={[difference>0&&"favored",difference<0&&"snubbed"]}>{computerTeam?difference===0?"Agrees":difference>0?`${difference} spot${difference===1?"":"s"} favored`:`${Math.abs(difference)} spot${difference===-1?"":"s"} snubbed`:"Unranked"}</span></article>})}</div>
       </section>
+      <RankingJourney results={results??[]} season={edition.season_year} playerRows={lineups??[]} />
     </>:<section class="empty"><p class="eyebrow">Rankings Desk</p><h2>No edition is ready yet.</h2><p>The argument begins as soon as the editorial board marks its first Gazette Poll ready.</p></section>}
   </main>
 </BaseLayout>
