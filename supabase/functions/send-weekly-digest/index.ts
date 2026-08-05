@@ -3,15 +3,17 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const htmlEntities: Record<string, string> = {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"};
 const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (character) => htmlEntities[character]);
+const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret" };
 
 Deno.serve(async (request: Request) => {
+  if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const resendKey = Deno.env.get("RESEND_API_KEY");
   const cronSecret = Deno.env.get("WEEKLY_DIGEST_CRON_SECRET");
   const sender = Deno.env.get("WEEKLY_DIGEST_FROM") ?? "The League Gazette <gazette@theleaguegazette.org>";
   const siteUrl = Deno.env.get("PUBLIC_SITE_URL") ?? "https://theleaguegazette.org";
-  if (!supabaseUrl || !serviceKey || !resendKey || !cronSecret) return Response.json({success:false,error:"Digest secrets are not configured."},{status:503});
+  if (!supabaseUrl || !serviceKey || !resendKey || !cronSecret) return Response.json({success:false,error:"Digest secrets are not configured."},{status:503,headers:corsHeaders});
   const supabase = createClient(supabaseUrl, serviceKey);
   if (request.headers.get("x-cron-secret") !== cronSecret) {
     const accessToken = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
@@ -19,7 +21,7 @@ Deno.serve(async (request: Request) => {
     const { data: admin } = userData.user
       ? await supabase.from("admin_users").select("user_id").eq("user_id", userData.user.id).maybeSingle()
       : { data: null };
-    if (!admin) return Response.json({success:false,error:"Unauthorized"},{status:401});
+    if (!admin) return Response.json({success:false,error:"Unauthorized"},{status:401,headers:corsHeaders});
   }
   let runId = "";
   try {
@@ -55,6 +57,6 @@ Deno.serve(async (request: Request) => {
       if(response.ok)delivered++;else{failed++;console.error("Digest delivery failed",recipient.email,await response.text())}
     }
     await supabase.from("weekly_digest_runs").update({delivered_count:delivered,failed_count:failed,status:failed&& !delivered?"failed":"completed",completed_at:new Date().toISOString()}).eq("id",runId);
-    return Response.json({success:true,recipients:recipients.length,delivered,failed});
-  } catch(error){if(runId)await supabase.from("weekly_digest_runs").update({status:"failed",error_message:error instanceof Error?error.message:String(error),completed_at:new Date().toISOString()}).eq("id",runId);return Response.json({success:false,error:error instanceof Error?error.message:String(error)},{status:500})}
+    return Response.json({success:true,recipients:recipients.length,delivered,failed},{headers:corsHeaders});
+  } catch(error){if(runId)await supabase.from("weekly_digest_runs").update({status:"failed",error_message:error instanceof Error?error.message:String(error),completed_at:new Date().toISOString()}).eq("id",runId);return Response.json({success:false,error:error instanceof Error?error.message:String(error)},{status:500,headers:corsHeaders})}
 });
