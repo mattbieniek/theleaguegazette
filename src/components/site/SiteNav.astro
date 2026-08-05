@@ -64,7 +64,7 @@ function isCurrentPage(href: string) {
         <a class="site-nav__account" href="/account/login" data-account-link>
           Sign In
         </a>
-        <a class="site-nav__editorial" href="/admin">
+        <a class="site-nav__editorial" href="/admin" data-editorial-link hidden>
           Editorial Desk
         </a>
       </li>
@@ -76,10 +76,19 @@ function isCurrentPage(href: string) {
   import { supabaseBrowser } from "../../lib/supabase-browser";
 
   const accountLink = document.querySelector<HTMLAnchorElement>("[data-account-link]");
-  void supabaseBrowser.auth.getSession().then(({ data }) => {
-    if (!accountLink || !data.session) return;
-    accountLink.href = "/account";
-    accountLink.textContent = "My Account";
+  const editorialLink = document.querySelector<HTMLAnchorElement>("[data-editorial-link]");
+  void supabaseBrowser.auth.getSession().then(async ({ data }) => {
+    const user = data.session?.user;
+    if (!user) return;
+    if (accountLink) {
+      accountLink.href = "/account";
+      accountLink.textContent = "My Account";
+    }
+    const [{ data: admin }, { data: contributor }] = await Promise.all([
+      supabaseBrowser.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle(),
+      supabaseBrowser.from("publication_contributors").select("user_id").eq("user_id", user.id).maybeSingle(),
+    ]);
+    if (editorialLink && (admin || contributor)) editorialLink.hidden = false;
   });
 
   document.addEventListener("keydown", (event) => {
@@ -155,6 +164,8 @@ function isCurrentPage(href: string) {
     text-transform: uppercase;
     white-space: nowrap;
   }
+
+  .site-nav__editorial[hidden] { display: none; }
 
   .site-nav__account {
     display:flex;
