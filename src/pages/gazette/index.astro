@@ -6,15 +6,15 @@ import GazetteRankings from "../../components/gazette/GazetteRankings.astro";
 import { getLatestPublishedPowerRanking } from "../../lib/queries/powerRankings";
 import ReadersPoll from "../../components/gazette/ReadersPoll.astro";
 import { getLatestReaderPollPreview } from "../../lib/queries/readerPoll";
+import { STORY_CATEGORIES, isStoryCategory } from "../../lib/gazette/categories";
 
 export const prerender = false;
 
 const articles = await getPublishedArticles();
 const latestGazetteRanking = await getLatestPublishedPowerRanking();
 const latestReaderPoll = await getLatestReaderPollPreview();
-const categories = [...new Set(articles.map((article) => article.category?.trim()).filter(Boolean))].sort();
 const requestedCategory = Astro.url.searchParams.get("category")?.trim() ?? "";
-const selectedCategory = categories.includes(requestedCategory) ? requestedCategory : "";
+const selectedCategory = isStoryCategory(requestedCategory) ? requestedCategory : "";
 const generalArticles = selectedCategory
   ? articles.filter((article) => article.category === selectedCategory)
   : articles;
@@ -66,7 +66,7 @@ function getArticleImage(
 
     <nav class="category-filter" aria-label="Filter stories by category">
       <a href="/gazette" aria-current={!selectedCategory ? "page" : undefined}>All stories</a>
-      {categories.map((category) => (
+      {STORY_CATEGORIES.map((category) => (
         <a
           href={`/gazette?category=${encodeURIComponent(category)}`}
           aria-current={selectedCategory === category ? "page" : undefined}
