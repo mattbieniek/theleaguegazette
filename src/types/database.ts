@@ -1740,6 +1740,34 @@ export type Database = {
     }
     Functions: {
       admin_sleeper_status: { Args: never; Returns: Json }
+      admin_site_accounts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          email: string
+          display_name: string
+          digest_enabled: boolean
+          is_contributor: boolean
+          is_admin: boolean
+          created_at: string
+        }[]
+      }
+      admin_set_contributor_access: {
+        Args: { target_user_id: string; access_enabled: boolean }
+        Returns: undefined
+      }
+      public_matchup_lineups: {
+        Args: { target_matchup_team_ids: string[] }
+        Returns: {
+          matchup_team_id: string
+          sleeper_player_id: string
+          player_name: string
+          player_position: string
+          nfl_team: string | null
+          points: number
+          is_starter: boolean
+        }[]
+      }
       admin_return_article_for_changes: {
         Args: { review_note: string; target_article_id: string }
         Returns: undefined

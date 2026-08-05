@@ -61,8 +61,8 @@ function isCurrentPage(href: string) {
         </a>
       </li>
       <li class="site-nav__item site-nav__item--editorial">
-        <a class="site-nav__account" href="/account">
-          My Account
+        <a class="site-nav__account" href="/account/login" data-account-link>
+          Sign In
         </a>
         <a class="site-nav__editorial" href="/admin">
           Editorial Desk
@@ -73,6 +73,15 @@ function isCurrentPage(href: string) {
 </nav>
 
 <script>
+  import { supabaseBrowser } from "../../lib/supabase-browser";
+
+  const accountLink = document.querySelector<HTMLAnchorElement>("[data-account-link]");
+  void supabaseBrowser.auth.getSession().then(({ data }) => {
+    if (!accountLink || !data.session) return;
+    accountLink.href = "/account";
+    accountLink.textContent = "My Account";
+  });
+
   document.addEventListener("keydown", (event) => {
     if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
 
