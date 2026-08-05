@@ -242,7 +242,6 @@ const isTie =
                         <span class="lineup-player__position">{player.position}</span>
                         <span class="lineup-player__name">
                           {player.name}
-                          {player.nflTeam && <small>{player.nflTeam}</small>}
                         </span>
                         <strong>{formatPoints(player.points)}</strong>
                       </div>
@@ -512,7 +511,6 @@ const isTie =
   .lineup-player { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr) auto; gap: .55rem; align-items: center; min-height: 2.4rem; border-bottom: 1px solid color-mix(in srgb, var(--color-rule) 65%, transparent); }
   .lineup-player__position { color: var(--color-gold-dark); font-family: var(--font-data); font-size: .59rem; font-weight: 700; }
   .lineup-player__name { min-width: 0; font-size: .75rem; font-weight: 650; overflow-wrap: anywhere; }
-  .lineup-player__name small { margin-left: .35rem; color: var(--color-ink-muted); font-family: var(--font-data); font-size: .52rem; font-weight: 400; }
   .lineup-player > strong { font-family: var(--font-data); font-size: .67rem; font-variant-numeric: tabular-nums; }
   .lineup-player--bench { color: var(--color-ink-muted); }
   .lineup-team__divider { margin: .8rem 0 .2rem; color: var(--color-ink-muted); font-family: var(--font-data); font-size: .52rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
