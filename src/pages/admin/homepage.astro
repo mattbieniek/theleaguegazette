@@ -154,7 +154,6 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
         supabaseBrowser.from("gazette_articles")
           .select("id, headline, category, author_name, status, published_at, is_featured, homepage_order, image_url")
           .in("status", ["published", "scheduled"])
-          .neq("category", "Commissioner's Corner")
           .order("published_at", { ascending: false }),
         supabaseBrowser.from("gazette_articles").select("id,status,category").not("homepage_order", "is", null),
       ]);

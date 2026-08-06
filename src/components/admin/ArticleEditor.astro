@@ -1,4 +1,5 @@
 ---
+import { ADMIN_STORY_CATEGORIES, OP_ED_SUBCATEGORIES } from "../../lib/gazette/categories";
 interface Props {
   articleId?: string;
 }
@@ -161,12 +162,33 @@ const editorMode = articleId ? "edit" : "create";
                 <button
                   type="button"
                   class="editor-toolbar__button"
+                  data-editor-command="underline"
+                  aria-label="Underline"
+                  aria-pressed="false"
+                  title="Underline"
+                >
+                  <u>U</u>
+                </button>
+
+                <button
+                  type="button"
+                  class="editor-toolbar__button"
                   data-editor-command="link"
                   aria-label="Add or edit link"
                   aria-pressed="false"
                   title="Add or edit link"
                 >
                   Link
+                </button>
+
+                <button
+                  type="button"
+                  class="editor-toolbar__button"
+                  data-editor-command="inline-image"
+                  aria-label="Insert image"
+                  title="Insert image from the Photo Desk"
+                >
+                  Image
                 </button>
               </div>
 
@@ -290,12 +312,23 @@ const editorMode = articleId ? "edit" : "create";
             <label id="category-field">
               <span>Category</span>
 
-              <input
-                id="category"
-                name="category"
-                type="text"
-                placeholder="Weekly Gazette"
-              />
+              <select id="category" name="category">
+                {ADMIN_STORY_CATEGORIES.map((category) => (
+                  <option value={category}>{category}</option>
+                ))}
+              </select>
+            </label>
+
+            <label id="subcategory-field" hidden>
+              <span>Op-Ed category</span>
+
+              <select id="subcategory" name="subcategory">
+                {OP_ED_SUBCATEGORIES.map((subcategory) => (
+                  <option value={subcategory}>{subcategory}</option>
+                ))}
+              </select>
+
+              <small>Choose how this contribution should appear within the Op-Ed desk.</small>
             </label>
 
             <label id="author-field">
@@ -517,6 +550,11 @@ const editorMode = articleId ? "edit" : "create";
               <dt>Last updated</dt>
               <dd id="updated-date">—</dd>
             </div>
+
+            <div>
+              <dt>Author login</dt>
+              <dd id="author-login">—</dd>
+            </div>
           </dl>
 
           <a
@@ -603,6 +641,11 @@ const editorMode = articleId ? "edit" : "create";
         <div><p class="eyebrow">Photo Desk</p><h2 id="image-library-title">Choose existing artwork</h2></div>
         <button id="close-image-library" type="button" aria-label="Close artwork library">×</button>
       </header>
+      <div class="image-library-upload">
+        <button id="upload-library-image" class="editor-button editor-button--secondary" type="button">Upload new image</button>
+        <input id="inline-image-file" type="file" accept="image/jpeg,image/png,image/webp" hidden />
+        <small>Upload a JPEG, PNG, or WebP up to 6 MB, or choose existing Photo Desk artwork.</small>
+      </div>
       <label class="image-library-search">Find artwork<input id="image-library-search" type="search" placeholder="Search by story or image description" /></label>
       <p id="image-library-message" role="status" aria-live="polite"></p>
       <section id="image-library-grid" class="image-library-grid" aria-label="Available artwork"></section>
@@ -680,7 +723,7 @@ const editorMode = articleId ? "edit" : "create";
 </div>
 
 <script>
-  import { Editor } from "@tiptap/core";
+  import { Editor, Mark, Node, mergeAttributes } from "@tiptap/core";
   import StarterKit from "@tiptap/starter-kit";
   import Link from "@tiptap/extension-link";
   import { supabaseBrowser } from "../../lib/supabase-browser";
@@ -699,6 +742,7 @@ const editorMode = articleId ? "edit" : "create";
     id: string;
     slug: string;
     category: string;
+    subcategory: string | null;
     headline: string;
     summary: string;
     author_name: string;
@@ -716,6 +760,7 @@ const editorMode = articleId ? "edit" : "create";
   type ArticlePayload = {
     slug: string;
     category: string;
+    subcategory: string | null;
     headline: string;
     summary: string;
     author_name: string;
@@ -779,9 +824,13 @@ const editorMode = articleId ? "edit" : "create";
     document.querySelectorAll<HTMLButtonElement>("[data-editor-command]"),
   );
 
-  const categoryInput = document.querySelector<HTMLInputElement>("#category");
+  const categoryInput = document.querySelector<HTMLSelectElement>("#category");
+  const categoryField = document.querySelector<HTMLElement>("#category-field");
+  const subcategoryField = document.querySelector<HTMLElement>("#subcategory-field");
+  const subcategoryInput = document.querySelector<HTMLSelectElement>("#subcategory");
 
   const authorInput = document.querySelector<HTMLInputElement>("#author-name");
+  const authorLogin = document.querySelector<HTMLElement>("#author-login");
   const publicationDateField = document.querySelector<HTMLElement>("#publication-date-field");
   const homepagePlacementPanel = document.querySelector<HTMLElement>("#homepage-placement-panel");
   const cancelEditor = document.querySelector<HTMLAnchorElement>("#cancel-editor");
@@ -815,6 +864,8 @@ const editorMode = articleId ? "edit" : "create";
   const imageLibrarySearch = document.querySelector<HTMLInputElement>("#image-library-search");
   const imageLibraryGrid = document.querySelector<HTMLElement>("#image-library-grid");
   const imageLibraryMessage = document.querySelector<HTMLElement>("#image-library-message");
+  const uploadLibraryImageButton = document.querySelector<HTMLButtonElement>("#upload-library-image");
+  const inlineImageFileInput = document.querySelector<HTMLInputElement>("#inline-image-file");
 
   const removeImageButton = document.querySelector<HTMLButtonElement>(
     "#remove-image-button",
@@ -956,6 +1007,11 @@ const editorMode = articleId ? "edit" : "create";
 
   let currentArticleStatus: ArticleStatus = "draft";
   let selectedArticleStatus: ArticleStatus = "draft";
+  let currentArticleSubcategory: string | null = null;
+
+  function getSelectedCategory(): string {
+    return isCommissioner ? "Op-Ed" : categoryInput?.value.trim() ?? "";
+  }
   let currentArticlePublishedAt: string | null = null;
 
   let lastSavedSnapshot = "";
@@ -977,11 +1033,36 @@ const editorMode = articleId ? "edit" : "create";
 
   let isUploadingImage = false;
   let currentUserId = "";
+  let currentUserEmail = "";
   let isCommissioner = false;
   let contributorDisplayName = "";
   let libraryImages: Array<{ image_url: string; image_alt: string | null; headline: string }> = [];
+  let imageLibraryMode: "featured" | "inline" = "featured";
 
   let richTextEditor: Editor | null = null;
+
+  const UnderlineMark = Mark.create({
+    name: "underline",
+    parseHTML: () => [{ tag: "u" }, { style: "text-decoration", consuming: false, getAttrs: (value) => String(value).includes("underline") ? {} : false }],
+    renderHTML: ({ HTMLAttributes }) => ["u", mergeAttributes(HTMLAttributes), 0],
+    addCommands() {
+      return { toggleUnderline: () => ({ commands }) => commands.toggleMark(this.name) };
+    },
+  });
+
+  const InlineImage = Node.create({
+    name: "image",
+    group: "block",
+    atom: true,
+    draggable: true,
+    addAttributes: () => ({
+      src: { default: null },
+      alt: { default: "" },
+      title: { default: null },
+    }),
+    parseHTML: () => [{ tag: "img[src]" }],
+    renderHTML: ({ HTMLAttributes }) => ["img", mergeAttributes(HTMLAttributes, { loading: "lazy" })],
+  });
 
   function slugify(value: string): string {
     return value
@@ -1364,7 +1445,7 @@ const editorMode = articleId ? "edit" : "create";
 
     const normalizedSlug = slugify(slugSource);
 
-    const category = categoryInput?.value.trim() ?? "";
+    const category = getSelectedCategory();
 
     const summary = summaryInput?.value.trim() ?? "";
 
@@ -1654,8 +1735,17 @@ const editorMode = articleId ? "edit" : "create";
         richTextEditor.chain().focus().toggleItalic().run();
         break;
 
+      case "underline":
+        richTextEditor.chain().focus().toggleMark("underline").run();
+        break;
+
       case "link":
         editSelectedLink();
+        break;
+
+      case "inline-image":
+        imageLibraryMode = "inline";
+        void openImageLibrary();
         break;
 
       case "heading-2":
@@ -1718,6 +1808,8 @@ const editorMode = articleId ? "edit" : "create";
             target: "_blank",
           },
         }),
+        UnderlineMark,
+        InlineImage,
       ],
 
       content: normalizeArticleBody(null),
@@ -1761,7 +1853,8 @@ const editorMode = articleId ? "edit" : "create";
       headline: headlineInput?.value ?? "",
       summary: summaryInput?.value ?? "",
       body: getCurrentBody(),
-      category: categoryInput?.value ?? "",
+      category: getSelectedCategory(),
+      subcategory: subcategoryInput?.value ?? "",
       authorName: authorInput?.value ?? "",
       slug: slugInput?.value ?? "",
       publishedAt: publishedAtInput?.value ?? "",
@@ -1895,13 +1988,21 @@ const editorMode = articleId ? "edit" : "create";
       copy.append(title, description);
       button.append(preview, copy);
       button.addEventListener("click", () => {
-        if (imageUrlInput) imageUrlInput.value = image.image_url;
-        if (imageAltInput && !imageAltInput.value.trim() && image.image_alt) imageAltInput.value = image.image_alt;
-        updateFeaturedImagePreview(image.image_url, imageAltInput?.value.trim() ?? "");
-        updateDirtyState();
-        scheduleAutosave();
+        if (imageLibraryMode === "inline") {
+          richTextEditor?.chain().focus().insertContent({
+            type: "image",
+            attrs: { src: image.image_url, alt: image.image_alt ?? "", title: image.headline },
+          }).run();
+          scheduleAutosave();
+        } else {
+          if (imageUrlInput) imageUrlInput.value = image.image_url;
+          if (imageAltInput && !imageAltInput.value.trim() && image.image_alt) imageAltInput.value = image.image_alt;
+          updateFeaturedImagePreview(image.image_url, imageAltInput?.value.trim() ?? "");
+          updateDirtyState();
+          scheduleAutosave();
+        }
         imageLibraryDialog?.close();
-        setImageUploadStatus("Existing artwork selected.", "success");
+        setImageUploadStatus(imageLibraryMode === "inline" ? "Image added to the story." : "Existing artwork selected.", "success");
       });
       imageLibraryGrid.append(button);
     }
@@ -2139,6 +2240,8 @@ const editorMode = articleId ? "edit" : "create";
       updatedDate.textContent = formatDisplayDate(article.updated_at);
     }
 
+    void updateAuthorLogin(article.id);
+
     updatePrimaryAction();
 
     if (reviewWorkflow) reviewWorkflow.hidden = isCommissioner || article.status !== "ready_for_review";
@@ -2196,6 +2299,7 @@ const editorMode = articleId ? "edit" : "create";
     }
 
     currentUserId = user.id;
+    currentUserEmail = user.email ?? "";
 
     const { data: adminRecord, error: adminError } = await supabaseBrowser
       .from("admin_users")
@@ -2212,7 +2316,7 @@ const editorMode = articleId ? "edit" : "create";
       .from("publication_contributors")
       .select("display_name, role")
       .eq("user_id", user.id)
-      .eq("role", "commissioner")
+      .eq("role", "op_ed")
       .maybeSingle();
 
     if (!contributor) {
@@ -2226,9 +2330,25 @@ const editorMode = articleId ? "edit" : "create";
     return true;
   }
 
+  async function updateAuthorLogin(targetArticleId: string): Promise<void> {
+    if (!authorLogin) return;
+    if (!targetArticleId) {
+      authorLogin.textContent = currentUserEmail || "Available after first save";
+      return;
+    }
+    const { data, error } = await supabaseBrowser.rpc("article_login_identity", {
+      target_article_id: targetArticleId,
+    });
+    const identity = Array.isArray(data) ? data[0] : null;
+    authorLogin.textContent = error
+      ? "Unavailable"
+      : identity?.email || identity?.login || "Unknown account";
+  }
+
   function applyContributorEditor(): void {
     if (!isCommissioner) return;
-    if (categoryInput) { categoryInput.value = "Commissioner's Corner"; categoryInput.readOnly = true; }
+    if (categoryField) categoryField.hidden = true;
+    if (subcategoryField) subcategoryField.hidden = false;
     if (authorInput) { authorInput.value = contributorDisplayName; authorInput.readOnly = true; }
     if (articleStatusInput) {
       for (const option of Array.from(articleStatusInput.options)) {
@@ -2238,7 +2358,7 @@ const editorMode = articleId ? "edit" : "create";
     if (publicationDateField) publicationDateField.hidden = true;
     if (homepagePlacementPanel) homepagePlacementPanel.hidden = true;
     if (cancelEditor) { cancelEditor.href = "/admin/articles"; cancelEditor.textContent = "My stories"; }
-    if (pageTitle && mode === "create") pageTitle.textContent = "Commissioner's Corner draft";
+    if (pageTitle && mode === "create") pageTitle.textContent = "New Op-Ed draft";
     updatePrimaryAction();
     renderPublishingReadiness();
   }
@@ -2259,7 +2379,22 @@ const editorMode = articleId ? "edit" : "create";
     });
 
     if (categoryInput) {
+      if (
+        article.category === "Op-Ed" &&
+        !Array.from(categoryInput.options).some((option) => option.value === "Op-Ed")
+      ) {
+        const contributorOption = document.createElement("option");
+        contributorOption.value = "Op-Ed";
+        contributorOption.textContent = "Op-Ed (Contributor submission)";
+        contributorOption.disabled = true;
+        categoryInput.append(contributorOption);
+      }
       categoryInput.value = article.category;
+    }
+
+    currentArticleSubcategory = article.subcategory;
+    if (subcategoryInput && article.subcategory) {
+      subcategoryInput.value = article.subcategory;
     }
 
     if (authorInput) {
@@ -2325,7 +2460,12 @@ const editorMode = articleId ? "edit" : "create";
 
     const headline = headlineInput?.value.trim() ?? "";
     const summary = summaryInput?.value.trim() ?? "";
-    const category = categoryInput?.value.trim() ?? "";
+    const category = getSelectedCategory();
+    const subcategory = category === "Op-Ed"
+      ? isCommissioner
+        ? subcategoryInput?.value.trim() || null
+        : currentArticleSubcategory
+      : null;
     const authorName = authorInput?.value.trim() || "The Gazette Staff";
 
     const body = getCurrentBody();
@@ -2409,6 +2549,7 @@ const editorMode = articleId ? "edit" : "create";
     return {
       slug,
       category,
+      subcategory,
       headline,
       summary,
       author_name: authorName,
@@ -2835,6 +2976,29 @@ const editorMode = articleId ? "edit" : "create";
     }
   }
 
+  async function uploadInlineImage(file: File): Promise<void> {
+    const validationError = validateImageFile(file);
+    if (validationError) { setImageUploadStatus(validationError, "error"); return; }
+    if (!articleId) {
+      const createdDraft = await saveArticle("draft");
+      if (!createdDraft || !articleId) {
+        setImageUploadStatus("Add a headline and save the draft before uploading inline artwork.", "error");
+        return;
+      }
+    }
+    const storagePath = `articles/${articleId}/inline-${Date.now()}.${getFileExtension(file)}`;
+    const { error } = await supabaseBrowser.storage.from(IMAGE_BUCKET).upload(storagePath, file, {
+      cacheControl: "3600", contentType: file.type, upsert: false,
+    });
+    if (error) { setImageUploadStatus(`Unable to upload image: ${error.message}`, "error"); return; }
+    const { data } = supabaseBrowser.storage.from(IMAGE_BUCKET).getPublicUrl(storagePath);
+    const alt = window.prompt("Describe this image for readers using screen readers:", "") ?? "";
+    richTextEditor?.chain().focus().insertContent({ type: "image", attrs: { src: data.publicUrl, alt } }).run();
+    scheduleAutosave();
+    imageLibraryDialog?.close();
+    setImageUploadStatus("Image uploaded and added to the story.", "success");
+  }
+
   async function removeFeaturedImage(): Promise<void> {
     if (isUploadingImage || isSaving || !imageUrlInput?.value) {
       return;
@@ -2897,7 +3061,10 @@ const editorMode = articleId ? "edit" : "create";
 
     const summary = summaryInput?.value.trim() || "";
 
-    const category = categoryInput?.value.trim() || "Uncategorized";
+    const category = getSelectedCategory() || "Uncategorized";
+    const categoryLabel = category === "Op-Ed" && subcategoryInput?.value
+      ? `${category} · ${subcategoryInput.value}`
+      : category;
 
     const author = authorInput?.value.trim() || "The Gazette Staff";
 
@@ -2923,7 +3090,7 @@ const editorMode = articleId ? "edit" : "create";
     }
 
     if (previewCategory) {
-      previewCategory.textContent = category;
+      previewCategory.textContent = categoryLabel;
     }
 
     if (previewAuthor) {
@@ -3012,6 +3179,7 @@ const editorMode = articleId ? "edit" : "create";
   const autosaveInputs = [
     summaryInput,
     categoryInput,
+    subcategoryInput,
     authorInput,
     publishedAtInput,
     imageUrlInput,
@@ -3036,7 +3204,16 @@ const editorMode = articleId ? "edit" : "create";
     imageFileInput?.click();
   });
 
-  chooseLibraryImageButton?.addEventListener("click", () => void openImageLibrary());
+  chooseLibraryImageButton?.addEventListener("click", () => { imageLibraryMode = "featured"; void openImageLibrary(); });
+  uploadLibraryImageButton?.addEventListener("click", () => {
+    if (imageLibraryMode === "inline") inlineImageFileInput?.click();
+    else { imageLibraryDialog?.close(); imageFileInput?.click(); }
+  });
+  inlineImageFileInput?.addEventListener("change", () => {
+    const file = inlineImageFileInput.files?.[0];
+    if (file) void uploadInlineImage(file);
+    inlineImageFileInput.value = "";
+  });
   closeImageLibraryButton?.addEventListener("click", () => imageLibraryDialog?.close());
   imageLibrarySearch?.addEventListener("input", renderImageLibrary);
 
@@ -3422,6 +3599,7 @@ const editorMode = articleId ? "edit" : "create";
 
   .editor-section textarea,
   .editor-fields input,
+  .editor-fields select,
   .editor-fields textarea {
     width: 100%;
     border: 1px solid var(--color-rule-dark);
@@ -3454,6 +3632,7 @@ const editorMode = articleId ? "edit" : "create";
 
   .editor-section textarea:focus,
   .editor-fields input:focus,
+  .editor-fields select:focus,
   .editor-fields textarea:focus {
     border-color: var(--color-green);
     outline: 3px solid color-mix(in srgb, var(--color-green) 16%, transparent);
@@ -3675,6 +3854,7 @@ const editorMode = articleId ? "edit" : "create";
   }
 
   .editor-fields input,
+  .editor-fields select,
   .editor-fields textarea {
     min-height: 2.8rem;
     padding: 0.7rem 0.8rem;
@@ -4277,6 +4457,8 @@ const editorMode = articleId ? "edit" : "create";
   .image-library-panel>header button { width:2.5rem;height:2.5rem;border:1px solid var(--color-rule-dark);background:var(--color-surface);font-size:1.5rem; }
   .image-library-search { display:grid;gap:.35rem;font-weight:750; }
   .image-library-search input { min-height:2.75rem;padding:.65rem;border:1px solid var(--color-rule-dark);background:#fff; }
+  .image-library-upload { display:flex;align-items:center;gap:1rem;flex-wrap:wrap; }
+  .image-library-upload small { color:var(--color-ink-soft); }
   .image-library-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem; }
   .image-library-item { display:grid;padding:0;overflow:hidden;border:1px solid var(--color-rule);background:var(--color-surface);color:inherit;text-align:left;cursor:pointer; }
   .image-library-item:hover { border-color:var(--color-green); }

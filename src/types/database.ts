@@ -330,6 +330,7 @@ export type Database = {
           published_at: string | null
           slug: string
           status: string
+          subcategory: string | null
           summary: string
           updated_at: string
         }
@@ -348,6 +349,7 @@ export type Database = {
           published_at?: string | null
           slug: string
           status?: string
+          subcategory?: string | null
           summary: string
           updated_at?: string
         }
@@ -366,6 +368,7 @@ export type Database = {
           published_at?: string | null
           slug?: string
           status?: string
+          subcategory?: string | null
           summary?: string
           updated_at?: string
         }
@@ -390,6 +393,24 @@ export type Database = {
           role?: string
           user_id?: string
         }
+        Relationships: []
+      }
+      reader_profiles: {
+        Row: { user_id: string; display_name: string; digest_enabled: boolean; created_at: string; updated_at: string }
+        Insert: { user_id: string; display_name: string; digest_enabled?: boolean; created_at?: string; updated_at?: string }
+        Update: { user_id?: string; display_name?: string; digest_enabled?: boolean; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      reader_poll_windows: {
+        Row: { season_year: number; week: number; is_open: boolean; closes_at: string | null; updated_at: string }
+        Insert: { season_year: number; week: number; is_open?: boolean; closes_at?: string | null; updated_at?: string }
+        Update: { season_year?: number; week?: number; is_open?: boolean; closes_at?: string | null; updated_at?: string }
+        Relationships: []
+      }
+      reader_power_ballots: {
+        Row: { id: string; user_id: string; season_year: number; week: number; rankings: Json; created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; season_year: number; week: number; rankings: Json; created_at?: string; updated_at?: string }
+        Update: { id?: string; user_id?: string; season_year?: number; week?: number; rankings?: Json; created_at?: string; updated_at?: string }
         Relationships: []
       }
       editorial_notifications: {
@@ -695,6 +716,7 @@ export type Database = {
           id: string
           is_starter: boolean
           matchup_team_id: string
+          nfl_team_at_week: string | null
           points: number
           sleeper_player_id: string
           updated_at: string
@@ -704,6 +726,7 @@ export type Database = {
           id?: string
           is_starter?: boolean
           matchup_team_id: string
+          nfl_team_at_week?: string | null
           points?: number
           sleeper_player_id: string
           updated_at?: string
@@ -713,6 +736,7 @@ export type Database = {
           id?: string
           is_starter?: boolean
           matchup_team_id?: string
+          nfl_team_at_week?: string | null
           points?: number
           sleeper_player_id?: string
           updated_at?: string
@@ -1722,6 +1746,45 @@ export type Database = {
     }
     Functions: {
       admin_sleeper_status: { Args: never; Returns: Json }
+      admin_site_accounts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          email: string
+          display_name: string
+          digest_enabled: boolean
+          is_contributor: boolean
+          is_admin: boolean
+          created_at: string
+        }[]
+      }
+      admin_set_contributor_access: {
+        Args: { target_user_id: string; access_enabled: boolean }
+        Returns: undefined
+      }
+      public_matchup_lineups: {
+        Args: { target_matchup_team_ids: string[] }
+        Returns: {
+          matchup_team_id: string
+          sleeper_player_id: string
+          player_name: string
+          player_position: string
+          nfl_team: string | null
+          points: number
+          is_starter: boolean
+        }[]
+      }
+      public_computer_poll_lineups: {
+        Args: { target_season_year: number; target_through_week: number }
+        Returns: {
+          fantasy_team_id: string
+          week: number
+          sleeper_player_id: string
+          player_position: string
+          points: number
+          is_starter: boolean
+        }[]
+      }
       admin_return_article_for_changes: {
         Args: { review_note: string; target_article_id: string }
         Returns: undefined
@@ -1743,6 +1806,10 @@ export type Database = {
       admin_remove_publication_contributor: {
         Args: { contributor_user_id: string }
         Returns: undefined
+      }
+      article_login_identity: {
+        Args: { target_article_id: string }
+        Returns: { user_id: string; email: string; login: string }[]
       }
       is_gazette_admin: { Args: never; Returns: boolean }
     }

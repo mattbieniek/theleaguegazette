@@ -54,7 +54,6 @@ export async function getHomepageArticles(): Promise<
     .from("gazette_articles")
     .select("*")
     .in("status", ["published", "scheduled"])
-    .neq("category", COMMISSIONERS_CORNER_CATEGORY)
     .lte("published_at", new Date().toISOString())
     .order("homepage_order", {
       ascending: true,

@@ -1,0 +1,22 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import AccountCard from "../../components/account/AccountCard.astro";
+---
+<BaseLayout title="Create an Account" noindex>
+  <AccountCard eyebrow="Gazette membership" title="Join the readership" intro="Create an account to submit a weekly Readers Poll ballot and receive the Gazette digest.">
+    <form id="register-form" class="account-form">
+      <label>Display name<input id="display-name" autocomplete="nickname" minlength="2" maxlength="40" required /></label>
+      <label>Email address<input id="email" type="email" autocomplete="email" required /></label>
+      <label>Password<input id="password" type="password" autocomplete="new-password" minlength="8" required /></label>
+      <p class="account-note">Membership includes the weekly Gazette email. You can turn it off from your account page at any time.</p>
+      <p id="message" class="account-message" role="status" aria-live="polite"></p>
+      <button type="submit">Create account</button>
+    </form>
+    <div class="account-links"><a href="/account/login">Already registered? Sign in</a></div>
+  </AccountCard>
+  <script>
+    import { supabaseBrowser } from "../../lib/supabase-browser";
+    const form=document.querySelector<HTMLFormElement>("#register-form"),message=document.querySelector<HTMLElement>("#message"),button=form?.querySelector<HTMLButtonElement>("button");
+    form?.addEventListener("submit",async(event)=>{event.preventDefault();if(!message||!button)return;const displayName=(document.querySelector<HTMLInputElement>("#display-name")?.value??"").trim(),email=(document.querySelector<HTMLInputElement>("#email")?.value??"").trim(),password=document.querySelector<HTMLInputElement>("#password")?.value??"";button.disabled=true;button.textContent="Creating account…";message.textContent="";const{error}=await supabaseBrowser.auth.signUp({email,password,options:{data:{display_name:displayName},emailRedirectTo:`${window.location.origin}/account/confirmed`}});button.disabled=false;button.textContent="Create account";if(error){message.dataset.error="true";message.textContent=error.message;return}message.dataset.error="false";message.textContent="Check your email to confirm your account. You can close this page.";form.reset()});
+  </script>
+</BaseLayout>

@@ -709,7 +709,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         .from("publication_contributors")
         .select("role")
         .eq("user_id", user.id)
-        .eq("role", "commissioner")
+        .eq("role", "op_ed")
         .maybeSingle();
 
       if (contributor) {

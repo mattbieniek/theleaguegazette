@@ -185,7 +185,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
      */
     const { data: season, error: seasonError } = await supabase
       .from("seasons")
-      .select("id, league_id, year, sleeper_league_id")
+      .select("id, league_id, year, sleeper_league_id, status")
       .eq("sleeper_league_id", sleeperLeagueId)
       .single();
 
@@ -483,12 +483,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
      * Determine which IDs already exist before inserting.
      */
     let existingPlayerIds = new Set<string>();
+    const nflTeamByPlayerId = new Map<string, string | null>();
 
     if (requestedPlayerIds.length > 0) {
       const { data: existingPlayers, error: existingPlayersError } =
         await supabase
           .from("players")
-          .select("sleeper_player_id")
+          .select("sleeper_player_id,nfl_team")
           .in("sleeper_player_id", requestedPlayerIds);
 
       if (existingPlayersError) {
@@ -502,6 +503,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
           (player) => player.sleeper_player_id as string,
         ),
       );
+      for (const player of existingPlayers ?? []) {
+        nflTeamByPlayerId.set(
+          String(player.sleeper_player_id),
+          player.nfl_team ? String(player.nfl_team) : null,
+        );
+      }
     }
 
     const missingPlayerIds = requestedPlayerIds.filter(
@@ -513,6 +520,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       sleeper_player_id: string;
       is_starter: boolean;
       points: number;
+      nfl_team_at_week: string | null;
       updated_at: string;
     }> = [];
 
@@ -558,6 +566,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
           sleeper_player_id: playerId,
           is_starter: starters.has(playerId),
           points: asFiniteNumber(playerPoints[playerId], 0),
+          nfl_team_at_week:
+            season.status === "complete"
+              ? null
+              : nflTeamByPlayerId.get(playerId) ??
+                (/^[A-Z]{2,3}$/.test(playerId) ? playerId : null),
           updated_at: new Date().toISOString(),
         });
       }

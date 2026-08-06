@@ -60,11 +60,37 @@ function isCurrentPage(href: string) {
           <kbd aria-hidden="true">/</kbd>
         </a>
       </li>
+      <li class="site-nav__item site-nav__item--editorial">
+        <a class="site-nav__account" href="/account/login" data-account-link>
+          Sign In
+        </a>
+        <a class="site-nav__editorial" href="/admin" data-editorial-link hidden>
+          Editorial Desk
+        </a>
+      </li>
     </ul>
   </div>
 </nav>
 
 <script>
+  import { supabaseBrowser } from "../../lib/supabase-browser";
+
+  const accountLink = document.querySelector<HTMLAnchorElement>("[data-account-link]");
+  const editorialLink = document.querySelector<HTMLAnchorElement>("[data-editorial-link]");
+  void supabaseBrowser.auth.getSession().then(async ({ data }) => {
+    const user = data.session?.user;
+    if (!user) return;
+    if (accountLink) {
+      accountLink.href = "/account";
+      accountLink.textContent = "My Account";
+    }
+    const [{ data: admin }, { data: contributor }] = await Promise.all([
+      supabaseBrowser.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle(),
+      supabaseBrowser.from("publication_contributors").select("user_id").eq("user_id", user.id).maybeSingle(),
+    ]);
+    if (editorialLink && (admin || contributor)) editorialLink.hidden = false;
+  });
+
   document.addEventListener("keydown", (event) => {
     if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
 
@@ -119,6 +145,47 @@ function isCurrentPage(href: string) {
   .site-nav__item--search {
     margin-left: var(--space-2);
     border-left: 1px solid var(--color-rule);
+  }
+
+  .site-nav__item--editorial {
+    margin-left: var(--space-2);
+  }
+
+  .site-nav__editorial {
+    display: flex;
+    align-items: center;
+    min-height: 3.25rem;
+    padding-inline: clamp(0.9rem, 1.8vw, 1.35rem);
+    background: var(--color-green);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 750;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .site-nav__editorial[hidden] { display: none; }
+
+  .site-nav__account {
+    display:flex;
+    align-items:center;
+    min-height:3.25rem;
+    padding-inline:clamp(.8rem,1.5vw,1.1rem);
+    border:1px solid var(--color-green);
+    color:var(--color-green);
+    font-size:.7rem;
+    font-weight:750;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+
+  .site-nav__account:hover { background:color-mix(in srgb,var(--color-green) 8%,transparent); }
+
+  .site-nav__editorial:hover {
+    background: var(--color-ink);
+    color: white;
   }
 
   .site-nav__link {

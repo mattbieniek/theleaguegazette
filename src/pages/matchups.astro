@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import MatchupCard from "../components/matchups/MatchupCard.astro";
-import { getSeasonMatchups } from "../lib/queries/matchups";
+import { getSeasonMatchups, hydrateMatchupLineups } from "../lib/queries/matchups";
 
 export const prerender = false;
 
@@ -51,6 +51,10 @@ const selectedMatchupWeek =
     (matchupWeek) =>
       matchupWeek.week === selectedWeek
   ) ?? null;
+
+if (selectedMatchupWeek) {
+  await hydrateMatchupLineups(selectedMatchupWeek.matchups);
+}
 
 const selectedWeekIndex =
   selectedWeek === null
@@ -592,10 +596,6 @@ function formatPoints(value: number): string {
     padding-top: var(--space-6);
   }
 
-  .matchups-grid > :global(article:last-child:nth-child(odd)) {
-    grid-column: 1 / -1;
-  }
-
   .empty-state {
     max-width: 50rem;
     padding-block: var(--space-9);
@@ -619,9 +619,6 @@ function formatPoints(value: number): string {
       grid-template-columns: 1fr;
     }
 
-    .matchups-grid > :global(article:last-child:nth-child(odd)) {
-      grid-column: auto;
-    }
   }
 
   @media (max-width: 780px) {
