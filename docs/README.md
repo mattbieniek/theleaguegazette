@@ -97,4 +97,4 @@ The handbook check catches missing required pages, broken relative links, absent
 - TODO: Confirm the production branch explicitly and perform a documented rollback drill; other core Vercel settings are recorded in `vercel-audit.md`.
 - TODO: Identify the external or manual trigger for the deployed weekly digest; the live database does not have `pg_cron` installed.
 - TODO: Complete the weekly-digest hardening work documented in `supabase-audit.md` before adding an automatic trigger.
-- TODO: Review and merge draft PR #26, re-verify the corrected logged-out admin layout on the canonical production URL, and complete an owner-session production presentation walkthrough. The Vercel preview, local Op-Ed authorization matrix, and representative public/anonymous production routes are verified.
+- TODO: Complete an owner-session administrator/Op-Ed-contributor production presentation walkthrough without creating production test data. PR #26, its production deployment, the corrected anonymous admin layout, the local Op-Ed authorization matrix, and representative public routes are verified.
