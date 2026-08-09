@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "contributor-category-access",
+    date: "2026-08-09",
+    title: "Kept contributor stories in the Op-Ed lane",
+    summary:
+      "Op-Ed contributors now see only the categories they are allowed to use when drafting a story.",
+    changes: [
+      "Removed the brief flash of admin-only category choices while the story editor checks an account.",
+      "Kept the full category selector available to administrators while showing contributors only the approved Op-Ed categories.",
+      "Retained the database safeguard that rejects contributor stories submitted outside the Op-Ed category.",
+    ],
+  },
+  {
     id: "gazette-comments",
     date: "2026-08-09",
     title: "Opened Gazette stories to reader conversation",

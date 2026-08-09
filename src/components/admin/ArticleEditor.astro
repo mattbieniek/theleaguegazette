@@ -309,7 +309,7 @@ const editorMode = articleId ? "edit" : "create";
           </div>
 
           <div class="editor-fields">
-            <label id="category-field">
+            <label id="category-field" hidden>
               <span>Category</span>
 
               <select id="category" name="category">
@@ -2309,6 +2309,7 @@ const editorMode = articleId ? "edit" : "create";
 
     if (!adminError && adminRecord) {
       if (chooseLibraryImageButton) chooseLibraryImageButton.hidden = false;
+      if (categoryField) categoryField.hidden = false;
       return true;
     }
 
