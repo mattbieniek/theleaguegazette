@@ -27,6 +27,7 @@ Edge Functions expect `SUPABASE_URL` and, except where the platform supplies equ
 4. Make schema changes through a new timestamped migration; do not rewrite applied migrations.
 5. Keep privileged secrets and service-role operations out of browser code.
 6. Update the handbook when public behavior, data shape, permissions, configuration, or operations change.
+7. Add a plain-language entry to `src/data/adminChangelog.ts` for each completed commit that changes the website or its operations. Describe the effect for a non-technical administrator and keep newest entries first.
 
 ## Verification
 

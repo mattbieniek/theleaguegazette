@@ -270,6 +270,22 @@ function isActive(path: string, exact = false) {
                 <span>Sleeper Data</span>
               </a>
             </div>
+
+            <div class="admin-navigation__group" data-admin-only>
+              <p class="admin-navigation__label">
+                System
+              </p>
+
+              <a
+                class:list={["admin-navigation__link", { "admin-navigation__link--active": currentPath === "/admin/changelog" }]}
+                href="/admin/changelog"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 4h12v16H6V4Zm3 4h6M9 12h6M9 16h4" />
+                </svg>
+                <span>Changelog</span>
+              </a>
+            </div>
           </nav>
 
           <div class="admin-sidebar__footer">

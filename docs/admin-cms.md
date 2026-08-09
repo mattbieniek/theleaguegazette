@@ -29,6 +29,7 @@ Authorization is enforced twice: browser code chooses the appropriate workspace 
 | `/admin/teams` | Inspect teams, managers, records, and rosters | Administrator |
 | `/admin/archive` | Inspect historical coverage and refresh draft/transaction archives | Administrator |
 | `/admin/sleeper` | Run foundational and weekly Sleeper syncs and inspect freshness | Administrator |
+| `/admin/changelog` | Review plain-language website changes grouped by commit date | Administrator |
 
 Contributor navigation hides administrator groups, while direct-route checks and database authorization remain necessary. Contributor-facing route checks use the `op_ed` role.
 
@@ -47,6 +48,7 @@ Contributor navigation hides administrator groups, while direct-route checks and
 - Contributors are managed through administrator-only RPCs. The user must already exist in Supabase Auth; granting access does not send an invitation.
 - Sleeper, teams, archive, awards, and rankings pages use the administrator check before allowing operational actions.
 - Notifications are personal: authenticated users can mark their own notifications read, while administrators receive review requests.
+- Changelog entries are stored in `src/data/adminChangelog.ts` and served only after the private API verifies the current account in `admin_users`; the static page does not contain the entries.
 
 ## Failure and recovery notes
 

@@ -1,0 +1,235 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Changelog | The League Gazette">
+  <main id="changelog-page" class="changelog-page" hidden>
+    <header class="changelog-header">
+      <div>
+        <p class="eyebrow">Website operations</p>
+        <h1>Changelog</h1>
+        <p>A plain-language record of improvements made to The League Gazette.</p>
+      </div>
+      <div class="changelog-header__note">
+        <span>Private record</span>
+        <strong>Administrators only</strong>
+      </div>
+    </header>
+
+    <section class="changelog-intro" aria-labelledby="changelog-intro-title">
+      <div>
+        <p class="eyebrow">How to read this page</p>
+        <h2 id="changelog-intro-title">What changed, without the technical noise</h2>
+      </div>
+      <p>Each entry represents one set of committed website changes. Technical work is translated into the effect it has on readers, editors, or site operations.</p>
+    </section>
+
+    <p id="changelog-message" class="changelog-message" role="status" aria-live="polite">Loading changelog…</p>
+    <div id="changelog-list" class="changelog-list"></div>
+    <section id="changelog-empty" class="changelog-empty" hidden>
+      <h2>No changes recorded yet</h2>
+      <p>The next completed website update will appear here.</p>
+    </section>
+  </main>
+
+  <script>
+    import { supabaseBrowser } from "../../lib/supabase-browser";
+
+    interface ChangelogEntry {
+      id: string;
+      date: string;
+      title: string;
+      summary: string;
+      changes: string[];
+    }
+
+    const page = document.querySelector<HTMLElement>("#changelog-page");
+    const list = document.querySelector<HTMLElement>("#changelog-list");
+    const message = document.querySelector<HTMLElement>("#changelog-message");
+    const empty = document.querySelector<HTMLElement>("#changelog-empty");
+
+    function formatDate(value: string) {
+      return new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }).format(new Date(`${value}T12:00:00`));
+    }
+
+    function render(entries: ChangelogEntry[]) {
+      if (!list || !empty) return;
+      list.replaceChildren();
+
+      const entriesByDate = new Map<string, ChangelogEntry[]>();
+      for (const entry of entries) {
+        const dateEntries = entriesByDate.get(entry.date) ?? [];
+        dateEntries.push(entry);
+        entriesByDate.set(entry.date, dateEntries);
+      }
+
+      for (const [date, dateEntries] of entriesByDate) {
+        const dateSection = document.createElement("section");
+        dateSection.className = "changelog-date-group";
+
+        const dateHeader = document.createElement("header");
+        dateHeader.className = "changelog-date-group__header";
+        const dateCopy = document.createElement("div");
+        const edition = document.createElement("span");
+        edition.textContent = "Release edition";
+        const dateHeading = document.createElement("h2");
+        dateHeading.textContent = formatDate(date);
+        dateCopy.append(edition, dateHeading);
+        const count = document.createElement("strong");
+        count.textContent = `${dateEntries.length} update${dateEntries.length === 1 ? "" : "s"}`;
+        dateHeader.append(dateCopy, count);
+
+        const entryGrid = document.createElement("div");
+        entryGrid.className = "changelog-date-group__entries";
+
+        for (const [index, entry] of dateEntries.entries()) {
+          const article = document.createElement("article");
+          article.className = "changelog-entry";
+
+          const meta = document.createElement("div");
+          meta.className = "changelog-entry__meta";
+          const number = document.createElement("span");
+          number.textContent = String(index + 1).padStart(2, "0");
+          const reference = document.createElement("span");
+          reference.textContent = entry.id === "admin-changelog" ? "Latest update" : `Change ${entry.id.slice(0, 8)}`;
+          meta.append(number, reference);
+
+          const title = document.createElement("h3");
+          title.textContent = entry.title;
+
+          const summary = document.createElement("p");
+          summary.className = "changelog-entry__summary";
+          summary.textContent = entry.summary;
+
+          const details = document.createElement("div");
+          details.className = "changelog-entry__details";
+          const detailsLabel = document.createElement("strong");
+          detailsLabel.textContent = "What changed";
+          const changes = document.createElement("ul");
+          for (const change of entry.changes) {
+            const item = document.createElement("li");
+            item.textContent = change;
+            changes.append(item);
+          }
+          details.append(detailsLabel, changes);
+
+          article.append(meta, title, summary, details);
+          entryGrid.append(article);
+        }
+
+        dateSection.append(dateHeader, entryGrid);
+        list.append(dateSection);
+      }
+
+      empty.hidden = entries.length > 0;
+      list.hidden = entries.length === 0;
+    }
+
+    async function initialize() {
+      const { data: { session } } = await supabaseBrowser.auth.getSession();
+      if (!session) {
+        window.location.replace("/admin/login");
+        return;
+      }
+
+      const { data: admin } = await supabaseBrowser
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if (!admin) {
+        window.location.replace("/admin/articles");
+        return;
+      }
+
+      page?.removeAttribute("hidden");
+      const response = await fetch("/api/admin/changelog.json", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (response.status === 401) {
+        window.location.replace("/admin/login");
+        return;
+      }
+      if (response.status === 403) {
+        window.location.replace("/admin/articles");
+        return;
+      }
+      if (!response.ok) {
+        if (message) message.textContent = "The changelog could not be loaded. Please try again.";
+        return;
+      }
+
+      const payload = await response.json() as { entries: ChangelogEntry[] };
+      render(payload.entries);
+      if (message) message.hidden = true;
+    }
+
+    void initialize();
+  </script>
+</AdminLayout>
+
+<style is:global>
+  .changelog-page{display:grid;gap:2rem}.changelog-page[hidden],.changelog-empty[hidden],.changelog-list[hidden],.changelog-message[hidden]{display:none}.changelog-header{position:relative;display:flex;overflow:hidden;align-items:end;justify-content:space-between;gap:2rem;padding:clamp(1.5rem,4vw,2.75rem);border:1px solid #29473b;border-radius:var(--radius-lg);background:linear-gradient(135deg,#132d23,#234a39);color:#fff;box-shadow:0 16px 36px rgb(25 42 34 / 12%)}.changelog-header::after{position:absolute;right:-4rem;bottom:-7rem;width:18rem;height:18rem;border:1px solid rgb(255 255 255 / 8%);border-radius:50%;box-shadow:0 0 0 3rem rgb(255 255 255 / 3%),0 0 0 6rem rgb(255 255 255 / 2%);content:""}.changelog-header h1{margin:.25rem 0;color:#fff;font-size:clamp(3.5rem,8vw,6.5rem);letter-spacing:-.055em}.changelog-header .eyebrow{color:#d9c47f}.changelog-header>div>p:last-child{max-width:44rem;margin:0;color:#d7e0dc;font-family:var(--font-display);font-size:1.15rem}.changelog-header__note{position:relative;z-index:1;display:grid;min-width:13rem;gap:.18rem;padding:1rem 1.15rem;border:1px solid rgb(255 255 255 / 18%);border-radius:var(--radius-sm);background:rgb(255 255 255 / 7%);backdrop-filter:blur(8px)}.changelog-header__note span{color:#c6d2cd;font-size:.65rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase}.changelog-intro{display:grid;grid-template-columns:minmax(16rem,.75fr) minmax(20rem,1.25fr);gap:clamp(2rem,6vw,6rem);align-items:end;padding:1.5rem 1.75rem;border-left:4px solid var(--color-gold,#b8953e);background:color-mix(in srgb,var(--color-gold,#b8953e) 9%,var(--color-surface))}.changelog-intro h2,.changelog-intro p{margin:0}.changelog-intro h2{font-size:clamp(1.8rem,3vw,2.6rem)}.changelog-intro>p{color:var(--color-ink-soft);line-height:1.7}.changelog-message{margin:0;padding:1rem;border:1px solid var(--color-rule);background:var(--color-surface);color:var(--color-ink-soft)}.changelog-list{display:grid;gap:2.5rem}.changelog-date-group{overflow:hidden;border:1px solid var(--color-rule);border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-card)}.changelog-date-group__header{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding:1.25rem 1.5rem;border-bottom:3px double var(--color-rule-dark);background:linear-gradient(90deg,color-mix(in srgb,var(--color-green) 8%,var(--color-surface)),var(--color-surface))}.changelog-date-group__header span{color:var(--color-green);font-size:.62rem;font-weight:850;letter-spacing:.11em;text-transform:uppercase}.changelog-date-group__header h2{margin:.15rem 0 0;font-size:clamp(1.8rem,3vw,2.5rem)}.changelog-date-group__header>strong{padding:.35rem .65rem;border-radius:999px;background:var(--color-green);color:#fff;font-size:.65rem;letter-spacing:.04em;text-transform:uppercase}.changelog-date-group__entries{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--color-rule)}.changelog-entry{display:flex;min-width:0;flex-direction:column;padding:clamp(1.25rem,3vw,1.75rem);background:var(--color-surface)}.changelog-entry:first-child{background:linear-gradient(145deg,color-mix(in srgb,var(--color-green) 7%,var(--color-surface)),var(--color-surface) 65%)}.changelog-entry__meta{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;color:var(--color-ink-muted);font-family:var(--font-data);font-size:.58rem;font-weight:750;letter-spacing:.05em;text-transform:uppercase}.changelog-entry__meta span:first-child{display:grid;width:2rem;height:2rem;place-items:center;border-radius:50%;background:var(--color-green);color:#fff}.changelog-entry h3{margin:0;font-size:clamp(1.5rem,2.5vw,2.05rem);line-height:1.08}.changelog-entry__summary{margin:.7rem 0 1.25rem;color:var(--color-ink-soft);font-family:var(--font-display);font-size:1.05rem;line-height:1.55}.changelog-entry__details{margin-top:auto;padding-top:1rem;border-top:1px solid var(--color-rule)}.changelog-entry__details>strong{color:var(--color-green);font-size:.64rem;letter-spacing:.08em;text-transform:uppercase}.changelog-entry ul{display:grid;gap:.55rem;margin:.75rem 0 0;padding:0;list-style:none}.changelog-entry li{position:relative;padding-left:1.25rem;color:var(--color-ink);font-size:.9rem;line-height:1.55}.changelog-entry li::before{position:absolute;top:.62rem;left:.1rem;width:.38rem;height:.38rem;border-radius:50%;background:var(--color-gold,#b8953e);content:""}.changelog-empty{padding:3rem;border:1px dashed var(--color-rule-dark);text-align:center}.changelog-empty p{margin:0;color:var(--color-ink-soft)}@media(max-width:900px){.changelog-date-group__entries{grid-template-columns:1fr}}@media(max-width:720px){.changelog-header{align-items:flex-start;flex-direction:column}.changelog-header__note{width:100%}.changelog-intro{grid-template-columns:1fr;gap:1rem}.changelog-date-group__header{align-items:flex-start;flex-direction:column}.changelog-entry__meta{align-items:flex-start;flex-direction:column-reverse;gap:.65rem}}
+  /* Update cards stay visually separate even when entries share a date. */
+  .changelog-date-group__entries {
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--color-paper-light);
+  }
+
+  .changelog-entry {
+    gap: 0.8rem;
+    padding: clamp(1.25rem, 3vw, 1.75rem);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: 0 8px 22px rgb(23 32 27 / 5%);
+  }
+
+  .changelog-entry:first-child {
+    border-color: color-mix(in srgb, var(--color-green) 35%, var(--color-rule));
+  }
+
+  .changelog-entry__meta {
+    justify-content: flex-start;
+    gap: 0.7rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .changelog-entry__meta span:first-child {
+    flex: 0 0 auto;
+  }
+
+  .changelog-entry__meta span:last-child {
+    padding: 0.28rem 0.5rem;
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: var(--color-paper-light);
+    line-height: 1.2;
+  }
+
+  .changelog-entry h3 {
+    font-size: clamp(1.4rem, 2.3vw, 1.95rem);
+  }
+
+  .changelog-entry__summary {
+    margin: 0;
+  }
+
+  .changelog-entry__details {
+    margin-top: auto;
+  }
+
+  @media (max-width: 720px) {
+    .changelog-entry__meta {
+      align-items: center;
+      flex-direction: row;
+    }
+  }
+</style>

@@ -1,0 +1,91 @@
+export interface ChangelogEntry {
+  id: string;
+  date: string;
+  title: string;
+  summary: string;
+  changes: string[];
+}
+
+export const adminChangelog: ChangelogEntry[] = [
+  {
+    id: "changelog-formatting",
+    date: "2026-08-09",
+    title: "Polished the changelog update cards",
+    summary:
+      "The private change history is now easier to scan, with each update presented as its own readable card.",
+    changes: [
+      "Separated update numbers and references so they no longer run together.",
+      "Added clearer card borders, spacing, shadows, and headings.",
+      "Improved the layout for both wide screens and smaller devices.",
+    ],
+  },
+  {
+    id: "admin-changelog",
+    date: "2026-08-09",
+    title: "Added a private website changelog",
+    summary:
+      "Administrators now have one place to review what changed on the website and why it matters.",
+    changes: [
+      "Added an administrator-only Changelog page to the editorial portal.",
+      "Protected changelog details behind the same account checks used by other administrative tools.",
+      "Established a plain-language format for recording future website updates by date.",
+    ],
+  },
+  {
+    id: "8e5da804",
+    date: "2026-08-09",
+    title: "Made buttons feel more responsive",
+    summary:
+      "Buttons now give clearer visual feedback when someone points to or presses them.",
+    changes: [
+      "Changed the mouse cursor to a pointer when hovering over an available button.",
+      "Added a brief pressed animation so clicks are easier to recognize.",
+      "Kept movement disabled for visitors who prefer reduced motion.",
+    ],
+  },
+  {
+    id: "19a6fea2",
+    date: "2026-08-09",
+    title: "Recorded the production review",
+    summary:
+      "The project handbook now records which important live-site pages and account safeguards were checked after deployment.",
+    changes: [
+      "Documented the successful production walkthrough.",
+      "Recorded the deployed version so future releases have a known comparison point.",
+    ],
+  },
+  {
+    id: "e9f22522",
+    date: "2026-08-09",
+    title: "Restored the 2022 and 2023 league archives",
+    summary:
+      "Earlier league seasons now have the historical information needed by public archive pages.",
+    changes: [
+      "Added legacy matchup, roster, transaction, team, and draft records for 2022 and 2023.",
+      "Expanded historical coverage without changing current-season data.",
+    ],
+  },
+  {
+    id: "ba2fa607",
+    date: "2026-08-09",
+    title: "Added a complete project handbook and recovery reference",
+    summary:
+      "The website's setup, publishing workflow, data sources, and recovery information are now documented in one maintained handbook.",
+    changes: [
+      "Documented the website architecture, editorial workflow, database, deployment, and development process.",
+      "Added a verified copy of the production database structure for recovery and comparison.",
+      "Recorded known operational gaps so they can be addressed safely over time.",
+    ],
+  },
+  {
+    id: "b4adfa5b",
+    date: "2026-08-09",
+    title: "Recorded the preview deployment review",
+    summary:
+      "The handbook now records the checks completed against the preview version before it reached the live site.",
+    changes: [
+      "Documented preview behavior across representative public and administrative pages.",
+      "Captured the verification result for future release comparisons.",
+    ],
+  },
+];
