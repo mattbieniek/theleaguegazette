@@ -1,0 +1,776 @@
+[
+  [
+    "WEEK",
+    "TEAM",
+    "SCORE",
+    "OPPONENT",
+    "SCORE",
+    "MISC",
+    "MANAGE"
+  ],
+  [
+    "Week 17",
+    "GimmeTheLOUt",
+    "110.68",
+    "The Columbus Conqu3eft...",
+    "136.30",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 17",
+    "Mud Village Team Kaka...",
+    "137.04",
+    "Brimhaven Pirates",
+    "188.38",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 17",
+    "Edgeville Nut Eaters",
+    "84.26",
+    "Washington Fantasy Team",
+    "142.26",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 17",
+    "Haddonfield Slashers",
+    "130.60",
+    "Fremennik Exiles",
+    "112.58",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 17",
+    "The Watergirl",
+    "75.90",
+    "Egyptian Suns",
+    "117.42",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 16",
+    "Fremennik Exiles",
+    "114.04",
+    "Washington Fantasy Team",
+    "152.76",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 16",
+    "Egyptian Suns",
+    "101.20",
+    "The Watergirl",
+    "112.40",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 16",
+    "Haddonfield Slashers",
+    "96.72",
+    "Edgeville Nut Eaters",
+    "116.98",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 16",
+    "The Columbus Conqu3eft...",
+    "137.40",
+    "Mud Village Team Kaka...",
+    "115.96",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 16",
+    "Brimhaven Pirates",
+    "105.72",
+    "GimmeTheLOUt",
+    "125.62",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 15",
+    "Washington Fantasy Team",
+    "90.96",
+    "GimmeTheLOUt",
+    "134.36",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 15",
+    "Brimhaven Pirates",
+    "158.52",
+    "Haddonfield Slashers",
+    "99.46",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 15",
+    "Edgeville Nut Eaters",
+    "140.26",
+    "The Columbus Conqu3eft...",
+    "174.38",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 15",
+    "Mud Village Team Kaka...",
+    "95.04",
+    "Fremennik Exiles",
+    "90.12",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 15",
+    "The Watergirl",
+    "103.10",
+    "Egyptian Suns",
+    "85.04",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 14",
+    "The Columbus Conqu3eft...",
+    "133.32",
+    "Brimhaven Pirates",
+    "89.34",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 14",
+    "GimmeTheLOUt",
+    "137.40",
+    "The Watergirl",
+    "123.64",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 14",
+    "Edgeville Nut Eaters",
+    "133.72",
+    "Haddonfield Slashers",
+    "101.44",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 14",
+    "Mud Village Team Kaka...",
+    "149.94",
+    "Egyptian Suns",
+    "109.22",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 14",
+    "Washington Fantasy Team",
+    "140.92",
+    "Fremennik Exiles",
+    "103.08",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 13",
+    "The Columbus Conqu3eft...",
+    "165.96",
+    "GimmeTheLOUt",
+    "142.00",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 13",
+    "The Watergirl",
+    "127.50",
+    "Haddonfield Slashers",
+    "144.68",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 13",
+    "Brimhaven Pirates",
+    "121.88",
+    "Egyptian Suns",
+    "117.34",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 13",
+    "Edgeville Nut Eaters",
+    "101.66",
+    "Washington Fantasy Team",
+    "117.38",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 13",
+    "Mud Village Team Kaka...",
+    "110.76",
+    "Fremennik Exiles",
+    "148.12",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 12",
+    "Egyptian Suns",
+    "86.98",
+    "Edgeville Nut Eaters",
+    "144.16",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 12",
+    "Mud Village Team Kaka...",
+    "121.38",
+    "GimmeTheLOUt",
+    "106.12",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 12",
+    "Fremennik Exiles",
+    "140.80",
+    "Haddonfield Slashers",
+    "97.44",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 12",
+    "The Columbus Conqu3eft...",
+    "110.96",
+    "Washington Fantasy Team",
+    "122.60",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 12",
+    "Brimhaven Pirates",
+    "146.68",
+    "The Watergirl",
+    "106.82",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 11",
+    "The Columbus Conqu3eft...",
+    "107.44",
+    "Edgeville Nut Eaters",
+    "138.30",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 11",
+    "Fremennik Exiles",
+    "153.60",
+    "Brimhaven Pirates",
+    "120.00",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 11",
+    "Washington Fantasy Team",
+    "122.64",
+    "Mud Village Team Kaka...",
+    "110.66",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 11",
+    "Egyptian Suns",
+    "122.96",
+    "The Watergirl",
+    "65.78",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 11",
+    "GimmeTheLOUt",
+    "110.40",
+    "Haddonfield Slashers",
+    "103.26",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 10",
+    "Egyptian Suns",
+    "100.32",
+    "Fremennik Exiles",
+    "108.02",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 10",
+    "Edgeville Nut Eaters",
+    "124.98",
+    "Mud Village Team Kaka...",
+    "79.14",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 10",
+    "Brimhaven Pirates",
+    "138.12",
+    "Haddonfield Slashers",
+    "179.16",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 10",
+    "GimmeTheLOUt",
+    "104.72",
+    "Washington Fantasy Team",
+    "130.98",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 10",
+    "The Columbus Conqu3eft...",
+    "130.58",
+    "The Watergirl",
+    "103.42",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 9",
+    "Brimhaven Pirates",
+    "78.14",
+    "Washington Fantasy Team",
+    "91.90",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 9",
+    "Mud Village Team Kaka...",
+    "116.48",
+    "The Columbus Conqu3eft...",
+    "153.42",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 9",
+    "The Watergirl",
+    "130.90",
+    "Fremennik Exiles",
+    "125.18",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 9",
+    "Edgeville Nut Eaters",
+    "79.32",
+    "GimmeTheLOUt",
+    "136.52",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 9",
+    "Egyptian Suns",
+    "108.90",
+    "Haddonfield Slashers",
+    "102.96",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 8",
+    "Mud Village Team Kaka...",
+    "86.58",
+    "Brimhaven Pirates",
+    "90.42",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 8",
+    "Fremennik Exiles",
+    "167.46",
+    "Edgeville Nut Eaters",
+    "128.76",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 8",
+    "Egyptian Suns",
+    "121.76",
+    "GimmeTheLOUt",
+    "145.26",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 8",
+    "Haddonfield Slashers",
+    "152.78",
+    "The Columbus Conqu3eft...",
+    "130.42",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 8",
+    "The Watergirl",
+    "118.70",
+    "Washington Fantasy Team",
+    "132.36",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 7",
+    "Washington Fantasy Team",
+    "121.00",
+    "Haddonfield Slashers",
+    "124.96",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 7",
+    "GimmeTheLOUt",
+    "77.54",
+    "Fremennik Exiles",
+    "135.66",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 7",
+    "The Columbus Conqu3eft...",
+    "97.38",
+    "Egyptian Suns",
+    "86.46",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 7",
+    "Mud Village Team Kaka...",
+    "120.58",
+    "The Watergirl",
+    "119.76",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 7",
+    "Edgeville Nut Eaters",
+    "139.70",
+    "Brimhaven Pirates",
+    "105.96",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 6",
+    "GimmeTheLOUt",
+    "100.58",
+    "Brimhaven Pirates",
+    "136.48",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 6",
+    "Edgeville Nut Eaters",
+    "95.56",
+    "The Watergirl",
+    "111.54",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 6",
+    "Mud Village Team Kaka...",
+    "108.72",
+    "Haddonfield Slashers",
+    "118.34",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 6",
+    "Egyptian Suns",
+    "101.72",
+    "Washington Fantasy Team",
+    "128.14",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 6",
+    "The Columbus Conqu3eft...",
+    "119.30",
+    "Fremennik Exiles",
+    "126.90",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 5",
+    "The Columbus Conqu3eft...",
+    "143.08",
+    "Mud Village Team Kaka...",
+    "142.54",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 5",
+    "Haddonfield Slashers",
+    "145.00",
+    "The Watergirl",
+    "73.74",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 5",
+    "Edgeville Nut Eaters",
+    "119.96",
+    "GimmeTheLOUt",
+    "97.12",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 5",
+    "Egyptian Suns",
+    "137.38",
+    "Brimhaven Pirates",
+    "105.12",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 5",
+    "Washington Fantasy Team",
+    "76.98",
+    "Fremennik Exiles",
+    "173.72",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 4",
+    "GimmeTheLOUt",
+    "90.68",
+    "The Columbus Conqu3eft...",
+    "131.22",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 4",
+    "Brimhaven Pirates",
+    "147.78",
+    "The Watergirl",
+    "111.22",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 4",
+    "Fremennik Exiles",
+    "147.26",
+    "Haddonfield Slashers",
+    "81.18",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 4",
+    "Washington Fantasy Team",
+    "131.24",
+    "Edgeville Nut Eaters",
+    "103.40",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 4",
+    "Mud Village Team Kaka...",
+    "132.42",
+    "Egyptian Suns",
+    "145.90",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 3",
+    "Haddonfield Slashers",
+    "147.32",
+    "Edgeville Nut Eaters",
+    "122.72",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 3",
+    "Mud Village Team Kaka...",
+    "111.18",
+    "GimmeTheLOUt",
+    "107.76",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 3",
+    "Egyptian Suns",
+    "128.56",
+    "The Watergirl",
+    "160.38",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 3",
+    "Washington Fantasy Team",
+    "104.06",
+    "The Columbus Conqu3eft...",
+    "130.10",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 3",
+    "Brimhaven Pirates",
+    "171.70",
+    "Fremennik Exiles",
+    "89.18",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 2",
+    "Brimhaven Pirates",
+    "98.80",
+    "Haddonfield Slashers",
+    "103.94",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 2",
+    "Egyptian Suns",
+    "120.84",
+    "Fremennik Exiles",
+    "94.02",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 2",
+    "Mud Village Team Kaka...",
+    "117.28",
+    "Washington Fantasy Team",
+    "153.70",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 2",
+    "Edgeville Nut Eaters",
+    "111.36",
+    "The Columbus Conqu3eft...",
+    "145.38",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 2",
+    "GimmeTheLOUt",
+    "129.10",
+    "The Watergirl",
+    "127.00",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 1",
+    "The Columbus Conqu3eft...",
+    "96.48",
+    "Brimhaven Pirates",
+    "91.66",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 1",
+    "GimmeTheLOUt",
+    "95.96",
+    "Washington Fantasy Team",
+    "119.82",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 1",
+    "The Watergirl",
+    "152.84",
+    "Fremennik Exiles",
+    "155.20",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 1",
+    "Edgeville Nut Eaters",
+    "86.64",
+    "Mud Village Team Kaka...",
+    "129.16",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 1",
+    "Haddonfield Slashers",
+    "108.14",
+    "Egyptian Suns",
+    "89.54",
+    "",
+    "Open options"
+  ]
+]

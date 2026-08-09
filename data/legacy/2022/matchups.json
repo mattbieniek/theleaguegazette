@@ -1,0 +1,623 @@
+[
+  [
+    "WEEK",
+    "TEAM",
+    "SCORE",
+    "OPPONENT",
+    "SCORE",
+    "MISC",
+    "MANAGE"
+  ],
+  [
+    "Week 17",
+    "The Watergirl",
+    "116.92",
+    "JC Spooky football",
+    "52.88",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 17",
+    "Mud Village Team Kaka...",
+    "79.38",
+    "Edgeville Nut Eaters",
+    "53.90",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 17",
+    "Haddonfield Slashers",
+    "135.70",
+    "Egyptian Suns",
+    "123.22",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 17",
+    "Washington Fantasy Team",
+    "135.98",
+    "Brimhaven Pirates",
+    "90.00",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 16",
+    "Egyptian Suns",
+    "101.60",
+    "Brimhaven Pirates",
+    "97.60",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 16",
+    "Washington Fantasy Team",
+    "116.76",
+    "Haddonfield Slashers",
+    "137.66",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 16",
+    "JC Spooky football",
+    "117.48",
+    "Edgeville Nut Eaters",
+    "109.78",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 16",
+    "The Watergirl",
+    "131.36",
+    "Mud Village Team Kaka...",
+    "119.80",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 15",
+    "Brimhaven Pirates",
+    "124.90",
+    "Mud Village Team Kaka...",
+    "150.22",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 15",
+    "The Watergirl",
+    "125.24",
+    "Washington Fantasy Team",
+    "112.80",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 15",
+    "Edgeville Nut Eaters",
+    "134.76",
+    "Egyptian Suns",
+    "106.02",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 15",
+    "Haddonfield Slashers",
+    "111.08",
+    "JC Spooky football",
+    "134.64",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 14",
+    "Brimhaven Pirates",
+    "147.16",
+    "Edgeville Nut Eaters",
+    "112.68",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 14",
+    "Egyptian Suns",
+    "140.16",
+    "Washington Fantasy Team",
+    "119.48",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 14",
+    "Haddonfield Slashers",
+    "104.40",
+    "Mud Village Team Kaka...",
+    "93.48",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 14",
+    "The Watergirl",
+    "87.78",
+    "JC Spooky football",
+    "132.16",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 13",
+    "Edgeville Nut Eaters",
+    "109.62",
+    "Egyptian Suns",
+    "140.08",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 13",
+    "The Watergirl",
+    "85.72",
+    "Mud Village Team Kaka...",
+    "125.50",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 13",
+    "Haddonfield Slashers",
+    "124.26",
+    "Washington Fantasy Team",
+    "168.20",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 13",
+    "Brimhaven Pirates",
+    "149.54",
+    "JC Spooky football",
+    "125.88",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 12",
+    "Brimhaven Pirates",
+    "131.90",
+    "Mud Village Team Kaka...",
+    "121.76",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 12",
+    "Egyptian Suns",
+    "179.04",
+    "JC Spooky football",
+    "155.00",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 12",
+    "Haddonfield Slashers",
+    "86.26",
+    "Edgeville Nut Eaters",
+    "132.02",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 12",
+    "The Watergirl",
+    "122.80",
+    "Washington Fantasy Team",
+    "120.22",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 11",
+    "Washington Fantasy Team",
+    "164.60",
+    "Brimhaven Pirates",
+    "110.30",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 11",
+    "Mud Village Team Kaka...",
+    "124.90",
+    "Egyptian Suns",
+    "142.34",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 11",
+    "Haddonfield Slashers",
+    "97.42",
+    "JC Spooky football",
+    "91.54",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 11",
+    "Edgeville Nut Eaters",
+    "97.84",
+    "The Watergirl",
+    "123.16",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 10",
+    "Edgeville Nut Eaters",
+    "98.30",
+    "Washington Fantasy Team",
+    "126.30",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 10",
+    "JC Spooky football",
+    "112.20",
+    "Mud Village Team Kaka...",
+    "80.14",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 10",
+    "The Watergirl",
+    "122.24",
+    "Brimhaven Pirates",
+    "119.32",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 10",
+    "Haddonfield Slashers",
+    "128.68",
+    "Egyptian Suns",
+    "116.16",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 9",
+    "The Watergirl",
+    "133.64",
+    "Egyptian Suns",
+    "142.50",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 9",
+    "Haddonfield Slashers",
+    "145.22",
+    "Brimhaven Pirates",
+    "139.24",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 9",
+    "Mud Village Team Kaka...",
+    "107.50",
+    "Edgeville Nut Eaters",
+    "102.60",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 9",
+    "JC Spooky football",
+    "106.80",
+    "Washington Fantasy Team",
+    "143.12",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 8",
+    "Washington Fantasy Team",
+    "144.50",
+    "Mud Village Team Kaka...",
+    "158.14",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 8",
+    "Edgeville Nut Eaters",
+    "128.22",
+    "JC Spooky football",
+    "128.38",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 8",
+    "Egyptian Suns",
+    "123.64",
+    "Brimhaven Pirates",
+    "158.18",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 8",
+    "The Watergirl",
+    "139.48",
+    "Haddonfield Slashers",
+    "126.82",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 7",
+    "Edgeville Nut Eaters",
+    "99.38",
+    "Brimhaven Pirates",
+    "171.94",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 7",
+    "Washington Fantasy Team",
+    "88.74",
+    "Egyptian Suns",
+    "152.26",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 7",
+    "Mud Village Team Kaka...",
+    "119.22",
+    "Haddonfield Slashers",
+    "107.30",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 7",
+    "JC Spooky football",
+    "96.10",
+    "The Watergirl",
+    "90.92",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 6",
+    "Egyptian Suns",
+    "99.88",
+    "Edgeville Nut Eaters",
+    "105.46",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 6",
+    "Mud Village Team Kaka...",
+    "101.32",
+    "The Watergirl",
+    "140.32",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 6",
+    "Washington Fantasy Team",
+    "88.50",
+    "Haddonfield Slashers",
+    "116.70",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 6",
+    "JC Spooky football",
+    "128.68",
+    "Brimhaven Pirates",
+    "101.42",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 5",
+    "Mud Village Team Kaka...",
+    "110.22",
+    "Brimhaven Pirates",
+    "124.44",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 5",
+    "JC Spooky football",
+    "110.98",
+    "Egyptian Suns",
+    "156.60",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 5",
+    "Edgeville Nut Eaters",
+    "150.76",
+    "Haddonfield Slashers",
+    "110.46",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 5",
+    "Washington Fantasy Team",
+    "157.76",
+    "The Watergirl",
+    "135.98",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 4",
+    "Brimhaven Pirates",
+    "143.48",
+    "Washington Fantasy Team",
+    "127.36",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 4",
+    "Egyptian Suns",
+    "116.48",
+    "Mud Village Team Kaka...",
+    "132.20",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 4",
+    "JC Spooky football",
+    "117.60",
+    "Haddonfield Slashers",
+    "109.76",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 4",
+    "The Watergirl",
+    "102.16",
+    "Edgeville Nut Eaters",
+    "168.82",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 3",
+    "Washington Fantasy Team",
+    "108.40",
+    "Edgeville Nut Eaters",
+    "154.70",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 3",
+    "Mud Village Team Kaka...",
+    "103.66",
+    "JC Spooky football",
+    "110.90",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 3",
+    "Brimhaven Pirates",
+    "106.30",
+    "The Watergirl",
+    "105.58",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 3",
+    "Egyptian Suns",
+    "88.36",
+    "Haddonfield Slashers",
+    "100.12",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 2",
+    "Egyptian Suns",
+    "125.68",
+    "The Watergirl",
+    "139.70",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 2",
+    "Brimhaven Pirates",
+    "163.00",
+    "Haddonfield Slashers",
+    "115.62",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 2",
+    "Edgeville Nut Eaters",
+    "140.68",
+    "Mud Village Team Kaka...",
+    "102.66",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 2",
+    "Washington Fantasy Team",
+    "139.46",
+    "JC Spooky football",
+    "96.20",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 1",
+    "Mud Village Team Kaka...",
+    "109.66",
+    "Washington Fantasy Team",
+    "136.20",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 1",
+    "JC Spooky football",
+    "149.76",
+    "Edgeville Nut Eaters",
+    "98.68",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 1",
+    "Brimhaven Pirates",
+    "135.38",
+    "Egyptian Suns",
+    "119.82",
+    "",
+    "Open options"
+  ],
+  [
+    "Week 1",
+    "Haddonfield Slashers",
+    "140.22",
+    "The Watergirl",
+    "151.70",
+    "",
+    "Open options"
+  ]
+]
