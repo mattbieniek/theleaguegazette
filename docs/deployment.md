@@ -81,7 +81,7 @@ Use `npm run dev` for normal development; repository guidance recommends backgro
 
 The linked Supabase and Vercel projects are confirmed. Vercel automatically creates deployments from the connected GitHub repository; pull-request comments and commit statuses are enabled. The dashboard did not expose an explicit production-branch setting during this audit, so treat the production branch as unverified rather than assuming it is `main`.
 
-On August 9, 2026, a read-only production walkthrough successfully rendered the homepage plus representative Gazette, matchup, standings, teams, history, search, and account-login routes without browser console errors. Anonymous admin routes redirected to `/admin/login` and emitted `noindex, nofollow`. Authenticated workspace presentation was not tested. Draft PR #26's Vercel preview verified the login-layout correction: no admin navigation, New Story link, or Sign out control was visible, while the sign-in form and `noindex, nofollow` remained intact. Production re-verification awaits review and merge. See `admin-cms.md`.
+On August 9, 2026, a read-only production walkthrough successfully rendered the homepage plus representative Gazette, matchup, standings, teams, history, search, and account-login routes without browser console errors. PR #26 merged as `ffcb328e`, its Vercel production deployment succeeded, and the canonical anonymous admin route was re-verified: it redirected to `/admin/login`, showed no admin navigation or session-only controls, retained `noindex, nofollow`, and produced no browser errors. Authenticated workspace presentation was not tested. See `admin-cms.md`.
 
 ## Domains and scheduled work
 
