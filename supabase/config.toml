@@ -382,6 +382,42 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
+# Verified against deployed Edge Function metadata on 2026-08-09. Keep these
+# explicit so a future CLI deployment does not silently change the platform
+# authentication boundary. Handler-level authorization remains required.
+[functions.sync-sleeper-league]
+verify_jwt = false
+
+[functions.sync-sleeper-players]
+verify_jwt = false
+
+[functions.sync-sleeper-users]
+verify_jwt = false
+
+[functions.sync-sleeper-rosters]
+verify_jwt = false
+
+[functions.sync-sleeper-roster-snapshots]
+verify_jwt = false
+
+[functions.sync-sleeper-matchups]
+verify_jwt = false
+
+[functions.backfill-sleeper-matchups]
+verify_jwt = false
+
+[functions.sync-sleeper-drafts]
+verify_jwt = false
+
+[functions.sync-sleeper-transactions]
+verify_jwt = false
+
+[functions.sync-sleeper-player-scores]
+verify_jwt = true
+
+[functions.send-weekly-digest]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

@@ -244,7 +244,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 
     let articles: ArticleSummary[] = [];
     let searchUrlTimer: number | undefined;
-    let isCommissioner = false;
+    let isOpEdContributor = false;
     let currentUserId = "";
 
     function normalizeText(value: string | null | undefined): string {
@@ -326,7 +326,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       const headline = document.createElement("h3");
       const headlineText = normalizeText(article.headline) || "Untitled story";
       const contributorCanEdit = article.status === "draft" || article.status === "ready_for_review";
-      if (!isCommissioner || contributorCanEdit) {
+      if (!isOpEdContributor || contributorCanEdit) {
         const editLink = document.createElement("a");
         editLink.href = `/admin/articles/${article.id}`;
         editLink.textContent = headlineText;
@@ -369,7 +369,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         actions.append(viewAction);
       }
 
-      if (!isCommissioner || contributorCanEdit) actions.append(editAction);
+      if (!isOpEdContributor || contributorCanEdit) actions.append(editAction);
       row.append(main, status, actions);
 
       return row;
@@ -709,11 +709,11 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         .from("publication_contributors")
         .select("role")
         .eq("user_id", user.id)
-        .eq("role", "commissioner")
+        .eq("role", "op_ed")
         .maybeSingle();
 
       if (contributor) {
-        isCommissioner = true;
+        isOpEdContributor = true;
         return true;
       }
 
@@ -729,7 +729,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         return;
       }
 
-      const result = isCommissioner
+      const result = isOpEdContributor
         ? await supabaseBrowser
             .from("gazette_articles")
             .select("id, slug, category, headline, author_name, status, is_featured, published_at, created_at, updated_at, image_url, image_alt")
@@ -778,7 +778,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         return;
       }
 
-      articles = isCommissioner
+      articles = isOpEdContributor
         ? (((data ?? []) as Array<{
             id: string;
             slug: string;

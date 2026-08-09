@@ -977,7 +977,7 @@ const editorMode = articleId ? "edit" : "create";
 
   let isUploadingImage = false;
   let currentUserId = "";
-  let isCommissioner = false;
+  let isOpEdContributor = false;
   let contributorDisplayName = "";
   let libraryImages: Array<{ image_url: string; image_alt: string | null; headline: string }> = [];
 
@@ -2141,7 +2141,7 @@ const editorMode = articleId ? "edit" : "create";
 
     updatePrimaryAction();
 
-    if (reviewWorkflow) reviewWorkflow.hidden = isCommissioner || article.status !== "ready_for_review";
+    if (reviewWorkflow) reviewWorkflow.hidden = isOpEdContributor || article.status !== "ready_for_review";
 
     if (viewPublishedStory) {
       const canView =
@@ -2212,7 +2212,7 @@ const editorMode = articleId ? "edit" : "create";
       .from("publication_contributors")
       .select("display_name, role")
       .eq("user_id", user.id)
-      .eq("role", "commissioner")
+      .eq("role", "op_ed")
       .maybeSingle();
 
     if (!contributor) {
@@ -2221,14 +2221,14 @@ const editorMode = articleId ? "edit" : "create";
       return false;
     }
 
-    isCommissioner = true;
+    isOpEdContributor = true;
     contributorDisplayName = contributor.display_name;
     return true;
   }
 
   function applyContributorEditor(): void {
-    if (!isCommissioner) return;
-    if (categoryInput) { categoryInput.value = "Commissioner's Corner"; categoryInput.readOnly = true; }
+    if (!isOpEdContributor) return;
+    if (categoryInput) { categoryInput.value = "Op-Ed"; categoryInput.readOnly = true; }
     if (authorInput) { authorInput.value = contributorDisplayName; authorInput.readOnly = true; }
     if (articleStatusInput) {
       for (const option of Array.from(articleStatusInput.options)) {
@@ -2238,7 +2238,7 @@ const editorMode = articleId ? "edit" : "create";
     if (publicationDateField) publicationDateField.hidden = true;
     if (homepagePlacementPanel) homepagePlacementPanel.hidden = true;
     if (cancelEditor) { cancelEditor.href = "/admin/articles"; cancelEditor.textContent = "My stories"; }
-    if (pageTitle && mode === "create") pageTitle.textContent = "Commissioner's Corner draft";
+    if (pageTitle && mode === "create") pageTitle.textContent = "Op-Ed draft";
     updatePrimaryAction();
     renderPublishingReadiness();
   }
@@ -2325,8 +2325,19 @@ const editorMode = articleId ? "edit" : "create";
 
     const headline = headlineInput?.value.trim() ?? "";
     const summary = summaryInput?.value.trim() ?? "";
-    const category = categoryInput?.value.trim() ?? "";
-    const authorName = authorInput?.value.trim() || "The Gazette Staff";
+    const category = isOpEdContributor ? "Op-Ed" : categoryInput?.value.trim() ?? "";
+    const authorName = isOpEdContributor
+      ? contributorDisplayName
+      : authorInput?.value.trim() || "The Gazette Staff";
+
+    if (
+      isOpEdContributor &&
+      requestedStatus !== "draft" &&
+      requestedStatus !== "ready_for_review"
+    ) {
+      setMessage("Contributors can save drafts or submit Op-Eds for review. An admin must publish the story.", "error");
+      return null;
+    }
 
     const body = getCurrentBody();
 
@@ -2412,13 +2423,17 @@ const editorMode = articleId ? "edit" : "create";
       headline,
       summary,
       author_name: authorName,
-      published_at: publishedAt,
+      published_at: isOpEdContributor ? null : publishedAt,
       image_url: imageUrlInput?.value.trim() || null,
       image_alt: imageAltInput?.value.trim() || null,
       body: body as unknown as Json,
       status: requestedStatus,
-      is_featured: isFeaturedInput?.checked ?? false,
-      homepage_order: homepageOrderValue ? Number(homepageOrderValue) : null,
+      is_featured: isOpEdContributor ? false : isFeaturedInput?.checked ?? false,
+      homepage_order: isOpEdContributor
+        ? null
+        : homepageOrderValue
+          ? Number(homepageOrderValue)
+          : null,
       updated_at: new Date().toISOString(),
       ...(articleId ? {} : { created_by: currentUserId }),
     };
@@ -2667,7 +2682,7 @@ const editorMode = articleId ? "edit" : "create";
       return;
     }
 
-    if (isCommissioner && data.status !== "draft" && data.status !== "ready_for_review") {
+    if (isOpEdContributor && data.status !== "draft" && data.status !== "ready_for_review") {
       window.location.replace(data.slug ? `/gazette/${data.slug}` : "/admin/articles");
       return;
     }
@@ -3105,7 +3120,7 @@ const editorMode = articleId ? "edit" : "create";
   });
 
   approvePublishButton?.addEventListener("click", async () => {
-    if (isCommissioner || currentArticleStatus !== "ready_for_review") {
+    if (isOpEdContributor || currentArticleStatus !== "ready_for_review") {
       return;
     }
 
@@ -3136,7 +3151,7 @@ const editorMode = articleId ? "edit" : "create";
   });
 
   returnChangesButton?.addEventListener("click", () => {
-    if (!isCommissioner && currentArticleStatus === "ready_for_review") {
+    if (!isOpEdContributor && currentArticleStatus === "ready_for_review") {
       returnChangesDialog?.showModal(); returnChangesNote?.focus();
     }
   });

@@ -547,7 +547,7 @@ const archivedCount =
           .eq("user_id", user.id)
           .maybeSingle();
 
-        if (contributor?.role === "commissioner") {
+        if (contributor?.role === "op_ed") {
           window.location.replace("/admin/articles");
           return false;
         }

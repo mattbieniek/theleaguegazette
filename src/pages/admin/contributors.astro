@@ -5,14 +5,14 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
 <AdminLayout title="Contributors | The League Gazette">
   <main class="admin-shell contributors" hidden id="contributors-page">
     <header class="contributors__header">
-      <div><p class="eyebrow">Editorial access</p><h1>Contributors</h1><p>Grant Commissioner's Corner access to an existing Supabase user.</p></div>
+      <div><p class="eyebrow">Editorial access</p><h1>Contributors</h1><p>Grant Op-Ed submission access to an existing Supabase user.</p></div>
     </header>
     <section class="contributors__panel">
       <h2>Add a contributor</h2>
       <p>The person must already have an account in Supabase Authentication. Adding them here grants publication access; it does not send an invitation.</p>
       <form id="contributor-form">
         <label>Email address<input id="contributor-email" type="email" required autocomplete="off" placeholder="name@example.com" /></label>
-        <label>Display name<input id="contributor-name" type="text" required autocomplete="off" placeholder="The Commissioner" /></label>
+        <label>Display name<input id="contributor-name" type="text" required autocomplete="off" placeholder="Contributor name" /></label>
         <button type="submit">Grant contributor access</button>
       </form>
       <p id="contributor-message" role="status" aria-live="polite"></p>
@@ -38,7 +38,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
         const row = document.createElement("article"); row.className = "contributor-row";
         const copy = document.createElement("div");
         const title = document.createElement("h3"); title.textContent = contributor.display_name;
-        const detail = document.createElement("p"); detail.textContent = `${contributor.email} · Commissioner's Corner`;
+        const detail = document.createElement("p"); detail.textContent = `${contributor.email} · Op-Ed contributor`;
         const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Remove access"; remove.className = "secondary";
         remove.addEventListener("click", async () => {
           if (!confirm(`Remove publication access for ${contributor.display_name}? Their existing stories will remain.`)) return;
