@@ -1,5 +1,6 @@
 ---
 import type {
+  MatchupPlayer,
   MatchupTeam,
   WeeklyMatchup,
 } from "../../lib/queries/matchups";
@@ -10,9 +11,10 @@ import {
 
 interface Props {
   matchup: WeeklyMatchup;
+  showPlayerStatuses?: boolean;
 }
 
-const { matchup } = Astro.props;
+const { matchup, showPlayerStatuses = false } = Astro.props;
 
 function getTeamProfile(
   team: MatchupTeam
@@ -49,6 +51,15 @@ function getResultLabel(
   }
 
   return "Team";
+}
+
+function getPlayerStatus(player: MatchupPlayer): string | null {
+  const rosterStatus = player.status?.trim();
+  if (rosterStatus && rosterStatus.toLowerCase() !== "active") {
+    return rosterStatus;
+  }
+
+  return player.injuryStatus?.trim() || null;
 }
 
 const firstTeam = matchup.teams[0];
@@ -232,6 +243,7 @@ const isTie =
                 {team.lineup.map((player, index) => {
                   const previousPlayer = team.lineup[index - 1];
                   const startsBench = !player.isStarter && previousPlayer?.isStarter;
+                  const playerStatus = showPlayerStatuses ? getPlayerStatus(player) : null;
                   return (
                     <>
                       {startsBench && <p class="lineup-team__divider">Bench</p>}
@@ -240,6 +252,7 @@ const isTie =
                         <span class="lineup-player__name">
                           {player.name}
                           {player.nflTeam && <small>{player.nflTeam}</small>}
+                          {playerStatus && <em class="lineup-player__status">{playerStatus}</em>}
                         </span>
                         <strong>{formatPoints(player.points)}</strong>
                       </div>
@@ -513,6 +526,7 @@ const isTie =
   .lineup-player__position { color: var(--color-gold-dark); font-family: var(--font-data); font-size: .59rem; font-weight: 700; }
   .lineup-player__name { min-width: 0; font-size: .75rem; font-weight: 650; overflow-wrap: anywhere; }
   .lineup-player__name small { margin-left: .35rem; color: var(--color-ink-muted); font-family: var(--font-data); font-size: .52rem; font-weight: 400; }
+  .lineup-player__status { display: inline-block; margin-left: .4rem; padding: .16rem .35rem; border: 1px solid #c58b3f; border-radius: 999px; color: #8b5525; font-family: var(--font-data); font-size: .48rem; font-style: normal; font-weight: 750; letter-spacing: .04em; line-height: 1.1; text-transform: uppercase; vertical-align: .08rem; }
   .lineup-player > strong { font-family: var(--font-data); font-size: .67rem; font-variant-numeric: tabular-nums; }
   .lineup-player--bench { color: var(--color-ink-muted); }
   .lineup-team__divider { margin: .8rem 0 .2rem; color: var(--color-ink-muted); font-family: var(--font-data); font-size: .52rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }

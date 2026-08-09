@@ -1879,6 +1879,8 @@ export type Database = {
           player_name: string
           player_position: string
           nfl_team: string | null
+          player_status: string | null
+          injury_status: string | null
           points: number
           is_starter: boolean
         }[]

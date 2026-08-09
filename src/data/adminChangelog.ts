@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "matchup-player-statuses",
+    date: "2026-08-09",
+    title: "Added player availability notes to current matchups",
+    summary:
+      "The matchup lineup view now highlights useful Sleeper updates such as Questionable, Out, and Injured Reserve.",
+    changes: [
+      "Added player availability information to the matchup lineup data returned from Sleeper records.",
+      "Showed a small status badge beside players in the current season's active or upcoming matchup weeks.",
+      "Kept older completed matchups and historical seasons free of current-status labels so archived games are not misleading.",
+    ],
+  },
+  {
     id: "matchup-desktop-alignment",
     date: "2026-08-09",
     title: "Aligned matchup cards on wider screens",

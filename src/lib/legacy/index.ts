@@ -103,6 +103,8 @@ function lineupFor(rosterTeam: LegacyRosterTeam | null, year: number, matchupInd
     name: player.player,
     position: player.position || player.slot || "Other",
     nflTeam: player.nflTeam && player.nflTeam !== "N/A" ? player.nflTeam : null,
+    status: null,
+    injuryStatus: null,
     points: numberValue(player.points),
     isStarter,
   }));

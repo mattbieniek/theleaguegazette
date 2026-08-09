@@ -23,6 +23,8 @@ export type MatchupPlayer = {
   name: string;
   position: string;
   nflTeam: string | null;
+  status: string | null;
+  injuryStatus: string | null;
   points: number;
   isStarter: boolean;
 };
@@ -72,6 +74,8 @@ async function loadMatchupLineups(matchupTeamIds: string[]) {
       name: row.player_name,
       position: row.player_position,
       nflTeam: row.nfl_team,
+      status: row.player_status,
+      injuryStatus: row.injury_status,
       points: Number(row.points),
       isStarter: row.is_starter,
     });

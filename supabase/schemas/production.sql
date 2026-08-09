@@ -424,7 +424,7 @@ $$;
 ALTER FUNCTION "public"."public_computer_poll_lineups"("target_season_year" integer, "target_through_week" integer) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."public_matchup_lineups"("target_matchup_team_ids" "uuid"[]) RETURNS TABLE("matchup_team_id" "uuid", "sleeper_player_id" "text", "player_name" "text", "player_position" "text", "nfl_team" "text", "points" numeric, "is_starter" boolean)
+CREATE OR REPLACE FUNCTION "public"."public_matchup_lineups"("target_matchup_team_ids" "uuid"[]) RETURNS TABLE("matchup_team_id" "uuid", "sleeper_player_id" "text", "player_name" "text", "player_position" "text", "nfl_team" "text", "player_status" "text", "injury_status" "text", "points" numeric, "is_starter" boolean)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
@@ -434,6 +434,8 @@ CREATE OR REPLACE FUNCTION "public"."public_matchup_lineups"("target_matchup_tea
     coalesce(player.full_name, 'Player ' || matchup_player.sleeper_player_id),
     coalesce(player.position, '—'),
     matchup_player.nfl_team_at_week,
+    player.status,
+    player.injury_status,
     matchup_player.points,
     matchup_player.is_starter
   from public.matchup_players as matchup_player
