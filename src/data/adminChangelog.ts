@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "gazette-comments",
+    date: "2026-08-09",
+    title: "Opened Gazette stories to reader conversation",
+    summary:
+      "Signed-in readers can now share their thoughts directly on published stories, with the same familiar formatting tools used by the editorial team.",
+    changes: [
+      "Added a reader comment section to every published Gazette story; comments appear immediately after they are posted.",
+      "Let readers edit their own comments while keeping other readers' comments protected from changes.",
+      "Added bold, italic, underline, links, images, headings, lists, quotes, dividers, and undo/redo to the comment editor.",
+      "Stored formatted comments securely and limited comment access to published stories and the signed-in reader who owns each comment.",
+    ],
+  },
+  {
     id: "reader-poll-workflow",
     date: "2026-08-09",
     title: "Made Reader Poll voting clearer and fairer",

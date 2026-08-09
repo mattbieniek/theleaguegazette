@@ -1,0 +1,138 @@
+---
+import { generateHTML } from "@tiptap/html/server";
+import { Mark, Node, mergeAttributes } from "@tiptap/core";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import type { RichTextDocument } from "../../lib/gazette/articleBody";
+
+interface Props {
+  body: RichTextDocument;
+}
+
+const { body } = Astro.props;
+
+const UnderlineMark = Mark.create({
+  name: "underline",
+  parseHTML: () => [{ tag: "u" }],
+  renderHTML: ({ HTMLAttributes }) => [
+    "u",
+    mergeAttributes(HTMLAttributes),
+    0,
+  ],
+});
+
+const InlineImage = Node.create({
+  name: "image",
+  group: "block",
+  atom: true,
+  addAttributes: () => ({
+    src: { default: null },
+    alt: { default: "" },
+    title: { default: null },
+  }),
+  parseHTML: () => [{ tag: "img[src]" }],
+  renderHTML: ({ HTMLAttributes }) => [
+    "img",
+    mergeAttributes(HTMLAttributes, { loading: "lazy" }),
+  ],
+});
+
+const html = generateHTML(body, [
+  StarterKit.configure({
+    heading: { levels: [2, 3] },
+  }),
+  Link.configure({
+    openOnClick: false,
+    HTMLAttributes: {
+      rel: "noopener noreferrer",
+      target: "_blank",
+    },
+  }),
+  UnderlineMark,
+  InlineImage,
+]);
+---
+
+<div class="comment-rich-text" set:html={html} />
+
+<style>
+  .comment-rich-text {
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .comment-rich-text :global(p) {
+    margin: 0 0 0.8em;
+  }
+
+  .comment-rich-text :global(p:last-child),
+  .comment-rich-text :global(ul:last-child),
+  .comment-rich-text :global(ol:last-child),
+  .comment-rich-text :global(blockquote:last-child) {
+    margin-bottom: 0;
+  }
+
+  .comment-rich-text :global(h2),
+  .comment-rich-text :global(h3) {
+    margin: 1em 0 0.45em;
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+
+  .comment-rich-text :global(h2) {
+    font-size: 1.45rem;
+  }
+
+  .comment-rich-text :global(h3) {
+    font-size: 1.25rem;
+  }
+
+  .comment-rich-text :global(ul),
+  .comment-rich-text :global(ol) {
+    margin: 0 0 0.8em;
+    padding-left: 1.35em;
+  }
+
+  .comment-rich-text :global(li) {
+    margin-bottom: 0.25em;
+  }
+
+  .comment-rich-text :global(blockquote) {
+    margin: 0.8em 0;
+    padding: 0.1em 0 0.1em 1em;
+    border-left: 3px solid var(--color-green);
+    color: var(--color-ink);
+    font-style: italic;
+  }
+
+  .comment-rich-text :global(a) {
+    color: var(--color-green);
+    font-weight: 650;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.15em;
+  }
+
+  .comment-rich-text :global(strong) {
+    color: var(--color-ink);
+    font-weight: 750;
+  }
+
+  .comment-rich-text :global(hr) {
+    width: min(8rem, 40%);
+    margin: 1rem auto;
+    border: 0;
+    border-top: 3px double var(--color-rule-dark);
+  }
+
+  .comment-rich-text :global(img) {
+    display: block;
+    width: min(100%, 34rem);
+    height: auto;
+    margin: 1rem auto;
+    border-radius: var(--radius-sm);
+  }
+</style>

@@ -866,6 +866,20 @@ ALTER TABLE "public"."gazette_articles" OWNER TO "postgres";
 COMMENT ON COLUMN "public"."gazette_articles"."subcategory" IS 'Optional desk-specific classification. Limited Op-Ed contributors choose from the approved Op-Ed subcategories.';
 
 
+CREATE TABLE IF NOT EXISTS "public"."gazette_comments" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "article_id" "uuid" NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "body" "jsonb" DEFAULT '{"type": "doc", "content": [{"type": "paragraph"}]}'::jsonb NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "gazette_comments_body_check" CHECK (("jsonb_typeof"("body") = 'object'::"text") AND (("body" ->> 'type'::"text") = 'doc'::"text") AND ("pg_column_size"("body") <= 16000))
+);
+
+
+ALTER TABLE "public"."gazette_comments" OWNER TO "postgres";
+
+
 
 CREATE OR REPLACE VIEW "public"."editorial_articles" AS
  SELECT "id",
@@ -1794,6 +1808,9 @@ CREATE INDEX "gazette_articles_status_published_at_idx" ON "public"."gazette_art
 CREATE INDEX "gazette_articles_status_published_idx" ON "public"."gazette_articles" USING "btree" ("status", "published_at" DESC);
 
 
+CREATE INDEX "gazette_comments_article_created_idx" ON "public"."gazette_comments" USING "btree" ("article_id", "created_at");
+
+
 
 CREATE INDEX "league_transactions_season_week_idx" ON "public"."league_transactions" USING "btree" ("season_year" DESC, "week" DESC, "occurred_at" DESC);
 
@@ -1914,6 +1931,9 @@ CREATE OR REPLACE TRIGGER "resolve_editorial_review_notifications" AFTER UPDATE 
 CREATE OR REPLACE TRIGGER "set_gazette_articles_updated_at" BEFORE UPDATE ON "public"."gazette_articles" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 
 
+CREATE OR REPLACE TRIGGER "gazette_comments_updated_at" BEFORE UPDATE ON "public"."gazette_comments" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+
+
 
 CREATE OR REPLACE TRIGGER "validate_reader_ballot_before_write" BEFORE INSERT OR UPDATE ON "public"."reader_power_ballots" FOR EACH ROW EXECUTE FUNCTION "public"."validate_reader_ballot"();
 
@@ -1981,6 +2001,14 @@ ALTER TABLE ONLY "public"."fantasy_teams"
 
 ALTER TABLE ONLY "public"."gazette_articles"
     ADD CONSTRAINT "gazette_articles_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
+
+
+ALTER TABLE ONLY "public"."gazette_comments"
+    ADD CONSTRAINT "gazette_comments_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "public"."gazette_articles"("id") ON DELETE CASCADE;
+
+
+ALTER TABLE ONLY "public"."gazette_comments"
+    ADD CONSTRAINT "gazette_comments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -2288,6 +2316,19 @@ CREATE POLICY "Published Gazette articles are publicly readable" ON "public"."ga
 
 
 
+CREATE POLICY "Comments on published Gazette stories are readable" ON "public"."gazette_comments" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."gazette_articles" "article"
+  WHERE (("article"."id" = "gazette_comments"."article_id") AND ("article"."status" = ANY (ARRAY['published'::"text", 'scheduled'::"text"])) AND ("article"."published_at" IS NOT NULL) AND ("article"."published_at" <= "now"())))));
+
+
+CREATE POLICY "Signed-in readers can comment on published Gazette stories" ON "public"."gazette_comments" FOR INSERT TO "authenticated" WITH CHECK (("user_id" = "auth"."uid"()) AND (EXISTS ( SELECT 1
+   FROM "public"."gazette_articles" "article"
+  WHERE (("article"."id" = "gazette_comments"."article_id") AND ("article"."status" = ANY (ARRAY['published'::"text", 'scheduled'::"text"])) AND ("article"."published_at" IS NOT NULL) AND ("article"."published_at" <= "now"())))));
+
+
+CREATE POLICY "Readers can update their own Gazette comments" ON "public"."gazette_comments" FOR UPDATE TO "authenticated" USING (("user_id" = "auth"."uid"())) WITH CHECK (("user_id" = "auth"."uid"()));
+
+
 CREATE POLICY "Readers can read closed ballots or their own ballot" ON "public"."reader_power_ballots" FOR SELECT TO "anon", "authenticated" USING (( ("user_id" = "auth"."uid"()) OR (NOT "public"."reader_poll_is_open"("season_year", "week")) OR (EXISTS ( SELECT 1
    FROM "public"."admin_users"
   WHERE ("admin_users"."user_id" = "auth"."uid"())))));
@@ -2337,6 +2378,9 @@ ALTER TABLE "public"."fantasy_teams" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."gazette_articles" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."gazette_comments" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."league_members" ENABLE ROW LEVEL SECURITY;
@@ -2602,6 +2646,11 @@ GRANT ALL ON TABLE "public"."drafts" TO "service_role";
 GRANT ALL ON TABLE "public"."gazette_articles" TO "anon";
 GRANT ALL ON TABLE "public"."gazette_articles" TO "authenticated";
 GRANT ALL ON TABLE "public"."gazette_articles" TO "service_role";
+
+
+GRANT SELECT ON TABLE "public"."gazette_comments" TO "anon";
+GRANT SELECT,INSERT,UPDATE ON TABLE "public"."gazette_comments" TO "authenticated";
+GRANT ALL ON TABLE "public"."gazette_comments" TO "service_role";
 
 
 

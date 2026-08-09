@@ -1,12 +1,15 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ArticleBody from "../../components/gazette/ArticleBody.astro";
+import CommentBody from "../../components/gazette/CommentBody.astro";
 import {
   getPublishedArticleBySlug,
   getPublishedArticles,
 } from "../../lib/queries/gazette";
+import { supabase } from "../../lib/supabase";
 import { formatPublicationDate } from "../../lib/formatDate";
 import { formatStoryCategory } from "../../lib/gazette/categories";
+import { normalizeArticleBody, type RichTextDocument } from "../../lib/gazette/articleBody";
 
 export const prerender = false;
 
@@ -21,6 +24,48 @@ const story = await getPublishedArticleBySlug(slug);
 if (!story) {
   return Astro.redirect("/404");
 }
+
+type GazetteComment = {
+  id: string;
+  userId: string;
+  body: RichTextDocument;
+  createdAt: string;
+  updatedAt: string;
+  displayName: string;
+};
+
+async function getArticleComments(articleId: string): Promise<GazetteComment[]> {
+  const { data, error } = await supabase
+    .from("gazette_comments")
+    .select("id, user_id, body, created_at, updated_at")
+    .eq("article_id", articleId)
+    .order("created_at", { ascending: true });
+
+  if (error || !data?.length) {
+    return [];
+  }
+
+  const userIds = [...new Set(data.map((comment) => comment.user_id))];
+  const { data: profiles } = await supabase
+    .from("public_reader_profiles")
+    .select("user_id, display_name")
+    .in("user_id", userIds);
+
+  const displayNames = new Map(
+    (profiles ?? []).map((profile) => [profile.user_id, profile.display_name]),
+  );
+
+  return data.map((comment) => ({
+    id: comment.id,
+    userId: comment.user_id,
+    body: normalizeArticleBody(comment.body),
+    createdAt: comment.created_at,
+    updatedAt: comment.updated_at,
+    displayName: displayNames.get(comment.user_id) ?? "Gazette reader",
+  }));
+}
+
+const comments = await getArticleComments(story.id);
 
 const publishedArticles = await getPublishedArticles();
 
@@ -250,6 +295,165 @@ const canonicalUrl = new URL(
       </div>
     </div>
 
+    <section
+      class="article-comments site-shell"
+      id="article-comments"
+      data-article-id={story.id}
+      aria-labelledby="article-comments-title"
+    >
+      <div class="article-comments__heading">
+        <div>
+          <p class="eyebrow">Reader conversation</p>
+          <h2 id="article-comments-title">Join the conversation</h2>
+          <p>
+            Share your take on this story. Comments publish immediately, and
+            you can edit your own comment whenever you need to.
+          </p>
+        </div>
+        <span class="article-comments__count">
+          {comments.length} {comments.length === 1 ? "comment" : "comments"}
+        </span>
+      </div>
+
+      <div class="article-comments__account" id="comments-sign-in">
+        <p>Sign in to add your perspective.</p>
+        <div class="article-comments__account-links">
+          <a href="/account/login">Sign in</a>
+          <a href="/account/register">Create account</a>
+        </div>
+      </div>
+
+      <form
+        class="comment-form"
+        id="comment-form"
+        data-comment-form
+        hidden
+      >
+        <label for="comment-body">Your comment</label>
+        <div class="comment-editor-shell">
+          <div class="comment-toolbar" role="toolbar" aria-label="Comment formatting">
+            <button type="button" data-comment-command="bold" aria-label="Bold" title="Bold"><strong>B</strong></button>
+            <button type="button" data-comment-command="italic" aria-label="Italic" title="Italic"><em>I</em></button>
+            <button type="button" data-comment-command="underline" aria-label="Underline" title="Underline"><u>U</u></button>
+            <button type="button" data-comment-command="link" aria-label="Add or edit link" title="Add or edit link">Link</button>
+            <button type="button" data-comment-command="inline-image" aria-label="Insert image" title="Insert image by URL">Image</button>
+            <span class="comment-toolbar__divider" aria-hidden="true"></span>
+            <button type="button" data-comment-command="heading-2" aria-label="Heading level 2" title="Heading level 2">H2</button>
+            <button type="button" data-comment-command="heading-3" aria-label="Heading level 3" title="Heading level 3">H3</button>
+            <button type="button" data-comment-command="bullet-list" aria-label="Bulleted list" title="Bulleted list">• List</button>
+            <button type="button" data-comment-command="ordered-list" aria-label="Numbered list" title="Numbered list">1. List</button>
+            <button type="button" data-comment-command="blockquote" aria-label="Blockquote" title="Blockquote">Quote</button>
+            <button type="button" data-comment-command="horizontal-rule" aria-label="Horizontal divider" title="Horizontal divider">Divider</button>
+            <span class="comment-toolbar__divider" aria-hidden="true"></span>
+            <button type="button" data-comment-command="undo" aria-label="Undo" title="Undo">↶</button>
+            <button type="button" data-comment-command="redo" aria-label="Redo" title="Redo">↷</button>
+          </div>
+          <div
+            id="comment-body"
+            class="comment-editor"
+            data-comment-editor
+            contenteditable="true"
+            role="textbox"
+            aria-multiline="true"
+            aria-label="Your comment"
+            data-placeholder="What do you think?"
+          ></div>
+        </div>
+        <div class="comment-form__footer">
+          <span data-comment-count>0 / 2,000 characters</span>
+          <button type="submit">Post comment</button>
+        </div>
+      </form>
+
+      <p
+        class="article-comments__message"
+        id="comments-message"
+        role="status"
+        aria-live="polite"
+      ></p>
+
+      <div class="article-comments__list" id="comments-list">
+        {
+          comments.length > 0 ? (
+            comments.map((comment) => (
+              <article
+                class="comment-card"
+                data-comment-id={comment.id}
+                data-comment-user-id={comment.userId}
+              >
+                <header class="comment-card__header">
+                  <div>
+                    <strong>{comment.displayName}</strong>
+                    <time datetime={comment.createdAt}>
+                      {formatPublicationDate(comment.createdAt)}
+                      {comment.updatedAt !== comment.createdAt ? " · Edited" : ""}
+                    </time>
+                  </div>
+                  <button
+                    class="comment-card__edit"
+                    type="button"
+                    data-edit-comment
+                    hidden
+                  >
+                    Edit
+                  </button>
+                </header>
+
+                <div class="comment-card__body" data-comment-body>
+                  <CommentBody body={comment.body} />
+                </div>
+
+                <form class="comment-edit-form" data-edit-form hidden>
+                  <label class="sr-only" for={`edit-comment-${comment.id}`}>
+                    Edit your comment
+                  </label>
+                  <div class="comment-toolbar" role="toolbar" aria-label="Comment formatting">
+                    <button type="button" data-comment-command="bold" aria-label="Bold" title="Bold"><strong>B</strong></button>
+                    <button type="button" data-comment-command="italic" aria-label="Italic" title="Italic"><em>I</em></button>
+                    <button type="button" data-comment-command="underline" aria-label="Underline" title="Underline"><u>U</u></button>
+                    <button type="button" data-comment-command="link" aria-label="Add or edit link" title="Add or edit link">Link</button>
+                    <button type="button" data-comment-command="inline-image" aria-label="Insert image" title="Insert image by URL">Image</button>
+                    <span class="comment-toolbar__divider" aria-hidden="true"></span>
+                    <button type="button" data-comment-command="heading-2" aria-label="Heading level 2" title="Heading level 2">H2</button>
+                    <button type="button" data-comment-command="heading-3" aria-label="Heading level 3" title="Heading level 3">H3</button>
+                    <button type="button" data-comment-command="bullet-list" aria-label="Bulleted list" title="Bulleted list">• List</button>
+                    <button type="button" data-comment-command="ordered-list" aria-label="Numbered list" title="Numbered list">1. List</button>
+                    <button type="button" data-comment-command="blockquote" aria-label="Blockquote" title="Blockquote">Quote</button>
+                    <button type="button" data-comment-command="horizontal-rule" aria-label="Horizontal divider" title="Horizontal divider">Divider</button>
+                    <span class="comment-toolbar__divider" aria-hidden="true"></span>
+                    <button type="button" data-comment-command="undo" aria-label="Undo" title="Undo">↶</button>
+                    <button type="button" data-comment-command="redo" aria-label="Redo" title="Redo">↷</button>
+                  </div>
+                  <div
+                    id={`edit-comment-${comment.id}`}
+                    class="comment-editor"
+                    data-comment-editor
+                    data-content={JSON.stringify(comment.body)}
+                    contenteditable="true"
+                    role="textbox"
+                    aria-multiline="true"
+                    aria-label="Edit your comment"
+                    data-placeholder="What do you think?"
+                  ></div>
+                  <div class="comment-form__footer">
+                    <span data-comment-count>0 / 2,000 characters</span>
+                    <div class="comment-edit-form__actions">
+                      <button type="button" data-cancel-edit>Cancel</button>
+                      <button type="submit">Save changes</button>
+                    </div>
+                  </div>
+                </form>
+              </article>
+            ))
+          ) : (
+            <p class="article-comments__empty" data-comments-empty>
+              No comments yet. Be the first to share a thought.
+            </p>
+          )
+        }
+      </div>
+    </section>
+
     {
       newerStory || olderStory ? (
         <nav
@@ -376,6 +580,38 @@ const canonicalUrl = new URL(
   </article>
 
   <script>
+    import { Editor, Mark, Node, mergeAttributes } from "@tiptap/core";
+    import StarterKit from "@tiptap/starter-kit";
+    import Link from "@tiptap/extension-link";
+    import { supabaseBrowser } from "../../lib/supabase-browser";
+    import type { Json } from "../../types/database";
+
+    const UnderlineMark = Mark.create({
+      name: "underline",
+      parseHTML: () => [{ tag: "u" }],
+      renderHTML: ({ HTMLAttributes }) => [
+        "u",
+        mergeAttributes(HTMLAttributes),
+        0,
+      ],
+    });
+
+    const InlineImage = Node.create({
+      name: "image",
+      group: "block",
+      atom: true,
+      addAttributes: () => ({
+        src: { default: null },
+        alt: { default: "" },
+        title: { default: null },
+      }),
+      parseHTML: () => [{ tag: "img[src]" }],
+      renderHTML: ({ HTMLAttributes }) => [
+        "img",
+        mergeAttributes(HTMLAttributes, { loading: "lazy" }),
+      ],
+    });
+
     const shareButton =
       document.querySelector<HTMLButtonElement>(
         "#share-story"
@@ -460,6 +696,293 @@ const canonicalUrl = new URL(
         );
       }
     });
+
+    const comments = document.querySelector<HTMLElement>("#article-comments");
+    const commentForm = document.querySelector<HTMLFormElement>("#comment-form");
+    const commentsSignIn = document.querySelector<HTMLElement>("#comments-sign-in");
+    const commentsMessage = document.querySelector<HTMLElement>("#comments-message");
+    const commentEditors = new Map<HTMLElement, Editor>();
+
+    function setCommentsMessage(value: string, isError = false): void {
+      if (!commentsMessage) return;
+      commentsMessage.textContent = value;
+      commentsMessage.dataset.error = isError ? "true" : "false";
+    }
+
+    function updateCommentCount(editorElement: HTMLElement, editor: Editor): void {
+      const count = editor.getText({ blockSeparator: "\n" }).trim().length;
+      const counter = editorElement
+        .closest("form")
+        ?.querySelector<HTMLElement>("[data-comment-count]");
+
+      if (counter) {
+        counter.textContent = `${count.toLocaleString()} / 2,000 characters`;
+      }
+    }
+
+    function updateCommentToolbar(editorElement: HTMLElement, editor: Editor): void {
+      const toolbar = editorElement
+        .closest("form")
+        ?.querySelector<HTMLElement>(".comment-toolbar");
+
+      toolbar?.querySelectorAll<HTMLButtonElement>("[data-comment-command]").forEach((button) => {
+        const command = button.dataset.commentCommand;
+        let active = false;
+        let disabled = false;
+
+        switch (command) {
+          case "bold": active = editor.isActive("bold"); break;
+          case "italic": active = editor.isActive("italic"); break;
+          case "underline": active = editor.isActive("underline"); break;
+          case "link": active = editor.isActive("link"); break;
+          case "heading-2": active = editor.isActive("heading", { level: 2 }); break;
+          case "heading-3": active = editor.isActive("heading", { level: 3 }); break;
+          case "bullet-list": active = editor.isActive("bulletList"); break;
+          case "ordered-list": active = editor.isActive("orderedList"); break;
+          case "blockquote": active = editor.isActive("blockquote"); break;
+          case "undo": disabled = !editor.can().chain().focus().undo().run(); break;
+          case "redo": disabled = !editor.can().chain().focus().redo().run(); break;
+        }
+
+        button.classList.toggle("is-active", active);
+        button.disabled = disabled;
+        if (command !== "undo" && command !== "redo" && command !== "horizontal-rule") {
+          button.setAttribute("aria-pressed", String(active));
+        }
+      });
+    }
+
+    function editCommentLink(editor: Editor): void {
+      const currentHref = editor.getAttributes("link").href;
+      const enteredUrl = window.prompt(
+        "Enter the destination URL. Leave blank to remove the current link.",
+        typeof currentHref === "string" ? currentHref : "https://",
+      );
+
+      if (enteredUrl === null) return;
+      const url = enteredUrl.trim();
+      if (!url) {
+        editor.chain().focus().extendMarkRange("link").unsetLink().run();
+        return;
+      }
+
+      editor.chain().focus().extendMarkRange("link").setLink({
+        href: url,
+        target: "_blank",
+        rel: "noopener noreferrer",
+      }).run();
+    }
+
+    function runCommentCommand(editor: Editor, command: string): void {
+      switch (command) {
+        case "bold": editor.chain().focus().toggleBold().run(); break;
+        case "italic": editor.chain().focus().toggleItalic().run(); break;
+        case "underline": editor.chain().focus().toggleMark("underline").run(); break;
+        case "link": editCommentLink(editor); break;
+        case "inline-image": {
+          const source = window.prompt("Paste an image URL (https:// or a site-relative path).");
+          if (!source) break;
+          const url = source.trim();
+          if (!(url.startsWith("https://") || url.startsWith("/"))) {
+            setCommentsMessage("Images must use an https:// URL or a site-relative path.", true);
+            break;
+          }
+          const alt = window.prompt("Add a short description for the image (optional).") ?? "";
+          editor.chain().focus().insertContent({
+            type: "image",
+            attrs: { src: url, alt: alt.trim() },
+          }).run();
+          break;
+        }
+        case "heading-2": editor.chain().focus().toggleHeading({ level: 2 }).run(); break;
+        case "heading-3": editor.chain().focus().toggleHeading({ level: 3 }).run(); break;
+        case "bullet-list": editor.chain().focus().toggleBulletList().run(); break;
+        case "ordered-list": editor.chain().focus().toggleOrderedList().run(); break;
+        case "blockquote": editor.chain().focus().toggleBlockquote().run(); break;
+        case "horizontal-rule": editor.chain().focus().setHorizontalRule().run(); break;
+        case "undo": editor.chain().focus().undo().run(); break;
+        case "redo": editor.chain().focus().redo().run(); break;
+      }
+      updateCommentToolbar(editor.options.element as HTMLElement, editor);
+    }
+
+    function initializeCommentEditors(): void {
+      document.querySelectorAll<HTMLElement>("[data-comment-editor]").forEach((element) => {
+        if (commentEditors.has(element)) return;
+
+        let content: Record<string, unknown> | undefined;
+        if (element.dataset.content) {
+          try {
+            content = JSON.parse(element.dataset.content) as Record<string, unknown>;
+          } catch {
+            content = undefined;
+          }
+        }
+
+        const editor = new Editor({
+          element,
+          extensions: [
+            StarterKit.configure({ heading: { levels: [2, 3] } }),
+            Link.configure({
+              openOnClick: false,
+              autolink: true,
+              linkOnPaste: true,
+              HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
+            }),
+            UnderlineMark,
+            InlineImage,
+          ],
+          content,
+          editorProps: {
+            attributes: {
+              class: "comment-editor__surface",
+              spellcheck: "true",
+            },
+          },
+          onCreate: ({ editor: createdEditor }) => {
+            updateCommentCount(element, createdEditor);
+            updateCommentToolbar(element, createdEditor);
+          },
+          onUpdate: ({ editor: updatedEditor }) => {
+            updateCommentCount(element, updatedEditor);
+            updateCommentToolbar(element, updatedEditor);
+          },
+          onSelectionUpdate: ({ editor: selectedEditor }) => {
+            updateCommentToolbar(element, selectedEditor);
+          },
+        });
+
+        commentEditors.set(element, editor);
+
+        element
+          .closest("form")
+          ?.querySelectorAll<HTMLButtonElement>("[data-comment-command]")
+          .forEach((button) => {
+            button.addEventListener("click", () => {
+              const command = button.dataset.commentCommand;
+              if (command) runCommentCommand(editor, command);
+            });
+          });
+      });
+    }
+
+    function getCommentContent(form: HTMLFormElement): { body: Json; text: string } | null {
+      const editorElement = form.querySelector<HTMLElement>("[data-comment-editor]");
+      const editor = editorElement ? commentEditors.get(editorElement) : undefined;
+      if (!editor) return null;
+
+      const text = editor.getText({ blockSeparator: "\n" }).trim();
+      if (!text || text.length > 2000) return null;
+      return { body: editor.getJSON() as unknown as Json, text };
+    }
+
+    async function initializeComments(): Promise<void> {
+      if (!comments || !commentForm || !commentsSignIn) return;
+
+      const { data: { user } } = await supabaseBrowser.auth.getUser();
+      if (!user) return;
+
+      commentsSignIn.hidden = true;
+      commentForm.hidden = false;
+      initializeCommentEditors();
+
+      document.querySelectorAll<HTMLElement>("[data-comment-user-id]").forEach((card) => {
+        if (card.dataset.commentUserId === user.id) {
+          card.querySelector<HTMLElement>("[data-edit-comment]")?.removeAttribute("hidden");
+        }
+      });
+    }
+
+    commentForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submitButton = commentForm.querySelector<HTMLButtonElement>("button[type=submit]");
+      const articleId = comments?.dataset.articleId;
+      const content = getCommentContent(commentForm);
+      if (!content || !articleId || !submitButton) {
+        setCommentsMessage("Add a comment between 1 and 2,000 characters.", true);
+        return;
+      }
+
+      submitButton.disabled = true;
+      submitButton.textContent = "Posting…";
+      const { data: { user } } = await supabaseBrowser.auth.getUser();
+      if (!user) {
+        setCommentsMessage("Sign in before posting a comment.", true);
+        submitButton.disabled = false;
+        submitButton.textContent = "Post comment";
+        return;
+      }
+
+      const { error } = await supabaseBrowser.from("gazette_comments").insert({
+        article_id: articleId,
+        user_id: user.id,
+        body: content.body,
+      });
+
+      if (error) {
+        setCommentsMessage("Your comment could not be posted. Please try again.", true);
+        submitButton.disabled = false;
+        submitButton.textContent = "Post comment";
+        return;
+      }
+
+      window.location.reload();
+    });
+
+    document.querySelectorAll<HTMLButtonElement>("[data-edit-comment]").forEach((editButton) => {
+      editButton.addEventListener("click", () => {
+        const card = editButton.closest<HTMLElement>("[data-comment-id]");
+        const editForm = card?.querySelector<HTMLFormElement>("[data-edit-form]");
+        if (!card || !editForm) return;
+        editButton.hidden = true;
+        card.querySelector<HTMLElement>("[data-comment-body]")?.setAttribute("hidden", "true");
+        editForm.hidden = false;
+        editForm.querySelector<HTMLElement>("[data-comment-editor]")?.focus();
+      });
+    });
+
+    document.querySelectorAll<HTMLButtonElement>("[data-cancel-edit]").forEach((cancelButton) => {
+      cancelButton.addEventListener("click", () => {
+        const card = cancelButton.closest<HTMLElement>("[data-comment-id]");
+        const editForm = card?.querySelector<HTMLFormElement>("[data-edit-form]");
+        if (!card || !editForm) return;
+        editForm.hidden = true;
+        card.querySelector<HTMLElement>("[data-comment-body]")?.removeAttribute("hidden");
+        card.querySelector<HTMLButtonElement>("[data-edit-comment]")?.removeAttribute("hidden");
+      });
+    });
+
+    document.querySelectorAll<HTMLFormElement>("[data-edit-form]").forEach((editForm) => {
+      editForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const card = editForm.closest<HTMLElement>("[data-comment-id]");
+        const saveButton = editForm.querySelector<HTMLButtonElement>("button[type=submit]");
+        const commentId = card?.dataset.commentId;
+        const content = getCommentContent(editForm);
+        if (!commentId || !content || !saveButton) {
+          setCommentsMessage("Add a comment between 1 and 2,000 characters.", true);
+          return;
+        }
+
+        saveButton.disabled = true;
+        saveButton.textContent = "Saving…";
+        const { error } = await supabaseBrowser
+          .from("gazette_comments")
+          .update({ body: content.body })
+          .eq("id", commentId);
+
+        if (error) {
+          setCommentsMessage("Your comment could not be updated. Please try again.", true);
+          saveButton.disabled = false;
+          saveButton.textContent = "Save changes";
+          return;
+        }
+
+        window.location.reload();
+      });
+    });
+
+    void initializeComments();
   </script>
 </BaseLayout>
 
@@ -654,6 +1177,354 @@ const canonicalUrl = new URL(
   .article-body {
     grid-column: 2;
     min-width: 0;
+  }
+
+  .article-comments {
+    max-width: 62rem;
+    padding-top: clamp(3rem, 7vw, 6rem);
+    margin-top: clamp(3rem, 7vw, 6rem);
+    border-top: 3px double var(--color-rule-dark);
+  }
+
+  .article-comments__heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-5);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--color-rule-dark);
+  }
+
+  .article-comments__heading h2 {
+    margin: 0 0 var(--space-3);
+    font-size: clamp(2.2rem, 5vw, 4.2rem);
+    letter-spacing: -0.045em;
+    line-height: 0.95;
+  }
+
+  .article-comments__heading p:not(.eyebrow) {
+    max-width: 42rem;
+    margin: 0;
+    color: var(--color-ink-soft);
+    line-height: 1.55;
+  }
+
+  .article-comments__count {
+    flex: 0 0 auto;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .article-comments__account,
+  .comment-form {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    margin-top: var(--space-5);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .article-comments__account[hidden],
+  .comment-form[hidden],
+  .comment-edit-form[hidden],
+  .comment-card__body[hidden],
+  .comment-card__edit[hidden] {
+    display: none;
+  }
+
+  .article-comments__account p {
+    margin: 0;
+    color: var(--color-ink-soft);
+  }
+
+  .article-comments__account-links,
+  .comment-edit-form__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .article-comments__account-links a,
+  .comment-form button,
+  .comment-edit-form button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.65rem;
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--color-green);
+    border-radius: 999px;
+    background: var(--color-green);
+    color: white;
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 750;
+    cursor: pointer;
+    transition: transform var(--transition-fast), background-color var(--transition-fast);
+  }
+
+  .article-comments__account-links a:last-child,
+  .comment-edit-form__actions button:first-child {
+    border-color: var(--color-rule-dark);
+    background: transparent;
+    color: var(--color-ink-soft);
+  }
+
+  .article-comments__account-links a:hover,
+  .comment-form button:hover,
+  .comment-edit-form button:hover {
+    transform: translateY(-1px);
+  }
+
+  .comment-form label {
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+    font-weight: 750;
+  }
+
+  .comment-editor-shell,
+  .comment-editor {
+    min-width: 0;
+  }
+
+  .comment-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.55rem;
+    border: 1px solid var(--color-rule-dark);
+    border-bottom: 0;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    background: var(--color-paper-dark);
+  }
+
+  .comment-toolbar button {
+    min-height: 2rem;
+    padding: 0.3rem 0.55rem;
+    border: 1px solid transparent;
+    border-radius: 0.3rem;
+    background: transparent;
+    color: var(--color-ink-soft);
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .comment-toolbar button:hover,
+  .comment-toolbar button.is-active {
+    border-color: var(--color-rule-dark);
+    background: var(--color-surface);
+    color: var(--color-green);
+  }
+
+  .comment-toolbar button:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  .comment-toolbar__divider {
+    width: 1px;
+    margin: 0.2rem 0.15rem;
+    background: var(--color-rule-dark);
+  }
+
+  .comment-editor {
+    min-height: 8rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--color-rule-dark);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    background: var(--color-paper-light);
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    line-height: 1.55;
+    outline: none;
+  }
+
+  .comment-editor:focus-within {
+    outline: 2px solid color-mix(in srgb, var(--color-green) 40%, transparent);
+    outline-offset: 2px;
+  }
+
+  .comment-editor__surface {
+    min-height: 6rem;
+  }
+
+  .comment-editor__surface p {
+    margin: 0 0 0.8em;
+  }
+
+  .comment-editor__surface p:last-child {
+    margin-bottom: 0;
+  }
+
+  .comment-editor__surface h2,
+  .comment-editor__surface h3 {
+    margin: 0.9em 0 0.45em;
+    color: var(--color-ink);
+    line-height: 1.1;
+  }
+
+  .comment-editor__surface ul,
+  .comment-editor__surface ol {
+    margin: 0 0 0.8em;
+    padding-left: 1.35em;
+  }
+
+  .comment-editor__surface blockquote {
+    margin: 0.8em 0;
+    padding-left: 1em;
+    border-left: 3px solid var(--color-green);
+    font-style: italic;
+  }
+
+  .comment-editor__surface a {
+    color: var(--color-green);
+  }
+
+  .comment-editor__surface hr {
+    margin: 1rem auto;
+    border: 0;
+    border-top: 3px double var(--color-rule-dark);
+  }
+
+  .comment-editor__surface strong {
+    color: var(--color-ink);
+  }
+
+  .comment-form textarea,
+  .comment-edit-form textarea {
+    width: 100%;
+    min-height: 7rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--color-rule-dark);
+    border-radius: var(--radius-sm);
+    background: var(--color-paper-light);
+    color: var(--color-ink);
+    font: inherit;
+    line-height: 1.5;
+    resize: vertical;
+  }
+
+  .comment-form textarea:focus,
+  .comment-edit-form textarea:focus {
+    outline: 2px solid color-mix(in srgb, var(--color-green) 40%, transparent);
+    outline-offset: 2px;
+  }
+
+  .comment-form__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .comment-form__footer > span {
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .article-comments__message {
+    min-height: 1.25rem;
+    margin: var(--space-3) 0 0;
+    color: var(--color-green);
+    font-size: var(--text-sm);
+    font-weight: 650;
+  }
+
+  .article-comments__message:empty {
+    display: none;
+  }
+
+  .article-comments__message[data-error="true"] {
+    color: #a32320;
+  }
+
+  .article-comments__list {
+    display: grid;
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+  }
+
+  .comment-card {
+    display: grid;
+    gap: var(--space-4);
+    padding: clamp(1.15rem, 3vw, 1.6rem);
+    border: 1px solid var(--color-rule);
+    border-left: 4px solid var(--color-green);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+  }
+
+  .comment-card__header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .comment-card__header > div {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .comment-card__header strong {
+    font-family: var(--font-editorial);
+    font-size: 1.25rem;
+  }
+
+  .comment-card__header time {
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.61rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .comment-card__edit {
+    padding: 0.35rem 0.65rem;
+    border: 1px solid var(--color-rule-dark);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-ink-soft);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .comment-card__body {
+    margin: 0;
+    color: var(--color-ink-soft);
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  .comment-edit-form {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .comment-edit-form .comment-form__footer {
+    align-items: start;
+  }
+
+  .article-comments__empty {
+    padding: var(--space-6);
+    border: 1px dashed var(--color-rule-dark);
+    color: var(--color-ink-soft);
+    text-align: center;
   }
 
   .story-navigation {
@@ -851,6 +1722,11 @@ const canonicalUrl = new URL(
       gap: var(--space-3);
     }
 
+    .article-comments__heading {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
     .more-stories__grid {
       grid-template-columns: 1fr;
     }
@@ -877,6 +1753,17 @@ const canonicalUrl = new URL(
   .article-image__frame {
   border-radius: var(--radius-md);
 }
+
+  .comment-form__footer,
+  .comment-edit-form__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .comment-form__footer button,
+  .comment-edit-form__actions button {
+    width: 100%;
+  }
 }
 
   @media (prefers-reduced-motion: reduce) {

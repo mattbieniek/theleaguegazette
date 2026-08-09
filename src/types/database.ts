@@ -374,6 +374,41 @@ export type Database = {
         }
         Relationships: []
       }
+      gazette_comments: {
+        Row: {
+          article_id: string
+          body: Json
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          body: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          body?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gazette_comments_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "gazette_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       publication_contributors: {
         Row: {
           created_at: string
@@ -1386,6 +1421,13 @@ export type Database = {
       }
     }
     Views: {
+      public_reader_profiles: {
+        Row: {
+          display_name: string
+          user_id: string
+        }
+        Relationships: []
+      }
       all_play_standings: {
         Row: {
           all_play_games: number | null
