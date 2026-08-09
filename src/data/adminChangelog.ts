@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "matchup-desktop-alignment",
+    date: "2026-08-09",
+    title: "Aligned matchup cards on wider screens",
+    summary:
+      "Desktop matchup cards now keep team names and scores lined up even when one team has a much longer name.",
+    changes: [
+      "Gave the two team identity areas a shared desktop rhythm so long and short names begin consistently.",
+      "Aligned both scores along the same baseline on larger screens.",
+      "Kept the stacked mobile layout unchanged, where the original spacing already worked well.",
+    ],
+  },
+  {
     id: "contributor-category-access",
     date: "2026-08-09",
     title: "Kept contributor stories in the Op-Ed lane",
