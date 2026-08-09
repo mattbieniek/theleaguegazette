@@ -1,6 +1,5 @@
 export const STORY_CATEGORIES = [
   "Gazette Exclusive",
-  "Power Rankings",
   "By the Numbers",
   "Op-Ed",
   "Predictions",

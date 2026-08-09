@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "gazette-category-filters",
+    date: "2026-08-09",
+    title: "Cleaned up Gazette story categories",
+    summary:
+      "Power Rankings is no longer an article category, and the public Gazette now shows only filters that have stories to read.",
+    changes: [
+      "Removed Power Rankings from the category choices used for new Gazette articles.",
+      "Kept older Power Rankings stories intact and editable without making the category available for new stories.",
+      "Updated the public category bar to hide empty categories and include active categories represented by published stories.",
+    ],
+  },
+  {
     id: "matchup-player-statuses",
     date: "2026-08-09",
     title: "Added player availability notes to current matchups",

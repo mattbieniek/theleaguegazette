@@ -775,6 +775,8 @@ const editorMode = articleId ? "edit" : "create";
     created_by?: string;
   };
 
+  const legacyPowerRankingsCategory = "Power Rankings";
+
   type ReviewEvent = { id: string; action: string; note: string | null; created_at: string };
 
   type ReadinessRequirementKey =
@@ -2380,6 +2382,16 @@ const editorMode = articleId ? "edit" : "create";
     });
 
     if (categoryInput) {
+      if (
+        article.category === legacyPowerRankingsCategory &&
+        !Array.from(categoryInput.options).some((option) => option.value === legacyPowerRankingsCategory)
+      ) {
+        const legacyOption = document.createElement("option");
+        legacyOption.value = legacyPowerRankingsCategory;
+        legacyOption.textContent = "Power Rankings (legacy article)";
+        legacyOption.disabled = true;
+        categoryInput.append(legacyOption);
+      }
       if (
         article.category === "Op-Ed" &&
         !Array.from(categoryInput.options).some((option) => option.value === "Op-Ed")
