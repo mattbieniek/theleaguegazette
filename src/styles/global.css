@@ -148,6 +148,18 @@ button {
   color: inherit;
 }
 
+button:not(:disabled) {
+  cursor: pointer;
+  transition:
+    transform 90ms ease,
+    filter 90ms ease;
+}
+
+button:not(:disabled):active {
+  transform: translateY(1px) scale(0.98);
+  filter: brightness(0.9);
+}
+
 h1,
 h2,
 h3,
@@ -251,5 +263,9 @@ p {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+
+  button:not(:disabled):active {
+    transform: none;
   }
 }

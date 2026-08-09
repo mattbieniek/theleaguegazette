@@ -43,7 +43,7 @@ Use semantic tokens instead of introducing one-off colors. Team accents belong i
 
 There is no single global breakpoint contract. Components use local media queries, commonly around `960px`, `900px`, `760px`, and `600px`, depending on the layout. Preserve readable line lengths, horizontal table scrolling where needed, and full-width controls on narrow screens.
 
-Global interaction rules include a 150ms fast transition, a 220ms standard transition, visible `:focus-visible` outlines, sticky public navigation, and a reduced-motion override that disables smooth scrolling and nearly all transitions.
+Global interaction rules include a 150ms fast transition, a 220ms standard transition, visible `:focus-visible` outlines, sticky public navigation, and a reduced-motion override that disables smooth scrolling and nearly all transitions. Enabled buttons use the pointer cursor and a brief pressed state (slight movement, scale, and darkening); reduced-motion users receive the color feedback without movement.
 
 ## Editorial application
 
