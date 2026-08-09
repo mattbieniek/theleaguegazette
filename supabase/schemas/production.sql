@@ -463,6 +463,21 @@ $$;
 ALTER FUNCTION "public"."reader_poll_is_open"("target_season" integer, "target_week" integer) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."reader_poll_is_current_week"("target_season" integer, "target_week" integer) RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  select target_season = (select max(year) from public.seasons)
+    and target_week = least(
+      coalesce((select max(week) from public.team_weekly_results where season_year = target_season), 0) + 1,
+      17
+    );
+$$;
+
+
+ALTER FUNCTION "public"."reader_poll_is_current_week"("target_season" integer, "target_week" integer) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."resolve_editorial_review_notifications"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -524,14 +539,18 @@ CREATE OR REPLACE FUNCTION "public"."validate_reader_ballot"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO ''
     AS $$
-declare unique_teams integer; unique_ranks integer; minimum_rank integer; maximum_rank integer;
+declare expected_teams integer; unique_teams integer; unique_ranks integer; minimum_rank integer; maximum_rank integer;
 begin
+  select count(*) into expected_teams
+  from public.season_standings
+  where season_year = new.season_year;
+
   select count(distinct item ->> 'teamId'), count(distinct (item ->> 'rank')::integer),
     min((item ->> 'rank')::integer), max((item ->> 'rank')::integer)
   into unique_teams, unique_ranks, minimum_rank, maximum_rank
   from jsonb_array_elements(new.rankings) item;
-  if unique_teams <> 10 or unique_ranks <> 10 or minimum_rank <> 1 or maximum_rank <> 10 then
-    raise exception 'A ballot must rank ten different teams from first through tenth.';
+  if expected_teams < 2 or unique_teams <> expected_teams or unique_ranks <> expected_teams or minimum_rank <> 1 or maximum_rank <> expected_teams then
+    raise exception 'A ballot must rank every team from first through last.';
   end if;
   return new;
 exception when invalid_text_representation then
@@ -1177,7 +1196,7 @@ CREATE TABLE IF NOT EXISTS "public"."reader_power_ballots" (
     "rankings" "jsonb" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "reader_power_ballots_rankings_check" CHECK ((("jsonb_typeof"("rankings") = 'array'::"text") AND ("jsonb_array_length"("rankings") = 10))),
+    CONSTRAINT "reader_power_ballots_rankings_check" CHECK ((("jsonb_typeof"("rankings") = 'array'::"text") AND ("jsonb_array_length"("rankings") >= 2) AND ("jsonb_array_length"("rankings") <= 20))),
     CONSTRAINT "reader_power_ballots_week_check" CHECK ((("week" >= 1) AND ("week" <= 18)))
 );
 
@@ -2269,11 +2288,13 @@ CREATE POLICY "Published Gazette articles are publicly readable" ON "public"."ga
 
 
 
-CREATE POLICY "Reader ballots are publicly visible" ON "public"."reader_power_ballots" FOR SELECT USING (true);
+CREATE POLICY "Readers can read closed ballots or their own ballot" ON "public"."reader_power_ballots" FOR SELECT TO "anon", "authenticated" USING (( ("user_id" = "auth"."uid"()) OR (NOT "public"."reader_poll_is_open"("season_year", "week")) OR (EXISTS ( SELECT 1
+   FROM "public"."admin_users"
+  WHERE ("admin_users"."user_id" = "auth"."uid"())))));
 
 
 
-CREATE POLICY "Readers can update their open ballot" ON "public"."reader_power_ballots" FOR UPDATE TO "authenticated" USING ((("user_id" = "auth"."uid"()) AND "public"."reader_poll_is_open"("season_year", "week"))) WITH CHECK ((("user_id" = "auth"."uid"()) AND "public"."reader_poll_is_open"("season_year", "week")));
+CREATE POLICY "Readers can update their open ballot" ON "public"."reader_power_ballots" FOR UPDATE TO "authenticated" USING ((("user_id" = "auth"."uid"()) AND "public"."reader_poll_is_current_week"("season_year", "week") AND "public"."reader_poll_is_open"("season_year", "week"))) WITH CHECK ((("user_id" = "auth"."uid"()) AND "public"."reader_poll_is_current_week"("season_year", "week") AND "public"."reader_poll_is_open"("season_year", "week")));
 
 
 
@@ -2293,7 +2314,7 @@ CREATE POLICY "Users can update their own editorial notifications" ON "public"."
 
 
 
-CREATE POLICY "Verified readers can submit their ballot" ON "public"."reader_power_ballots" FOR INSERT TO "authenticated" WITH CHECK ((("user_id" = "auth"."uid"()) AND "public"."reader_poll_is_open"("season_year", "week")));
+CREATE POLICY "Verified readers can submit their ballot" ON "public"."reader_power_ballots" FOR INSERT TO "authenticated" WITH CHECK ((("user_id" = "auth"."uid"()) AND "public"."reader_poll_is_current_week"("season_year", "week") AND "public"."reader_poll_is_open"("season_year", "week")));
 
 
 
@@ -2488,6 +2509,9 @@ GRANT ALL ON FUNCTION "public"."public_matchup_lineups"("target_matchup_team_ids
 GRANT ALL ON FUNCTION "public"."reader_poll_is_open"("target_season" integer, "target_week" integer) TO "anon";
 GRANT ALL ON FUNCTION "public"."reader_poll_is_open"("target_season" integer, "target_week" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."reader_poll_is_open"("target_season" integer, "target_week" integer) TO "service_role";
+GRANT ALL ON FUNCTION "public"."reader_poll_is_current_week"("target_season" integer, "target_week" integer) TO "anon";
+GRANT ALL ON FUNCTION "public"."reader_poll_is_current_week"("target_season" integer, "target_week" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."reader_poll_is_current_week"("target_season" integer, "target_week" integer) TO "service_role";
 
 
 

@@ -6,7 +6,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     <header class="account-header"><div><p class="eyebrow">Gazette membership</p><h1>My account</h1><p id="account-email"></p></div><button id="sign-out" type="button">Sign out</button></header>
     <div class="account-grid">
       <section class="account-panel"><p class="eyebrow">Public identity</p><h2>Reader profile</h2><form id="profile-form"><label>Display name<input id="display-name" minlength="2" maxlength="40" required /></label><label class="digest-setting"><input id="digest-enabled" type="checkbox" /><span><strong>Weekly Gazette digest</strong><small>Receive the complete weekly edition by email.</small></span></label><p id="profile-message" role="status"></p><button type="submit">Save preferences</button></form></section>
-      <section class="account-panel account-panel--poll"><p class="eyebrow">Readers Poll</p><h2>Rank the league</h2><p>Submit one public ballot each week. Your display name and rankings will appear alongside the combined readers’ results.</p><a href="/poll">Open this week’s ballot →</a></section>
+      <section class="account-panel account-panel--poll"><p class="eyebrow">Readers Poll</p><h2>Rank the league</h2><p>Submit one private ballot for the current week. Your ranking appears with the combined readers’ results after voting closes.</p><a href="/poll">Open this week’s ballot →</a></section>
       <section id="editorial-panel" class="account-panel" hidden><p class="eyebrow">Publication access</p><h2>Editorial Desk</h2><p id="editorial-description">Your account includes publication access.</p><a href="/admin">Enter the Editorial Desk →</a></section>
     </div>
   </main>

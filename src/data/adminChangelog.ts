@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "reader-poll-workflow",
+    date: "2026-08-09",
+    title: "Made Reader Poll voting clearer and fairer",
+    summary:
+      "Readers now vote only on the current week, with private ballots and a separate archive for completed editions.",
+    changes: [
+      "Updated the poll to say ‘Rank all league teams’ so it remains accurate if the league size changes.",
+      "Separated the current-week ballot from previous-week results and prevented submissions for past or future weeks.",
+      "Kept current votes hidden until the voting window closes, including at the database access level.",
+      "Removed sign-in and account-creation links for readers who are already signed in.",
+    ],
+  },
+  {
     id: "historical-lineups",
     date: "2026-08-09",
     title: "Completed the 2022 and 2023 league archives",

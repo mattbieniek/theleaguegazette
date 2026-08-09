@@ -6,15 +6,17 @@ const { poll } = Astro.props;
 <section class="readers-poll" aria-labelledby="readers-poll-title">
   <header>
     <div><p class="eyebrow">The public ballot</p><h2 id="readers-poll-title">Gazette Readers Poll</h2></div>
-    {poll && <p>{poll.season} · Week {poll.week}<br /><strong>{poll.ballotCount} {poll.ballotCount === 1 ? "ballot" : "ballots"}</strong></p>}
+    {poll && <p>{poll.season} · Week {poll.week}<br /><strong>{poll.isOpen ? "Voting open" : `${poll.ballotCount} ${poll.ballotCount === 1 ? "ballot" : "ballots"}`}</strong></p>}
   </header>
   <div class="readers-poll__body">
-    {poll?.leaders.length ? (
+    {poll?.isOpen ? (
+      <div class="readers-poll__empty"><strong>This week’s votes are private.</strong><span>Cast your ballot now. The combined results will appear after the voting window closes.</span></div>
+    ) : poll?.leaders.length ? (
       <ol>{poll.leaders.map(entry => <li><b>{entry.rank}</b><div><strong>{entry.teamName}</strong><small>{entry.points} points · {entry.firstPlaceVotes} first-place {entry.firstPlaceVotes === 1 ? "vote" : "votes"}</small></div></li>)}</ol>
     ) : (
-      <div class="readers-poll__empty"><strong>The readers have not spoken yet.</strong><span>Submit the first public ballot and establish this week’s poll.</span></div>
+      <div class="readers-poll__empty"><strong>The readers have not spoken yet.</strong><span>Submit a ballot and the results will be revealed after the edition closes.</span></div>
     )}
-    <aside><p>Rank all ten teams once per week. Every named ballot is public, and every grudge counts equally.</p><a href="/poll">View results and cast a ballot <span aria-hidden="true">→</span></a></aside>
+    <aside><p>Rank all league teams once per week. Your ballot stays private while the edition is open, so every grudge gets an honest vote.</p><a href="/poll">View the ballot and vote <span aria-hidden="true">→</span></a></aside>
   </div>
 </section>
 <style>

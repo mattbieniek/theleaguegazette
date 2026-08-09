@@ -9,53 +9,478 @@ type Ballot = { id: string; user_id: string; rankings: Ranking[]; updated_at: st
 const db = supabase as any;
 const { data: standingsData } = await db.from("season_standings").select("season_year,fantasy_team_id,team_name,wins,losses,ties,standings_rank").order("season_year",{ascending:false}).order("standings_rank");
 const seasons: number[] = [...new Set<number>((standingsData??[]).map((row:any)=>Number(row.season_year)))];
+const currentSeason = seasons[0] ?? new Date().getFullYear();
+const { data: currentWeekRows } = await db.from("team_weekly_results").select("week").eq("season_year",currentSeason).order("week",{ascending:false}).limit(1);
+const latestCompletedWeek = Number(currentWeekRows?.[0]?.week ?? 0);
+const currentWeek = Math.min(latestCompletedWeek + (latestCompletedWeek < 17 ? 1 : 0), 17);
 const requestedSeason = Number(Astro.url.searchParams.get("season"));
-const season = seasons.includes(requestedSeason) ? requestedSeason : (seasons[0] ?? new Date().getFullYear());
+const viewSeason = seasons.includes(requestedSeason) ? requestedSeason : currentSeason;
 const requestedWeek = Number(Astro.url.searchParams.get("week"));
-const { data: weekRows } = await db.from("team_weekly_results").select("week").eq("season_year",season).order("week",{ascending:false}).limit(1);
-const latestWeek = Number(weekRows?.[0]?.week ?? 1);
-const week = Number.isInteger(requestedWeek) && requestedWeek >= 1 && requestedWeek <= 17 ? requestedWeek : Math.min(latestWeek + (latestWeek < 17 ? 1 : 0),17);
-const teams: Team[] = (standingsData??[]).filter((row:any)=>Number(row.season_year)===season).map((row:any)=>({teamId:String(row.fantasy_team_id),teamName:String(row.team_name),record:`${row.wins}-${row.losses}${Number(row.ties)?`-${row.ties}`:""}`}));
-const [{ data: ballotsData }, { data: profilesData }, { data: windowData }, { data: previousData }] = await Promise.all([
-  db.from("reader_power_ballots").select("id,user_id,rankings,updated_at").eq("season_year",season).eq("week",week).order("updated_at",{ascending:false}),
-  db.from("public_reader_profiles").select("user_id,display_name"),
-  db.from("reader_poll_windows").select("is_open,closes_at").eq("season_year",season).eq("week",week).maybeSingle(),
-  week > 1 ? db.from("reader_power_ballots").select("rankings").eq("season_year",season).eq("week",week-1) : Promise.resolve({data:[]}),
+const viewWeek = Number.isInteger(requestedWeek) && requestedWeek >= 1 && requestedWeek <= 17 ? requestedWeek : currentWeek;
+const isCurrentEdition = viewSeason === currentSeason && viewWeek === currentWeek;
+const isPastEdition = viewSeason < currentSeason || (viewSeason === currentSeason && viewWeek < currentWeek);
+const currentTeams: Team[] = (standingsData??[]).filter((row:any)=>Number(row.season_year)===currentSeason).map((row:any)=>({teamId:String(row.fantasy_team_id),teamName:String(row.team_name),record:`${row.wins}-${row.losses}${Number(row.ties)?`-${row.ties}`:""}`}));
+const viewTeams: Team[] = (standingsData??[]).filter((row:any)=>Number(row.season_year)===viewSeason).map((row:any)=>({teamId:String(row.fantasy_team_id),teamName:String(row.team_name),record:`${row.wins}-${row.losses}${Number(row.ties)?`-${row.ties}`:""}`}));
+const { data: currentWindowData } = await db.from("reader_poll_windows").select("is_open,closes_at").eq("season_year",currentSeason).eq("week",currentWeek).maybeSingle();
+const currentClosesAt = typeof currentWindowData?.closes_at === "string" ? currentWindowData.closes_at : null;
+const currentPollOpen = currentWindowData ? Boolean(currentWindowData.is_open) && (!currentClosesAt || new Date(currentClosesAt) > new Date()) : true;
+const resultsVisible = isPastEdition || (isCurrentEdition && !currentPollOpen);
+const [{ data: ballotsData }, { data: profilesData }, { data: previousData }] = await Promise.all([
+  resultsVisible ? db.from("reader_power_ballots").select("id,user_id,rankings,updated_at").eq("season_year",viewSeason).eq("week",viewWeek).order("updated_at",{ascending:false}) : Promise.resolve({data:[]}),
+  resultsVisible ? db.from("public_reader_profiles").select("user_id,display_name") : Promise.resolve({data:[]}),
+  resultsVisible && viewWeek > 1 ? db.from("reader_power_ballots").select("rankings").eq("season_year",viewSeason).eq("week",viewWeek-1) : Promise.resolve({data:[]}),
 ]);
 const ballots = (ballotsData??[]) as Ballot[];
 const names = new Map((profilesData??[]).map((profile:any)=>[String(profile.user_id),String(profile.display_name)]));
-function totalsFor(source: Array<{rankings:Ranking[]}>){const totals=new Map<string,{points:number;firsts:number;ballots:number}>();for(const ballot of source){for(const entry of ballot.rankings??[]){const item=totals.get(entry.teamId)??{points:0,firsts:0,ballots:0};item.points+=11-Number(entry.rank);item.firsts+=Number(entry.rank)===1?1:0;item.ballots++;totals.set(entry.teamId,item)}}return totals}
-const totals=totalsFor(ballots),previousTotals=totalsFor((previousData??[]) as Array<{rankings:Ranking[]}>);
+function totalsFor(source: Array<{rankings:Ranking[]}>, teamCount: number){const totals=new Map<string,{points:number;firsts:number;ballots:number}>();for(const ballot of source){for(const entry of ballot.rankings??[]){const item=totals.get(entry.teamId)??{points:0,firsts:0,ballots:0};item.points+=teamCount+1-Number(entry.rank);item.firsts+=Number(entry.rank)===1?1:0;item.ballots++;totals.set(entry.teamId,item)}}return totals}
+const totals=totalsFor(ballots,viewTeams.length),previousTotals=totalsFor((previousData??[]) as Array<{rankings:Ranking[]}>,viewTeams.length);
 function orderFor(source:Map<string,{points:number;firsts:number}>){return [...source.entries()].sort((a,b)=>b[1].points-a[1].points||b[1].firsts-a[1].firsts).map(([id],index)=>[id,index+1] as const)}
 const previousOrder=new Map(orderFor(previousTotals));
-const combined=orderFor(totals).map(([teamId,rank])=>{const team=teams.find(item=>item.teamId===teamId);const item=totals.get(teamId)!;const prior=previousOrder.get(teamId);return{teamId,teamName:team?.teamName??"Unknown team",rank,points:item.points,firsts:item.firsts,movement:prior==null?null:prior-rank}});
-const pollOpen = windowData ? Boolean(windowData.is_open) && (!windowData.closes_at || new Date(windowData.closes_at)>new Date()) : true;
-const teamJson = JSON.stringify(teams).replaceAll("<","\\u003c");
+const combined=orderFor(totals).map(([teamId,rank])=>{const team=viewTeams.find(item=>item.teamId===teamId);const item=totals.get(teamId)!;const prior=previousOrder.get(teamId);return{teamId,teamName:team?.teamName??"Unknown team",rank,points:item.points,firsts:item.firsts,movement:prior==null?null:prior-rank}});
+const deadlineLabel = currentClosesAt
+  ? new Intl.DateTimeFormat("en-US", { dateStyle: "full", timeStyle: "short", timeZone: "America/Chicago" }).format(new Date(currentClosesAt))
+  : null;
+const teamJson = JSON.stringify(currentTeams).replaceAll("<","\\u003c");
 ---
 <BaseLayout title="Gazette Readers Poll" description="Submit and explore the weekly public Far Far Away Football readers’ rankings.">
   <main class="poll-page site-shell">
-    <header class="poll-header"><div><p class="eyebrow">The public ballot</p><h1>Gazette Readers Poll</h1></div><p>Every verified reader ranks all ten teams. First place earns 10 points, second earns 9, and tenth earns 1.</p></header>
-    <form class="edition-picker" method="get"><label>Season<select name="season">{seasons.map(value=><option value={value} selected={value===season}>{value}</option>)}</select></label><label>Week<select name="week">{Array.from({length:17},(_,index)=>index+1).map(value=><option value={value} selected={value===week}>Week {value}</option>)}</select></label><button type="submit">View edition</button></form>
+    <header class="poll-header"><div><p class="eyebrow">The public ballot</p><h1>Gazette Readers Poll</h1><p class="poll-header__intro">Every verified reader ranks all league teams. First place earns the most points, and every team gets a place on the ballot.</p></div><div class="poll-header__edition"><span>Current ballot</span><strong>{currentSeason} · Week {currentWeek}</strong><small>{currentPollOpen ? "This edition is open" : "This edition is closed"}</small></div></header>
+    <section class="poll-window" data-open={String(currentPollOpen)} data-closes-at={currentClosesAt ?? undefined} aria-live="polite"><div><p class="eyebrow">{currentPollOpen ? "Voting deadline" : "Edition status"}</p><h2 id="poll-deadline">{currentPollOpen ? (deadlineLabel ?? "Open until the commissioner closes this edition") : (deadlineLabel ? `Closed ${deadlineLabel}` : "Voting is closed")}</h2></div><div class="poll-window__countdown"><strong id="poll-countdown">{currentPollOpen ? (currentClosesAt ? "Calculating time remaining…" : "The next edition opens after this ballot closes.") : "Results are now available below."}</strong><span>{currentPollOpen ? "Your ballot is private until the deadline." : "This edition has been finalized."}</span></div></section>
 
-    <section class="poll-results"><header><div><p class="eyebrow">Combined vote</p><h2>{season} · Week {week}</h2></div><strong>{ballots.length} {ballots.length===1?"ballot":"ballots"}</strong></header>{combined.length?<ol>{combined.map(entry=><li><b>{entry.rank}</b><div><strong>{entry.teamName}</strong><small>{entry.points} points · {entry.firsts} first-place {entry.firsts===1?"vote":"votes"}</small></div><span class:list={[entry.movement&&entry.movement>0&&"up",entry.movement&&entry.movement<0&&"down"]}>{entry.movement==null?"NEW":entry.movement>0?`▲ ${entry.movement}`:entry.movement<0?`▼ ${Math.abs(entry.movement)}`:"—"}</span></li>)}</ol>:<p class="empty">No ballots yet. The first submission will establish this week’s Readers Poll.</p>}</section>
-
-    <section class="ballot-builder" data-season={season} data-week={week} data-open={String(pollOpen)} data-teams={teamJson}>
-      <header><div><p class="eyebrow">Your vote</p><h2>Rank all ten teams</h2></div><span>{pollOpen?"Ballot open":"Ballot closed"}</span></header>
-      <p id="ballot-auth">Sign in or create a verified account to submit your ballot.</p><ol id="ballot-list"></ol><p id="ballot-message" role="status"></p><button id="save-ballot" type="button" disabled>Save my public ballot</button>
-      <div class="ballot-account-links"><a href="/account/login">Sign in</a><a href="/account/register">Create account</a></div>
+    <section class="ballot-builder" data-season={currentSeason} data-week={currentWeek} data-open={String(currentPollOpen)} data-teams={teamJson}>
+      <header><div><p class="eyebrow">Current week</p><h2>Rank all league teams</h2></div><span class:list={[currentPollOpen ? "is-open" : "is-closed"]}>{currentPollOpen?"Voting open":"Voting closed"}</span></header>
+      <p id="ballot-auth">Sign in or create a verified account to submit your private ballot.</p><ol id="ballot-list"></ol><p id="ballot-message" role="status"></p><button id="save-ballot" type="button" disabled>Save my ballot</button>
+      <div class="ballot-account-links" hidden><a href="/account/login">Sign in</a><a href="/account/register">Create account</a></div>
     </section>
 
-    <section class="public-ballots"><header><p class="eyebrow">How everyone voted</p><h2>Public ballots</h2></header>{ballots.length?<div>{ballots.map(ballot=><article><h3>{names.get(ballot.user_id)??"Gazette Reader"}</h3><ol>{[...(ballot.rankings??[])].sort((a,b)=>a.rank-b.rank).map(entry=><li><b>{entry.rank}</b><span>{entry.teamName}</span></li>)}</ol></article>)}</div>:<p class="empty">Public ballots will appear here after readers vote.</p>}</section>
+    <section class="previous-editions">
+      <div class="section-heading"><div><p class="eyebrow">The archive</p><h2>Previous weeks</h2></div><p>Browse finalized editions without opening a ballot for an old week.</p></div>
+      <form class="edition-picker" method="get"><div><p class="eyebrow">View results</p><strong>Choose a season and week</strong></div><label>Season<select name="season">{seasons.map(value=><option value={value} selected={value===viewSeason}>{value}</option>)}</select></label><label>Week<select name="week">{Array.from({length:17},(_,index)=>index+1).map(value=><option value={value} selected={value===viewWeek}>Week {value}</option>)}</select></label><button type="submit">View edition</button></form>
+      <section class:list={["poll-results", !resultsVisible && "poll-results--sealed"]}><header><div><p class="eyebrow">{resultsVisible ? "Final results" : isCurrentEdition ? "Results are sealed" : "Future edition"}</p><h2>{resultsVisible ? `${viewSeason} · Week ${viewWeek}` : isCurrentEdition ? "Let the current ballot stand on its own" : `${viewSeason} · Week ${viewWeek} is not open yet`}</h2></div>{resultsVisible && <strong>{ballots.length} {ballots.length===1?"ballot":"ballots"}</strong>}</header>{resultsVisible ? (combined.length?<ol>{combined.map(entry=><li><b>{entry.rank}</b><div><strong>{entry.teamName}</strong><small>{entry.points} points · {entry.firsts} first-place {entry.firsts===1?"vote":"votes"}</small></div><span class:list={[entry.movement&&entry.movement>0&&"up",entry.movement&&entry.movement<0&&"down"]}>{entry.movement==null?"NEW":entry.movement>0?`▲ ${entry.movement}`:entry.movement<0?`▼ ${Math.abs(entry.movement)}`:"—"}</span></li>)}</ol>:<p class="empty">No ballots were submitted for this edition.</p>) : <div class="sealed-results"><span aria-hidden="true">✦</span><div><strong>{isCurrentEdition ? "Current votes stay private." : "This edition has not opened yet."}</strong><p>{isCurrentEdition ? "Rank the teams based on your own read of the season. Once the deadline passes, the combined results will be revealed here." : "The archive will show this edition after it becomes a completed week."}</p></div></div>}</section>
+    </section>
+
+    {resultsVisible && <section class="public-ballots"><header><p class="eyebrow">The edition is closed</p><h2>How everyone voted</h2></header>{ballots.length?<div>{ballots.map(ballot=><article><h3>{names.get(ballot.user_id)??"Gazette Reader"}</h3><ol>{[...(ballot.rankings??[])].sort((a,b)=>a.rank-b.rank).map(entry=><li><b>{entry.rank}</b><span>{entry.teamName}</span></li>)}</ol></article>)}</div>:<p class="empty">No ballots were submitted for this edition.</p>}</section>}
   </main>
   <script>
     import { supabaseBrowser } from "../lib/supabase-browser";
     type Team={teamId:string;teamName:string;record:string};type Entry=Team&{rank:number};
     const builder=document.querySelector<HTMLElement>(".ballot-builder"),list=document.querySelector<HTMLOListElement>("#ballot-list"),save=document.querySelector<HTMLButtonElement>("#save-ballot"),message=document.querySelector<HTMLElement>("#ballot-message"),authCopy=document.querySelector<HTMLElement>("#ballot-auth"),links=document.querySelector<HTMLElement>(".ballot-account-links");let entries:Entry[]=[],userId="";
     function render(){if(!list)return;list.replaceChildren();entries.forEach((entry,index)=>{entry.rank=index+1;const item=document.createElement("li"),rank=document.createElement("b"),copy=document.createElement("div"),name=document.createElement("strong"),record=document.createElement("small"),controls=document.createElement("span");rank.textContent=String(entry.rank);name.textContent=entry.teamName;record.textContent=entry.record;copy.append(name,record);for(const [label,direction] of [["Move up",-1],["Move down",1]] as const){const button=document.createElement("button");button.type="button";button.textContent=direction<0?"↑":"↓";button.title=label;button.disabled=(direction<0&&index===0)||(direction>0&&index===entries.length-1);button.addEventListener("click",()=>{const target=index+direction;[entries[index],entries[target]]=[entries[target],entries[index]];render()});controls.append(button)}item.append(rank,copy,controls);list.append(item)})}
-    async function initialize(){if(!builder)return;const teams=JSON.parse(builder.dataset.teams??"[]") as Team[];entries=teams.map((team,index)=>({...team,rank:index+1}));const{data:{user}}=await supabaseBrowser.auth.getUser();if(!user){render();return}userId=user.id;links?.setAttribute("hidden","");if(authCopy)authCopy.textContent=`Signed in as ${user.email}. Your display name will appear publicly.`;const season=Number(builder.dataset.season),week=Number(builder.dataset.week);const{data}=await (supabaseBrowser as any).from("reader_power_ballots").select("rankings").eq("user_id",user.id).eq("season_year",season).eq("week",week).maybeSingle();if(data?.rankings){const order=new Map<string,number>(data.rankings.map((entry:any)=>[String(entry.teamId),Number(entry.rank)]));entries.sort((a,b)=>(order.get(a.teamId)??99)-(order.get(b.teamId)??99))}if(save)save.disabled=builder.dataset.open!=="true"||entries.length!==10;render()}
-    save?.addEventListener("click",async()=>{if(!builder||!message||!userId)return;save.disabled=true;save.textContent="Saving…";const payload={user_id:userId,season_year:Number(builder.dataset.season),week:Number(builder.dataset.week),rankings:entries.map(({teamId,teamName,rank})=>({teamId,teamName,rank}))};const{error}=await (supabaseBrowser as any).from("reader_power_ballots").upsert(payload,{onConflict:"user_id,season_year,week"});save.textContent="Save my public ballot";save.disabled=false;message.textContent=error?error.message:"Ballot saved. Refreshing the public results…";if(!error)window.setTimeout(()=>window.location.reload(),700)});void initialize();
+    async function initialize(){if(!builder)return;const teams=JSON.parse(builder.dataset.teams??"[]") as Team[];entries=teams.map((team,index)=>({...team,rank:index+1}));const{data:{user}}=await supabaseBrowser.auth.getUser();if(!user){links?.removeAttribute("hidden");render();return}userId=user.id;links?.setAttribute("hidden","");if(authCopy)authCopy.textContent=`Signed in as ${user.email}. Your ballot stays private until this edition closes.`;const season=Number(builder.dataset.season),week=Number(builder.dataset.week);const{data}=await (supabaseBrowser as any).from("reader_power_ballots").select("rankings").eq("user_id",user.id).eq("season_year",season).eq("week",week).maybeSingle();if(data?.rankings){const order=new Map<string,number>(data.rankings.map((entry:any)=>[String(entry.teamId),Number(entry.rank)]));entries.sort((a,b)=>(order.get(a.teamId)??99)-(order.get(b.teamId)??99))}if(save)save.disabled=builder.dataset.open!=="true"||entries.length!==teams.length;render()}
+    save?.addEventListener("click",async()=>{if(!builder||!message||!userId)return;save.disabled=true;save.textContent="Saving…";const payload={user_id:userId,season_year:Number(builder.dataset.season),week:Number(builder.dataset.week),rankings:entries.map(({teamId,teamName,rank})=>({teamId,teamName,rank}))};const{error}=await (supabaseBrowser as any).from("reader_power_ballots").upsert(payload,{onConflict:"user_id,season_year,week"});save.textContent="Save my ballot";save.disabled=false;message.textContent=error?error.message:"Ballot saved privately. Your ranking will be revealed after the deadline.";if(!error)window.setTimeout(()=>window.location.reload(),700)});
+    const pollWindow=document.querySelector<HTMLElement>(".poll-window"),countdown=document.querySelector<HTMLElement>("#poll-countdown"),deadline=document.querySelector<HTMLElement>("#poll-deadline");const closesAt=pollWindow?.dataset.closesAt;
+    function updateCountdown(){if(!pollWindow||!countdown||pollWindow.dataset.open!=="true"||!closesAt)return;const remaining=new Date(closesAt).getTime()-Date.now();if(remaining<=0){countdown.textContent="The deadline has arrived. Refresh for the final results.";if(deadline)deadline.textContent="Voting closed";return}const totalSeconds=Math.floor(remaining/1000),days=Math.floor(totalSeconds/86400),hours=Math.floor(totalSeconds%86400/3600),minutes=Math.floor(totalSeconds%3600/60);countdown.textContent=`Resets in ${days?`${days}d `:""}${hours}h ${minutes}m`;}
+    updateCountdown();if(closesAt)window.setInterval(updateCountdown,30000);void initialize();
   </script>
 </BaseLayout>
 <style>
-  .poll-page{padding-block:clamp(2.5rem,7vw,6rem)}.poll-header{display:grid;grid-template-columns:1.4fr .6fr;gap:2rem;align-items:end;padding-bottom:2rem;border-bottom:3px double var(--color-rule-dark)}.poll-header h1{margin:.2rem 0;font-size:clamp(3.5rem,8vw,7rem);line-height:.85}.poll-header>p{color:var(--color-ink-soft);font-family:var(--font-editorial);font-size:1.2rem;line-height:1.5}.edition-picker{display:flex;align-items:end;gap:1rem;padding-block:1.25rem}.edition-picker label{display:grid;gap:.3rem;font-weight:750}.edition-picker select,.edition-picker button{min-height:2.7rem;padding:.55rem .75rem;border:1px solid var(--color-rule-dark);background:var(--color-surface);font:inherit}.edition-picker button{background:var(--color-green);color:#fff;font-weight:800}.poll-results,.ballot-builder,.public-ballots{margin-top:1.5rem;border:1px solid var(--color-rule);border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-card);overflow:hidden}.poll-results>header,.ballot-builder>header,.public-ballots>header{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding:1.3rem 1.5rem;border-bottom:1px solid var(--color-rule)}section h2{margin:.2rem 0;font-size:2.1rem}.poll-results>ol,#ballot-list{padding:0;margin:0;list-style:none}.poll-results li,#ballot-list li{display:grid;grid-template-columns:3rem minmax(0,1fr) auto;align-items:center;gap:1rem;padding:.85rem 1.5rem;border-bottom:1px solid var(--color-rule)}.poll-results li>b,#ballot-list li>b{font-family:var(--font-editorial);font-size:2rem;text-align:center}.poll-results li div,#ballot-list li div{display:grid;gap:.15rem}.poll-results small,#ballot-list small{color:var(--color-ink-soft)}.poll-results span{font-family:var(--font-data);font-size:.7rem;font-weight:800}.up{color:#287545}.down{color:#a53631}.ballot-builder>p,.ballot-builder>button,.ballot-account-links{margin-inline:1.5rem}.ballot-builder>p{color:var(--color-ink-soft)}#ballot-list button{width:2.2rem;height:2.2rem;border:1px solid var(--color-rule-dark);background:transparent;font-weight:900}#save-ballot{margin-block:1rem 1.5rem;padding:.75rem 1rem;border:0;background:var(--color-green);color:#fff;font-weight:800}.ballot-account-links{display:flex;gap:1rem;margin-bottom:1.5rem}.public-ballots>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--color-rule)}.public-ballots article{padding:1.25rem;background:var(--color-surface)}.public-ballots article h3{margin:0 0 .8rem}.public-ballots article ol{display:grid;gap:.35rem;padding:0;margin:0;list-style:none}.public-ballots article li{display:grid;grid-template-columns:1.6rem 1fr;gap:.4rem;font-size:.82rem}.empty{padding:2rem;color:var(--color-ink-soft)}@media(max-width:800px){.poll-header{grid-template-columns:1fr}.public-ballots>div{grid-template-columns:1fr}.edition-picker{align-items:stretch;flex-direction:column}.edition-picker button{width:100%}}
+  .poll-page {
+    padding-block: clamp(2.5rem, 7vw, 6rem);
+  }
+
+  .poll-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(17rem, 0.75fr);
+    gap: clamp(2rem, 6vw, 5rem);
+    align-items: end;
+    padding-bottom: clamp(2rem, 5vw, 4rem);
+    border-bottom: 3px double var(--color-rule-dark);
+  }
+
+  .poll-header h1 {
+    max-width: 9ch;
+    margin: 0.2rem 0 1rem;
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    letter-spacing: -0.06em;
+    line-height: 0.84;
+  }
+
+  .poll-header__intro {
+    max-width: 42rem;
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: 1.2rem;
+    line-height: 1.5;
+  }
+
+  .poll-header__edition {
+    display: grid;
+    gap: 0.4rem;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border-top: 5px solid var(--color-green);
+    background: var(--color-green);
+    color: white;
+  }
+
+  .poll-header__edition span,
+  .poll-header__edition small {
+    font-family: var(--font-data);
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .poll-header__edition strong {
+    font-family: var(--font-editorial);
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    line-height: 0.95;
+  }
+
+  .poll-header__edition small {
+    color: var(--color-gold-light);
+  }
+
+  .poll-window {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.7fr);
+    gap: 1.5rem;
+    align-items: center;
+    margin-top: var(--space-6);
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px solid var(--color-rule-dark);
+    border-left: 5px solid var(--color-gold);
+    background: color-mix(in srgb, var(--color-gold) 10%, var(--color-surface));
+  }
+
+  .poll-window h2,
+  .poll-window p {
+    margin: 0;
+  }
+
+  .poll-window h2 {
+    font-family: var(--font-editorial);
+    font-size: clamp(1.4rem, 3vw, 2.2rem);
+    line-height: 1.1;
+  }
+
+  .poll-window__countdown {
+    display: grid;
+    gap: 0.3rem;
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--color-rule-dark);
+  }
+
+  .poll-window__countdown strong {
+    color: var(--color-green);
+    font-family: var(--font-data);
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .poll-window__countdown span {
+    color: var(--color-ink-soft);
+    font-size: 0.82rem;
+  }
+
+  .edition-picker {
+    display: flex;
+    align-items: end;
+    gap: 1rem;
+    margin-block: var(--space-5);
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-rule);
+    background: var(--color-surface);
+  }
+
+  .previous-editions {
+    margin-top: clamp(3rem, 8vw, 6rem);
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: var(--space-5);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--color-rule-dark);
+  }
+
+  .section-heading h2,
+  .section-heading p {
+    margin: 0;
+  }
+
+  .section-heading > p {
+    max-width: 32rem;
+    color: var(--color-ink-muted);
+    text-align: right;
+  }
+
+  .edition-picker > div {
+    display: grid;
+    gap: 0.2rem;
+    margin-right: auto;
+  }
+
+  .edition-picker > div p,
+  .edition-picker > div strong {
+    margin: 0;
+  }
+
+  .edition-picker label {
+    display: grid;
+    gap: 0.3rem;
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    font-weight: 750;
+    text-transform: uppercase;
+  }
+
+  .edition-picker select,
+  .edition-picker button {
+    min-height: 2.7rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--color-rule-dark);
+    background: var(--color-surface);
+    font: inherit;
+  }
+
+  .edition-picker button {
+    border-color: var(--color-green);
+    background: var(--color-green);
+    color: #fff;
+    font-weight: 800;
+  }
+
+  .poll-results,
+  .ballot-builder,
+  .public-ballots {
+    margin-top: 1.5rem;
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .poll-results > header,
+  .ballot-builder > header,
+  .public-ballots > header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.3rem 1.5rem;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  section h2 {
+    margin: 0.2rem 0;
+    font-size: 2.1rem;
+  }
+
+  .poll-results > header > strong,
+  .ballot-builder > header > span {
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    background: var(--color-green);
+    color: #fff;
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .ballot-builder > header > span.is-closed {
+    background: var(--color-ink-muted);
+  }
+
+  .poll-results > ol,
+  :global(#ballot-list) {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .poll-results li,
+  :global(#ballot-list li) {
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1.5rem;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .poll-results li:last-child,
+  :global(#ballot-list li:last-child) {
+    border-bottom: 0;
+  }
+
+  .poll-results li > b,
+  :global(#ballot-list li > b) {
+    font-family: var(--font-editorial);
+    font-size: 2rem;
+    text-align: center;
+  }
+
+  .poll-results li div,
+  :global(#ballot-list li div) {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .poll-results small,
+  :global(#ballot-list small) {
+    color: var(--color-ink-soft);
+  }
+
+  .poll-results li > span {
+    font-family: var(--font-data);
+    font-size: 0.7rem;
+    font-weight: 800;
+  }
+
+  .sealed-results {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    min-height: 10rem;
+    padding: 2rem 1.5rem;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-green) 8%, var(--color-surface)), var(--color-surface));
+  }
+
+  .sealed-results > span {
+    color: var(--color-gold-dark);
+    font-size: 2.2rem;
+  }
+
+  .sealed-results strong,
+  .sealed-results p {
+    margin: 0;
+  }
+
+  .sealed-results p {
+    max-width: 42rem;
+    margin-top: 0.35rem;
+    color: var(--color-ink-soft);
+    line-height: 1.55;
+  }
+
+  .up { color: #287545; }
+  .down { color: #a53631; }
+
+  .ballot-builder > p,
+  .ballot-builder > button,
+  .ballot-account-links {
+    margin-inline: 1.5rem;
+  }
+
+  .ballot-builder > p {
+    color: var(--color-ink-soft);
+  }
+
+  :global(#ballot-list button) {
+    width: 2.2rem;
+    height: 2.2rem;
+    border: 1px solid var(--color-rule-dark);
+    background: transparent;
+    font-weight: 900;
+  }
+
+  :global(#ballot-list button:hover:not(:disabled)) {
+    border-color: var(--color-green);
+    color: var(--color-green);
+  }
+
+  #save-ballot {
+    margin-block: 1rem 1.5rem;
+    padding: 0.75rem 1rem;
+    border: 0;
+    background: var(--color-green);
+    color: #fff;
+    font-weight: 800;
+  }
+
+  #save-ballot:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .ballot-account-links {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .ballot-account-links[hidden] {
+    display: none;
+  }
+
+  .ballot-account-links a,
+  .readers-poll a {
+    color: var(--color-green);
+    font-weight: 800;
+  }
+
+  .public-ballots > div {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--color-rule);
+  }
+
+  .public-ballots article {
+    padding: 1.25rem;
+    background: var(--color-surface);
+  }
+
+  .public-ballots article h3 {
+    margin: 0 0 0.8rem;
+  }
+
+  .public-ballots article ol {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .public-ballots article li {
+    display: grid;
+    grid-template-columns: 1.6rem 1fr;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+  }
+
+  .empty {
+    padding: 2rem;
+    color: var(--color-ink-soft);
+  }
+
+  @media (max-width: 800px) {
+    .poll-header,
+    .poll-window {
+      grid-template-columns: 1fr;
+    }
+
+    .poll-window__countdown {
+      padding-top: 1rem;
+      padding-left: 0;
+      border-top: 1px solid var(--color-rule-dark);
+      border-left: 0;
+    }
+
+    .public-ballots > div {
+      grid-template-columns: 1fr;
+    }
+
+    .edition-picker {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .edition-picker > div {
+      margin-right: 0;
+    }
+
+    .edition-picker button {
+      width: 100%;
+    }
+  }
 </style>
