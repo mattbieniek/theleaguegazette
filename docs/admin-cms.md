@@ -8,7 +8,7 @@
 
 `/admin/login` signs in through Supabase Auth with email and password. The shared `AdminLayout` is `noindex`; each interactive admin page checks the current session and redirects unauthenticated users to the login page. A user must exist in `admin_users` or `publication_contributors` to use the editorial area.
 
-The August 9, 2026 production walkthrough confirmed that `/admin`, `/admin/articles`, and `/admin/notifications` redirect an anonymous visitor to `/admin/login`, and that the resulting page emits `noindex, nofollow`. It also found that the deployed logged-out page visibly renders the full editorial sidebar, **New Story**, and **Sign out** controls. The linked routes still redirect to login, so this was a navigation-disclosure and usability defect rather than evidence of authorization bypass. The working tree now normalizes a trailing slash before selecting the login-only layout, and the generated Vercel login artifact contains none of those workspace controls. Verify the deployed page again after release.
+The August 9, 2026 production walkthrough confirmed that `/admin`, `/admin/articles`, and `/admin/notifications` redirect an anonymous visitor to `/admin/login`, and that the resulting page emits `noindex, nofollow`. It also found that the deployed logged-out page visibly renders the full editorial sidebar, **New Story**, and **Sign out** controls. The linked routes still redirect to login, so this was a navigation-disclosure and usability defect rather than evidence of authorization bypass. The branch in draft PR #26 normalizes a trailing slash before selecting the login-only layout. Its Vercel preview showed the sign-in form with none of those workspace controls, retained `noindex, nofollow`, and produced no browser errors. Re-verify the canonical production URL after release.
 
 Authorization is enforced twice: browser code chooses the appropriate workspace and database RLS/RPCs enforce the actual permission. Session expiry and unauthorized errors should be treated as normal recoverable states, not as evidence that a user has access.
 
@@ -70,7 +70,7 @@ Contributor navigation hides administrator groups, while direct-route checks and
 ## Verification gaps
 
 - Re-run `npm run test:contributor-rls` after changing contributor roles, article policies, publication transitions, or related RPCs. It creates and removes temporary identities and refuses non-local URLs by default.
-- TODO: Deploy the trailing-slash-safe admin login layout and repeat the production anonymous walkthrough to confirm workspace chrome is hidden.
+- TODO: After draft PR #26 is reviewed and merged, repeat the anonymous walkthrough on the canonical production URL to confirm workspace chrome is hidden there.
 - TODO: Complete a read-only authenticated administrator and Op-Ed contributor presentation walkthrough using owner-controlled sessions; do not create production test stories for this purpose.
 - TODO: Confirm all admin route checks remain aligned with RLS and RPC permissions after future migrations.
 - TODO: Document session expiry, password reset, rate limiting, and production incident handling.
