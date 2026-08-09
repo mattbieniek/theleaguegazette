@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "sleeper-data-styling",
+    date: "2026-08-09",
+    title: "Polished the Sleeper Data workspace",
+    summary:
+      "The backend Sleeper Data page now has clearer sections, easier-to-read sync history, and a more consistent editorial-office look.",
+    changes: [
+      "Reworked the league summary and import target into clearer panels with stronger hierarchy.",
+      "Formatted dataset freshness rows and sync history so labels, timestamps, record counts, and results no longer run together.",
+      "Improved sync action cards, status badges, technical details, and responsive behavior on smaller screens.",
+    ],
+  },
+  {
     id: "gazette-category-filters",
     date: "2026-08-09",
     title: "Cleaned up Gazette story categories",

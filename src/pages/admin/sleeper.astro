@@ -71,11 +71,11 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
       if (leagueSummary) {
         leagueSummary.replaceChildren();
         if (!status.league) leagueSummary.textContent = "No Sleeper league record is available.";
-        else for (const [label, value] of [["League", status.league.name], ["Season", status.league.season], ["Current week", status.league.current_week ?? "—"], ["Teams", status.league.total_rosters ?? "—"], ["Sleeper ID", status.league.sleeper_league_id]]) { const item=document.createElement("div"); const small=document.createElement("span"); small.textContent=String(label); const strong=document.createElement("strong"); strong.textContent=String(value); item.append(small,strong); leagueSummary.append(item); }
+        else for (const [label, value] of [["League", status.league.name], ["Season", status.league.season], ["Current week", status.league.current_week ?? "—"], ["Teams", status.league.total_rosters ?? "—"], ["Sleeper ID", status.league.sleeper_league_id]]) { const item=document.createElement("div"); item.className="league-summary__item"; const small=document.createElement("span"); small.textContent=String(label); const strong=document.createElement("strong"); strong.textContent=String(value); item.append(small,strong); leagueSummary.append(item); }
         if (weekInput && status.league?.current_week) weekInput.value = String(status.league.current_week);
       }
-      if (datasetStatus) { datasetStatus.replaceChildren(); for (const dataset of status.datasets) { const row=document.createElement("div"); const label=document.createElement("strong"); label.textContent=dataset.label; const date=document.createElement("time"); date.textContent=formatDate(dataset.last_synced_at); if(dataset.last_synced_at) date.dateTime=dataset.last_synced_at; row.append(label,date); datasetStatus.append(row); } }
-      if (syncHistory && syncHistoryEmpty) { syncHistory.replaceChildren(); for (const run of status.recent_runs) { const row=document.createElement("article"); row.className="sync-run"; const copy=document.createElement("div"); const title=document.createElement("strong"); title.textContent=run.sync_type.replaceAll("_"," "); const detail=document.createElement("small"); detail.textContent=run.error_message || `${run.records_processed} records · ${formatDate(run.started_at)}`; copy.append(title,detail); const badge=document.createElement("span"); badge.className=`sync-badge sync-badge--${run.status}`; badge.textContent=run.status; row.append(copy,badge); syncHistory.append(row); } syncHistory.hidden=status.recent_runs.length===0; syncHistoryEmpty.hidden=status.recent_runs.length>0; }
+      if (datasetStatus) { datasetStatus.replaceChildren(); for (const dataset of status.datasets) { const row=document.createElement("div"); row.className="dataset-status__row"; const label=document.createElement("strong"); label.className="dataset-status__label"; label.textContent=dataset.label; const date=document.createElement("time"); date.className="dataset-status__date"; date.textContent=formatDate(dataset.last_synced_at); if(dataset.last_synced_at) date.dateTime=dataset.last_synced_at; row.append(label,date); datasetStatus.append(row); } }
+      if (syncHistory && syncHistoryEmpty) { syncHistory.replaceChildren(); for (const run of status.recent_runs) { const row=document.createElement("article"); row.className="sync-run"; const copy=document.createElement("div"); copy.className="sync-run__copy"; const title=document.createElement("strong"); title.className="sync-run__title"; title.textContent=run.sync_type.replaceAll("_"," ").replace(/\b\w/g,(letter)=>letter.toUpperCase()); const detail=document.createElement("small"); detail.className="sync-run__detail"; detail.textContent=run.error_message || `${run.records_processed} records · ${formatDate(run.started_at)}`; copy.append(title,detail); const badge=document.createElement("span"); badge.className=`sync-badge sync-badge--${run.status}`; badge.textContent=run.status; row.append(copy,badge); syncHistory.append(row); } syncHistory.hidden=status.recent_runs.length===0; syncHistoryEmpty.hidden=status.recent_runs.length>0; }
     }
     async function loadStatus(): Promise<void> {
       setMessage("Loading Sleeper status…");
@@ -115,4 +115,25 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
   .league-selector h2,.league-selector p{margin:0}.league-selector h2{margin-top:.2rem;font-size:1.6rem}.league-selector div>p:last-child{margin-top:.35rem;color:var(--color-ink-soft);font-size:.82rem}.league-selector label{font-weight:750}.league-selector input{min-width:0;padding:.7rem;border:1px solid var(--color-rule-dark);background:var(--color-paper);font:inherit}
   .sync-actions button strong{display:flex;align-items:center;justify-content:space-between;gap:.75rem;width:100%}.sync-actions button em{flex:0 0 auto;padding:.25rem .5rem;border-radius:999px;background:color-mix(in srgb,var(--color-gold) 24%,transparent);color:var(--color-green);font-family:var(--font-data);font-size:.62rem;font-style:normal;letter-spacing:.04em;text-transform:uppercase}.sync-actions button{border-bottom:1px solid color-mix(in srgb,var(--color-rule) 65%,transparent)}.sync-actions button:last-child{border-bottom:0}
   @media(max-width:900px){.league-selector{grid-template-columns:1fr}.league-selector button{width:100%}}
+
+  /* Dynamic status rows are created after Astro renders, so keep their visual
+     treatment global and give each one enough breathing room to scan. */
+  :global(.league-summary__item) { display:grid; gap:.45rem; min-width:0; padding:1.1rem 1.25rem; background:var(--color-surface); }
+  :global(.league-summary__item span) { overflow:hidden; color:var(--color-ink-muted); font-family:var(--font-data); font-size:.58rem; font-weight:750; letter-spacing:.07em; text-overflow:ellipsis; text-transform:uppercase; white-space:nowrap; }
+  :global(.league-summary__item strong) { overflow:hidden; font-family:var(--font-display); font-size:1.12rem; text-overflow:ellipsis; white-space:nowrap; }
+  :global(.dataset-status__row), :global(.sync-run) { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 1.5rem; border-bottom:1px solid color-mix(in srgb,var(--color-rule) 70%,transparent); }
+  :global(.dataset-status__row:last-child), :global(.sync-run:last-child) { border-bottom:0; }
+  :global(.dataset-status__label), :global(.sync-run__title) { color:var(--color-ink); font-family:var(--font-display); font-size:1rem; }
+  :global(.dataset-status__date), :global(.sync-run__detail) { color:var(--color-ink-soft); font-family:var(--font-data); font-size:.67rem; }
+  :global(.sync-run__copy) { display:grid; gap:.3rem; min-width:0; }
+  :global(.sync-run__title) { text-transform:none; }
+  :global(.sync-run__detail) { overflow-wrap:anywhere; }
+  :global(.sync-badge) { flex:0 0 auto; padding:.3rem .55rem; border-radius:999px; background:#ececeb; color:var(--color-ink-soft); font-family:var(--font-data); font-size:.57rem; font-weight:850; letter-spacing:.05em; text-transform:uppercase; }
+  :global(.sync-badge--success), :global(.sync-badge--completed) { background:#e4f0e8; color:var(--color-green); }
+  :global(.sync-badge--error), :global(.sync-badge--failed) { background:#f6e5e3; color:#a32320; }
+  :global(.sync-badge--running) { background:#eee7f6; color:#67468a; }
+  .sync-result { overflow:hidden; padding:0; border-radius:var(--radius-lg); box-shadow:var(--shadow-card); }
+  .sync-result summary { padding:1rem 1.25rem; color:var(--color-green); font-family:var(--font-data); font-size:.65rem; font-weight:750; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; }
+  .sync-result pre { margin:0; padding:1rem 1.25rem; line-height:1.5; }
+  @media(max-width:600px){:global(.dataset-status__row),:global(.sync-run){align-items:flex-start;flex-direction:column}:global(.sync-badge){align-self:flex-start}}
 </style>
