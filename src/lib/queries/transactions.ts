@@ -1,4 +1,5 @@
 import { supabase } from "../supabase";
+import { getLegacyTransactions } from "../legacy";
 
 export type TransactionParticipant = {
   rosterId: number;
@@ -82,10 +83,10 @@ export async function getTransactionArchive(): Promise<LeagueTransaction[]> {
 
   if (error) {
     console.warn("Transaction archive unavailable.", error.message);
-    return [];
+    return getLegacyTransactions();
   }
 
-  return (data ?? []).map((row): LeagueTransaction => ({
+  const currentTransactions = (data ?? []).map((row): LeagueTransaction => ({
     id: String(row.id),
     provider: String(row.provider),
     providerTransactionId: String(row.provider_transaction_id),
@@ -115,4 +116,10 @@ export async function getTransactionArchive(): Promise<LeagueTransaction[]> {
       amount: asset.amount === null ? null : Number(asset.amount),
     })),
   }));
+
+  const currentYears = new Set(currentTransactions.map((transaction) => transaction.seasonYear));
+  return [
+    ...currentTransactions,
+    ...getLegacyTransactions().filter((transaction) => !currentYears.has(transaction.seasonYear)),
+  ].sort((first, second) => second.seasonYear - first.seasonYear || second.week - first.week);
 }

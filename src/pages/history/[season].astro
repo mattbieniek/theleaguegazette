@@ -2,7 +2,7 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import HistoryNav from "../../components/history/HistoryNav.astro";
 import RankingJourney from "../../components/history/RankingJourney.astro";
-import { teams as leagueTeams } from "../../data/teams";
+import { findTeamByName } from "../../data/teams";
 import { getHistoricalResults } from "../../lib/queries/records";
 import { buildLeagueSeasonHistory } from "../../lib/gazette/history";
 import { formatTeamRecord } from "../../lib/gazette/statistics";
@@ -33,14 +33,7 @@ function formatPoints(value: number): string {
 }
 
 function getTeamProfile(teamName: string | null) {
-  if (!teamName) return null;
-  const normalized = teamName.trim().toLowerCase();
-  return leagueTeams.find(
-    (team) =>
-      team.name.trim().toLowerCase() === normalized ||
-      team.legacyName.trim().toLowerCase() === normalized ||
-      team.aliases?.some((alias) => alias.trim().toLowerCase() === normalized)
-  ) ?? null;
+  return findTeamByName(teamName);
 }
 
 const championProfile = getTeamProfile(season.champion);

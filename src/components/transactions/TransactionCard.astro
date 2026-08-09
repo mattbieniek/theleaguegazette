@@ -1,13 +1,12 @@
 ---
 import type { LeagueTransaction, TransactionAsset } from "../../lib/queries/transactions";
-import { teams } from "../../data/teams";
+import { findTeamByName } from "../../data/teams";
 
 interface Props { transaction: LeagueTransaction; }
 const { transaction } = Astro.props;
 
-function normalize(value: string | null): string { return value?.trim().toLowerCase() ?? ""; }
 function profile(name: string | null) {
-  return teams.find((team) => [team.name, team.legacyName, ...(team.aliases ?? [])].some((value) => normalize(value) === normalize(name))) ?? null;
+  return findTeamByName(name);
 }
 function typeLabel(type: string): string {
   if (type === "free_agent") return "Free Agent";

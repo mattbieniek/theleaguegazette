@@ -14,10 +14,11 @@ const weeks = [...new Set(historicalResults.filter((row) => row.season_year === 
 const requestedWeek = Number(Astro.url.searchParams.get("week"));
 const week = Number.isInteger(requestedWeek) && weeks.includes(requestedWeek) ? requestedWeek : weeks.at(-1) ?? null;
 const lineup = buildPerfectLineup(allScores.filter((row) => row.season_year === season && row.week === week));
+const isLegacySeason = season === 2022 || season === 2023;
 ---
 <BaseLayout title="Perfect Lineup" description="The highest-scoring legal fantasy lineup from every NFL player in a selected week.">
   <div class="perfect-page site-shell"><HistoryNav />
-    <header><div><p class="eyebrow">The Weekly Ideal</p><h1>Perfect Lineup</h1><p>Every NFL player is eligible. The highest-scoring legal lineup wins—rostered, benched or sitting untouched in free agency.</p></div><div class="perfect-score"><span>{season ?? "—"} · Week {week ?? "—"}</span><strong>{lineup.reduce((sum,row)=>sum+row.points,0).toFixed(2)}</strong><small>perfect points</small></div></header>
+    <header><div><p class="eyebrow">The Weekly Ideal</p><h1>Perfect Lineup</h1><p>{isLegacySeason ? "For archived seasons, every player score captured in the historical matchup rosters is eligible for the lineup." : "Every NFL player is eligible. The highest-scoring legal lineup wins—rostered, benched or sitting untouched in free agency."}</p></div><div class="perfect-score"><span>{season ?? "—"} · Week {week ?? "—"}</span><strong>{lineup.reduce((sum,row)=>sum+row.points,0).toFixed(2)}</strong><small>perfect points</small></div></header>
     <form id="perfect-lineup-form" method="get" action="/perfect-lineup"><label>Season<select name="season">{seasons.map((value)=><option value={value} selected={value===season}>{value}</option>)}</select></label><label>Week<select name="week">{weeks.map((value)=><option value={value} selected={value===week}>Week {value}</option>)}</select></label><button id="build-lineup-button" type="submit">Build lineup</button></form>
     <section><div class="section-heading"><div><p class="eyebrow">Optimal Roster</p><h2>{season} Week {week}</h2></div><p>One QB, two RBs, two WRs, one TE, two FLEX players, one kicker and one defense. No player may appear twice in the same weekly lineup.</p></div>
       {lineup.length ? <LineupTable entries={lineup} caption={`${season} Week ${week} perfect lineup`} /> : <div class="empty"><h2>Player scores have not been imported for this week.</h2><p>Use the Sleeper Data desk to import all-player weekly scores.</p></div>}

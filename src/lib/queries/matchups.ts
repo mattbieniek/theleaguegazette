@@ -1,5 +1,6 @@
 import { supabase } from "../supabase";
 import type { Database } from "../../types/database";
+import { getLegacyMatchups } from "../legacy";
 
 export type TeamWeeklyResult =
   Database["public"]["Views"]["team_weekly_results"]["Row"];
@@ -183,7 +184,29 @@ export async function getSeasonMatchups(
     weeks.set(key, current);
   }
 
-  return [...weeks.values()]
+  const historicalWeeks = new Map<string, { week: number; seasonYear: number | null; matchups: WeeklyMatchup[] }>();
+  for (const matchup of getLegacyMatchups()) {
+    const key = `${matchup.seasonYear ?? "unknown"}:${matchup.week}`;
+    const current = historicalWeeks.get(key) ?? {
+      week: matchup.week,
+      seasonYear: matchup.seasonYear,
+      matchups: [],
+    };
+    current.matchups.push(matchup);
+    historicalWeeks.set(key, current);
+  }
+
+  for (const [key, value] of weeks) {
+    const current = historicalWeeks.get(key) ?? {
+      week: value.week,
+      seasonYear: value.seasonYear,
+      matchups: [],
+    };
+    current.matchups.push(...value.matchups);
+    historicalWeeks.set(key, current);
+  }
+
+  return [...historicalWeeks.values()]
     .sort((a, b) =>
       (a.seasonYear ?? 0) - (b.seasonYear ?? 0) ||
       a.week - b.week
@@ -204,7 +227,7 @@ export async function getSeasonMatchups(
 }
 
 export async function hydrateMatchupLineups(matchups: WeeklyMatchup[]) {
-  const matchupTeamIds = [...new Set(matchups.flatMap((matchup) => matchup.teams.map((team) => team.matchupTeamId)).filter((id): id is string => Boolean(id)))];
+  const matchupTeamIds = [...new Set(matchups.flatMap((matchup) => matchup.teams.map((team) => team.matchupTeamId).filter((id): id is string => Boolean(id))).filter((id) => !id.startsWith("legacy-")))];
   if (!matchupTeamIds.length) return;
   const lineups = await loadMatchupLineups(matchupTeamIds);
   for (const matchup of matchups) {

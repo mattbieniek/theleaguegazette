@@ -1,5 +1,5 @@
 import { seasonHistoryMetadata } from "../../data/seasonHistory";
-import type { Team } from "../../data/teams";
+import { findTeamByName, type Team } from "../../data/teams";
 import type { WeeklyTeamResult } from "../queries/awards";
 
 export type FranchiseSeason = {
@@ -50,6 +50,8 @@ function formatPoints(value: number): string {
 
 function matchesFranchise(team: Team, name: string | null): boolean {
   const normalized = normalizeName(name);
+
+  if (findTeamByName(name)?.slug === team.slug) return true;
 
   return [team.name, team.legacyName, ...(team.aliases ?? [])]
     .map(normalizeName)

@@ -1,4 +1,4 @@
-import type { Team } from "../../data/teams";
+import { findTeamByName, type Team } from "../../data/teams";
 import type { WeeklyTeamResult } from "../queries/awards";
 
 export type RecentResult = {
@@ -39,7 +39,7 @@ export function buildTeamRecentForm(
   );
 
   const teamResults = results
-    .filter((result) => identities.has(normalize(result.team_name)))
+    .filter((result) => findTeamByName(result.team_name)?.slug === team.slug || identities.has(normalize(result.team_name)))
     .sort((first, second) =>
       second.season_year - first.season_year || second.week - first.week
     );

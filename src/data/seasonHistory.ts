@@ -16,6 +16,22 @@ export type SeasonHistoryMetadata = {
  */
 export const seasonHistoryMetadata: SeasonHistoryMetadata[] = [
   {
+    year: 2022,
+    provider: "espn",
+    champion: "The Watergirl",
+    runnerUp: "JC Spooky football",
+    championshipWeek: 17,
+    notes: "Historical ESPN export imported from the league archive.",
+  },
+  {
+    year: 2023,
+    provider: "espn",
+    champion: "The Columbus Conqu3eft...",
+    runnerUp: "GimmeTheLOUt",
+    championshipWeek: 17,
+    notes: "Historical ESPN export imported from the league archive.",
+  },
+  {
     year: 2024,
     provider: "sleeper",
     champion: "Egyptian Suns",

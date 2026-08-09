@@ -1,5 +1,6 @@
 import { supabase } from "../supabase";
 import type { WeeklyTeamResult } from "./awards";
+import { getLegacyResults } from "../legacy";
 
 function toNumber(value: unknown): number {
   const parsed = Number(value);
@@ -99,7 +100,7 @@ export async function getHistoricalResults(
     );
   }
 
-  const rows = (data ?? [])
+  const currentRows = (data ?? [])
     .map((row) =>
       normalizeResult(row as Record<string, unknown>)
     )
@@ -110,5 +111,5 @@ export async function getHistoricalResults(
         row.week > 0
     );
 
-  return keepCompletedMatchups(rows);
+  return keepCompletedMatchups([...currentRows, ...getLegacyResults()]);
 }

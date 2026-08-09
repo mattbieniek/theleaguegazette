@@ -1,5 +1,6 @@
 import { supabase } from "../supabase";
-import { teams, type Team } from "../../data/teams";
+import { findTeamByName, type Team } from "../../data/teams";
+import { getLegacyDrafts } from "../legacy";
 
 const SLEEPER_API = "https://api.sleeper.app/v1";
 
@@ -54,15 +55,8 @@ type SleeperPick = {
   };
 };
 
-function normalize(value: string | null | undefined): string {
-  return value?.trim().toLowerCase() ?? "";
-}
-
 function getStaticTeam(teamName: string | null): Team | null {
-  if (!teamName) return null;
-  return teams.find((team) =>
-    [team.name, team.legacyName, ...(team.aliases ?? [])].some((name) => normalize(name) === normalize(teamName))
-  ) ?? null;
+  return findTeamByName(teamName);
 }
 
 async function getStoredDrafts(): Promise<DraftEdition[] | null> {
@@ -204,12 +198,10 @@ async function getSleeperDrafts(sleeperLeagueId: string): Promise<DraftEdition[]
   }));
 }
 
-export async function getDraftArchive(sleeperLeagueId: string): Promise<DraftEdition[]> {
+export async function getDraftArchive(sleeperLeagueId?: string): Promise<DraftEdition[]> {
   const storedDrafts = await getStoredDrafts();
-  if (storedDrafts) {
-    return storedDrafts;
-  }
-
-  const drafts = await getSleeperDrafts(sleeperLeagueId);
-  return drafts.sort((a, b) => b.seasonYear - a.seasonYear);
+  const currentDrafts = storedDrafts ?? (sleeperLeagueId ? await getSleeperDrafts(sleeperLeagueId) : []);
+  const currentYears = new Set(currentDrafts.map((draft) => draft.seasonYear));
+  return [...currentDrafts, ...getLegacyDrafts().filter((draft) => !currentYears.has(draft.seasonYear))]
+    .sort((a, b) => b.seasonYear - a.seasonYear);
 }

@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "historical-lineups",
+    date: "2026-08-09",
+    title: "Completed the 2022 and 2023 league archives",
+    summary:
+      "The historical seasons now work across the public archive, including player-level lineup records and franchise history.",
+    changes: [
+      "Added 2022 and 2023 matchup, standings, roster, draft, transaction, and record data to the public archive.",
+      "Connected historical team names to their current franchise profiles while preserving the names used in each older season.",
+      "Built Weekly Perfect Lineup and Positional Record Lineup views from the player scores captured in historical matchup rosters.",
+      "Added archived roster views to team profiles and expanded the season selectors to include 2022 and 2023.",
+    ],
+  },
+  {
     id: "changelog-formatting",
     date: "2026-08-09",
     title: "Polished the changelog update cards",

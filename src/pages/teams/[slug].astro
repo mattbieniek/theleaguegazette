@@ -8,6 +8,7 @@ import TransactionHighlight from "../../components/transactions/TransactionHighl
 import { getSeasonStandings } from "../../lib/queries/standings";
 import { getHistoricalResults } from "../../lib/queries/records";
 import { getTeamRoster } from "../../lib/queries/rosters";
+import { getLegacyTeamRoster } from "../../lib/legacy";
 import { getDraftArchive } from "../../lib/queries/drafts";
 import {
   getTransactionArchive,
@@ -63,6 +64,9 @@ const historicalResults = await getHistoricalResults();
 const roster = sleeperLeagueId
   ? await getTeamRoster(sleeperLeagueId, team.name)
   : null;
+const historicalRosters = [2022, 2023]
+  .map((year) => getLegacyTeamRoster(year, team.name))
+  .filter((historicalRoster): historicalRoster is NonNullable<typeof historicalRoster> => historicalRoster !== null);
 
 const draftArchive = sleeperLeagueId
   ? await getDraftArchive(sleeperLeagueId)
@@ -553,6 +557,30 @@ function formatPoints(value: number | null): string {
         )}
       </section>
 
+      {historicalRosters.length > 0 && (
+        <section class="historical-rosters" aria-labelledby="historical-rosters-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Historical Personnel</p>
+              <h2 id="historical-rosters-title">Archived Rosters</h2>
+            </div>
+            <p>Imported ESPN rosters from the 2022 and 2023 seasons, shown under this franchise’s current identity.</p>
+          </div>
+          <div class="historical-rosters__grid">
+            {historicalRosters.map((historicalRoster) => (
+              <details class="historical-roster">
+                <summary><strong>{historicalRoster.seasonYear} roster</strong><span>{historicalRoster.players.length} players</span></summary>
+                <ul>
+                  {historicalRoster.players.map((player) => (
+                    <li><span>{player.position}</span><strong>{player.name}</strong><small>{player.nflTeam ?? "—"}{player.isStarter ? " · Starter" : " · Reserve"}</small></li>
+                  ))}
+                </ul>
+              </details>
+            ))}
+          </div>
+        </section>
+      )}
+
       {
         draftHistory && (
           <section
@@ -888,7 +916,8 @@ function formatPoints(value: number | null): string {
   .active-roster,
   .recent-form,
   .recent-moves,
-  .team-draft-history {
+  .team-draft-history,
+  .historical-rosters {
     margin-top: var(--space-8);
   }
 
@@ -1169,6 +1198,39 @@ function formatPoints(value: number | null): string {
     font-family: var(--font-editorial);
     font-size: var(--text-lg);
   }
+
+  .historical-rosters__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+    padding-top: var(--space-5);
+  }
+
+  .historical-roster {
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .historical-roster summary {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .historical-roster summary::-webkit-details-marker { display: none; }
+  .historical-roster summary strong { font-family: var(--font-editorial); font-size: 1.35rem; }
+  .historical-roster summary span { color: var(--color-ink-muted); font-family: var(--font-data); font-size: .58rem; text-transform: uppercase; }
+  .historical-roster ul { padding: 0; margin: 0; border-top: 1px solid var(--color-rule); list-style: none; }
+  .historical-roster li { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; align-items: baseline; gap: var(--space-3); padding: .7rem var(--space-5); }
+  .historical-roster li + li { border-top: 1px solid var(--color-rule); }
+  .historical-roster li span,.historical-roster li small { color: var(--color-ink-muted); font-family: var(--font-data); font-size: .58rem; text-transform: uppercase; }
+  .historical-roster li strong { min-width: 0; font-family: var(--font-editorial); overflow-wrap: anywhere; }
 
   .franchise-summary__card {
     display: grid;
@@ -1552,6 +1614,8 @@ function formatPoints(value: number | null): string {
     .roster-groups {
       grid-template-columns: 1fr;
     }
+
+    .historical-rosters__grid { grid-template-columns: 1fr; }
 
     .form-overview { grid-template-columns: 1fr; }
     .form-strip { border-right: 0; border-bottom: 1px solid var(--color-rule); }
