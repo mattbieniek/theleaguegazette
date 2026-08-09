@@ -1,0 +1,1163 @@
+[
+  [
+    "PICK",
+    "PLAYER",
+    "TEAM",
+    "KEEPER",
+    "NOTE",
+    "MISC",
+    "MANAGE"
+  ],
+  [
+    "1.1 (1)",
+    "Jonathan Taylor · RB · (IND)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "1.2 (2)",
+    "Christian McCaffrey · RB · (CAR)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "1.3 (3)",
+    "Derrick Henry · RB · (TEN)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "1.4 (4)",
+    "Dalvin Cook · RB · (MIN)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "1.5 (5)",
+    "Austin Ekeler · RB · (LAC)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "1.6 (6)",
+    "Cooper Kupp · WR · (LAR)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "1.7 (7)",
+    "Justin Jefferson · WR · (MIN)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "1.8 (8)",
+    "Alvin Kamara · RB · (NO)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "2.1 (9)",
+    "Davante Adams · WR · (LV)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "2.2 (10)",
+    "Ja'Marr Chase · WR · (CIN)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "2.3 (11)",
+    "Najee Harris · RB · (PIT)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "2.4 (12)",
+    "Stefon Diggs · WR · (BUF)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "2.5 (13)",
+    "Joe Mixon · RB · (CIN)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "2.6 (14)",
+    "Deebo Samuel · WR · (SF)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "2.7 (15)",
+    "Tee Higgins · WR · (CIN)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "2.8 (16)",
+    "CeeDee Lamb · WR · (DAL)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "3.1 (17)",
+    "Leonard Fournette · RB · (TB)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "3.2 (18)",
+    "D.J. Moore · WR · (CAR)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "3.3 (19)",
+    "Nick Chubb · RB · (CLE)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "3.4 (20)",
+    "D'Andre Swift · RB · (DET)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "3.5 (21)",
+    "James Conner · RB · (ARI)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "3.6 (22)",
+    "Tyreek Hill · WR · (MIA)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "3.7 (23)",
+    "Mark Andrews · TE · (BAL)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "3.8 (24)",
+    "Travis Kelce · TE · (KC)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "4.1 (25)",
+    "Keenan Allen · WR · (LAC)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "4.2 (26)",
+    "Javonte Williams · RB · (DEN)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "4.3 (27)",
+    "Aaron Jones · RB · (GB)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "4.4 (28)",
+    "Diontae Johnson · WR · (PIT)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "4.5 (29)",
+    "Mike Evans · WR · (TB)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "4.6 (30)",
+    "Josh Allen · QB · (BUF)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "4.7 (31)",
+    "Saquon Barkley · RB · (NYG)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "4.8 (32)",
+    "Patrick Mahomes · QB · (KC)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "5.1 (33)",
+    "Michael Pittman · WR · (IND)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "5.2 (34)",
+    "Justin Herbert · QB · (LAC)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "5.3 (35)",
+    "Mike Williams · WR · (LAC)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "5.4 (36)",
+    "Lamar Jackson · QB · (BAL)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "5.5 (37)",
+    "Kyler Murray · QB · (ARI)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "5.6 (38)",
+    "Tom Brady · QB · (TB)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "5.7 (39)",
+    "Cam Akers · RB · (LAR)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "5.8 (40)",
+    "David Montgomery · RB · (CHI)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "6.1 (41)",
+    "Breece Hall · RB · (NYJ)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "6.2 (42)",
+    "A.J. Brown · WR · (PHI)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "6.3 (43)",
+    "Terry McLaurin · WR · (WAS)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "6.4 (44)",
+    "Kyle Pitts · TE · (ATL)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "6.5 (45)",
+    "Brandin Cooks · WR · (HOU)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "6.6 (46)",
+    "DK Metcalf · WR · (SEA)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "6.7 (47)",
+    "Darnell Mooney · WR · (CHI)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "6.8 (48)",
+    "Darren Waller · TE · (LV)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "7.1 (49)",
+    "Jaylen Waddle · WR · (MIA)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "7.2 (50)",
+    "Matthew Stafford · QB · (LAR)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "7.3 (51)",
+    "Marquise Brown · WR · (ARI)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "7.4 (52)",
+    "George Kittle · TE · (SF)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "7.5 (53)",
+    "Ezekiel Elliott · RB · (DAL)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "7.6 (54)",
+    "Dalton Schultz · TE · (DAL)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "7.7 (55)",
+    "J.K. Dobbins · RB · (LAC)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "7.8 (56)",
+    "Russell Wilson · QB · (DEN)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "8.1 (57)",
+    "Amon-Ra St. Brown · WR · (DET)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "8.2 (58)",
+    "Jerry Jeudy · WR · (DEN)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "8.3 (59)",
+    "Josh Jacobs · RB · (LV)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "8.4 (60)",
+    "Aaron Rodgers · QB · (GB)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "8.5 (61)",
+    "Gabriel Davis · WR · (BUF)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "8.6 (62)",
+    "Chris Godwin · WR · (TB)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "8.7 (63)",
+    "T.J. Hockenson · TE · (DET)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "8.8 (64)",
+    "Courtland Sutton · WR · (DEN)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "9.1 (65)",
+    "Travis Etienne · RB · (JAX)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "9.2 (66)",
+    "Dallas Goedert · TE · (PHI)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "9.3 (67)",
+    "Clyde Edwards-Helaire · RB · (KC)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "9.4 (68)",
+    "Jalen Hurts · QB · (PHI)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "9.5 (69)",
+    "Dawson Knox · TE · (BUF)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "9.6 (70)",
+    "Devin Singletary · RB · (BUF)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "9.7 (71)",
+    "Elijah Mitchell · RB · (SF)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "9.8 (72)",
+    "Antonio Gibson · RB · (WAS)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "10.1 (73)",
+    "Allen Robinson · WR · (LAR)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "10.2 (74)",
+    "Miles Sanders · RB · (PHI)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "10.3 (75)",
+    "Joe Burrow · QB · (CIN)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "10.4 (76)",
+    "Hunter Renfrow · WR · (LV)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "10.5 (77)",
+    "Cordarrelle Patterson · RB · (ATL)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "10.6 (78)",
+    "Dak Prescott · QB · (DAL)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "10.7 (79)",
+    "Amari Cooper · WR · (CLE)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "10.8 (80)",
+    "Michael Thomas · WR · (NO)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "11.1 (81)",
+    "JuJu Smith-Schuster · WR · (KC)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "11.2 (82)",
+    "Justin Tucker · K · (BAL)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "11.3 (83)",
+    "Adam Thielen · WR · (MIN)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "11.4 (84)",
+    "Zach Ertz · TE · (ARI)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "11.5 (85)",
+    "Tyler Lockett · WR · (SEA)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "11.6 (86)",
+    "Rashod Bateman · WR · (BAL)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "11.7 (87)",
+    "Drake London · WR · (ATL)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "11.8 (88)",
+    "Jakobi Meyers · WR · (NE)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "12.1 (89)",
+    "Damien Harris · RB · (NE)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "12.2 (90)",
+    "Christian Kirk · WR · (JAX)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "12.3 (91)",
+    "Buffalo Bills · DEF · (BUF)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "12.4 (92)",
+    "AJ Dillon · RB · (GB)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "12.5 (93)",
+    "Matt Gay · K · (LAR)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "12.6 (94)",
+    "Evan McPherson · K · (CIN)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "12.7 (95)",
+    "Rhamondre Stevenson · RB · (NE)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "12.8 (96)",
+    "DeVonta Smith · WR · (PHI)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "13.1 (97)",
+    "Elijah Moore · WR · (NYJ)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "13.2 (98)",
+    "Chase Edmonds · RB · (MIA)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "13.3 (99)",
+    "Cole Kmet · TE · (CHI)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "13.4 (100)",
+    "New Orleans Saints · DEF · (NO)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "13.5 (101)",
+    "Pittsburgh Steelers · DEF · (PIT)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "13.6 (102)",
+    "Harrison Butker · K · (KC)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "13.7 (103)",
+    "Kareem Hunt · RB · (CLE)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "13.8 (104)",
+    "New England Patriots · DEF · (NE)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "14.1 (105)",
+    "Alexander Mattison · RB · (MIN)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "14.2 (106)",
+    "Trey Lance · QB · (SF)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "14.3 (107)",
+    "Chase Claypool · WR · (PIT)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "14.4 (108)",
+    "Nick Folk · K · (NE)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "14.5 (109)",
+    "Allen Lazard · WR · (NYJ)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "14.6 (110)",
+    "Green Bay Packers · DEF · (GB)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "14.7 (111)",
+    "Baltimore Ravens · DEF · (BAL)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "14.8 (112)",
+    "Dameon Pierce · RB · (HOU)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "15.1 (113)",
+    "Tampa Bay Buccaneers · DEF · (TB)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "15.2 (114)",
+    "Skyy Moore · WR · (KC)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "15.3 (115)",
+    "James Cook · RB · (BUF)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "15.4 (116)",
+    "Tony Pollard · RB · (DAL)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "15.5 (117)",
+    "Chris Olave · WR · (NO)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "15.6 (118)",
+    "Hunter Henry · TE · (NE)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "15.7 (119)",
+    "San Francisco 49ers · DEF · (SF)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "15.8 (120)",
+    "Daniel Carlson · K · (LV)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "16.1 (121)",
+    "James Robinson · RB · (JAX)",
+    "Washington Fantasy Team",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "16.2 (122)",
+    "Brandon McManus · K · (DEN)",
+    "JC Spooky football",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "16.3 (123)",
+    "Dallas Cowboys · DEF · (DAL)",
+    "Brimhaven Pirates",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "16.4 (124)",
+    "Michael Carter · RB · (NYJ)",
+    "Egyptian Suns",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "16.5 (125)",
+    "Brandon Aiyuk · WR · (SF)",
+    "Haddonfield Slashers",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "16.6 (126)",
+    "Pat Freiermuth · TE · (PIT)",
+    "Edgeville Nut Eaters",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "16.7 (127)",
+    "Tyler Boyd · WR · (CIN)",
+    "Mud Village Team Kaka...",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ],
+  [
+    "16.8 (128)",
+    "Tyler Bass · K · (BUF)",
+    "The Watergirl",
+    "--",
+    "--",
+    "",
+    "Open options"
+  ]
+]
