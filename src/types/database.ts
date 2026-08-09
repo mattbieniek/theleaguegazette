@@ -409,6 +409,73 @@ export type Database = {
           },
         ]
       }
+      player_weekly_projections: {
+        Row: {
+          created_at: string
+          fantasy_team_id: string
+          id: string
+          nfl_team: string | null
+          player_name: string
+          position: string
+          projected_points: number
+          season_id: string
+          season_year: number
+          sleeper_player_id: string
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          fantasy_team_id: string
+          id?: string
+          nfl_team?: string | null
+          player_name: string
+          position: string
+          projected_points: number
+          season_id: string
+          season_year: number
+          sleeper_player_id: string
+          updated_at?: string
+          week: number
+        }
+        Update: {
+          created_at?: string
+          fantasy_team_id?: string
+          id?: string
+          nfl_team?: string | null
+          player_name?: string
+          position?: string
+          projected_points?: number
+          season_id?: string
+          season_year?: number
+          sleeper_player_id?: string
+          updated_at?: string
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_weekly_projections_fantasy_team_id_fkey"
+            columns: ["fantasy_team_id"]
+            isOneToOne: false
+            referencedRelation: "fantasy_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_weekly_projections_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_weekly_projections_sleeper_player_id_fkey"
+            columns: ["sleeper_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["sleeper_player_id"]
+          },
+        ]
+      }
       publication_contributors: {
         Row: {
           created_at: string

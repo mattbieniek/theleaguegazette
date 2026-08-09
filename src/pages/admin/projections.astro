@@ -1,0 +1,482 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Weekly Projections | The League Gazette">
+  <main class="admin-shell projections-page" id="projections-page" hidden>
+    <header class="projections-header">
+      <div>
+        <p class="eyebrow">League operations</p>
+        <h1>Weekly projections</h1>
+        <p>
+          Add the expected score for every player currently rostered in the
+          league. Projections are public and can power future stats and awards.
+          This editor starts with the current season and any future seasons;
+          historical seasons are intentionally not included.
+        </p>
+      </div>
+      <div class="projections-header__badge">
+        <span>Editor access</span>
+        <strong>Administrators only</strong>
+      </div>
+    </header>
+
+    <p class="projections-message" id="projections-message" role="status" aria-live="polite"></p>
+
+    <section class="projections-controls" aria-label="Projection edition">
+      <label>
+        <span>Season</span>
+        <select id="projection-season"></select>
+      </label>
+      <label>
+        <span>Week</span>
+        <input id="projection-week" type="number" min="1" max="18" step="1" value="1" />
+      </label>
+      <button id="load-projections" type="button">Load players</button>
+      <button id="save-projections" class="secondary-action" type="button" disabled>Save projections</button>
+    </section>
+
+    <section class="projections-summary" id="projections-summary" aria-label="Projection summary"></section>
+
+    <section class="projections-panel">
+      <div class="projections-panel__heading">
+        <div>
+          <p class="eyebrow">Individual entry</p>
+          <h2>Rostered players</h2>
+        </div>
+        <p>Players are grouped by the fantasy team that currently has them rostered.</p>
+      </div>
+
+      <div class="projections-filters">
+        <label class="projections-search">
+          <span>Find a player</span>
+          <input id="projection-search" type="search" placeholder="Player name or NFL team" />
+        </label>
+        <label>
+          <span>Fantasy team</span>
+          <select id="projection-team-filter"><option value="all">All teams</option></select>
+        </label>
+        <label>
+          <span>Position</span>
+          <select id="projection-position-filter"><option value="all">All positions</option></select>
+        </label>
+      </div>
+
+      <div id="projection-groups" class="projection-groups">
+        <p class="projection-empty">Choose a season and week to load rostered players.</p>
+      </div>
+    </section>
+
+    <section class="projections-panel projections-bulk">
+      <div class="projections-panel__heading">
+        <div>
+          <p class="eyebrow">Quick entry</p>
+          <h2>Paste a batch</h2>
+        </div>
+        <p>Use one row per player: <code>Fantasy team &nbsp; Player name &nbsp; Projection</code>. Tabs, pipes, and commas are supported.</p>
+      </div>
+      <textarea id="projection-bulk-input" rows="7" placeholder="The Reapers&#9;Sam Darnold&#9;18.5&#10;Haddonfield Slashers&#9;Bijan Robinson&#9;21.2"></textarea>
+      <div class="projections-bulk__footer">
+        <p id="projection-bulk-result" role="status"></p>
+        <button id="apply-bulk-projections" type="button">Apply to roster list</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    import { supabaseBrowser } from "../../lib/supabase-browser";
+
+    type Season = { id: string; year: number };
+    type ProjectionRow = {
+      key: string;
+      seasonId: string;
+      fantasyTeamId: string;
+      teamName: string;
+      sleeperPlayerId: string;
+      playerName: string;
+      position: string;
+      nflTeam: string | null;
+      projectedPoints: number | null;
+      projectionId: string | null;
+    };
+
+    const page = document.querySelector<HTMLElement>("#projections-page");
+    const message = document.querySelector<HTMLElement>("#projections-message");
+    const seasonSelect = document.querySelector<HTMLSelectElement>("#projection-season");
+    const weekInput = document.querySelector<HTMLInputElement>("#projection-week");
+    const loadButton = document.querySelector<HTMLButtonElement>("#load-projections");
+    const saveButton = document.querySelector<HTMLButtonElement>("#save-projections");
+    const summary = document.querySelector<HTMLElement>("#projections-summary");
+    const searchInput = document.querySelector<HTMLInputElement>("#projection-search");
+    const teamFilter = document.querySelector<HTMLSelectElement>("#projection-team-filter");
+    const positionFilter = document.querySelector<HTMLSelectElement>("#projection-position-filter");
+    const groups = document.querySelector<HTMLElement>("#projection-groups");
+    const bulkInput = document.querySelector<HTMLTextAreaElement>("#projection-bulk-input");
+    const bulkResult = document.querySelector<HTMLElement>("#projection-bulk-result");
+    const applyBulkButton = document.querySelector<HTMLButtonElement>("#apply-bulk-projections");
+
+    const positionOrder = new Map([
+      ["QB", 1], ["RB", 2], ["WR", 3], ["TE", 4], ["K", 5], ["DEF", 6],
+    ]);
+    let seasons: Season[] = [];
+    let rows: ProjectionRow[] = [];
+    let loadedSeasonId = "";
+    let loadedWeek = 0;
+
+    function setMessage(value: string, error = false): void {
+      if (!message) return;
+      message.textContent = value;
+      message.dataset.error = String(error);
+    }
+
+    function normalize(value: string | null | undefined): string {
+      return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+    }
+
+    function selectedWeek(): number | null {
+      const week = Number(weekInput?.value);
+      if (!Number.isInteger(week) || week < 1 || week > 18) {
+        setMessage("Choose a week from 1 through 18.", true);
+        return null;
+      }
+      return week;
+    }
+
+    function projectionCount(): number {
+      return rows.filter((row) => row.projectedPoints !== null).length;
+    }
+
+    function renderSummary(): void {
+      if (!summary) return;
+      const teams = new Set(rows.map((row) => row.fantasyTeamId)).size;
+      const filled = projectionCount();
+      summary.replaceChildren();
+      for (const [label, value] of [
+        ["Fantasy teams", String(teams)],
+        ["Rostered players", String(rows.length)],
+        ["Projected", `${filled} / ${rows.length}`],
+      ]) {
+        const card = document.createElement("div");
+        const labelElement = document.createElement("span");
+        labelElement.textContent = label;
+        const valueElement = document.createElement("strong");
+        valueElement.textContent = value;
+        card.append(labelElement, valueElement);
+        summary.append(card);
+      }
+      if (saveButton) saveButton.disabled = rows.length === 0;
+    }
+
+    function matchesFilters(row: ProjectionRow): boolean {
+      const search = normalize(searchInput?.value);
+      const team = teamFilter?.value ?? "all";
+      const position = positionFilter?.value ?? "all";
+      const searchable = normalize(`${row.playerName} ${row.nflTeam ?? ""}`);
+      return (!search || searchable.includes(search))
+        && (team === "all" || row.fantasyTeamId === team)
+        && (position === "all" || row.position === position);
+    }
+
+    function updateFilters(): void {
+      const currentTeam = teamFilter?.value ?? "all";
+      const currentPosition = positionFilter?.value ?? "all";
+      if (teamFilter) {
+        teamFilter.replaceChildren(new Option("All teams", "all"));
+        const teams = [...new Map(rows.map((row) => [row.fantasyTeamId, row.teamName])).entries()]
+          .sort((a, b) => a[1].localeCompare(b[1]));
+        teams.forEach(([id, name]) => teamFilter.append(new Option(name, id)));
+        teamFilter.value = teams.some(([id]) => id === currentTeam) ? currentTeam : "all";
+      }
+      if (positionFilter) {
+        positionFilter.replaceChildren(new Option("All positions", "all"));
+        [...new Set(rows.map((row) => row.position))]
+          .sort((a, b) => (positionOrder.get(a) ?? 99) - (positionOrder.get(b) ?? 99) || a.localeCompare(b))
+          .forEach((position) => positionFilter.append(new Option(position, position)));
+        positionFilter.value = [...positionFilter.options].some((option) => option.value === currentPosition) ? currentPosition : "all";
+      }
+    }
+
+    function renderRows(): void {
+      if (!groups) return;
+      groups.replaceChildren();
+      const visibleRows = rows.filter(matchesFilters);
+      const grouped = new Map<string, ProjectionRow[]>();
+      visibleRows.forEach((row) => grouped.set(row.fantasyTeamId, [...(grouped.get(row.fantasyTeamId) ?? []), row]));
+
+      if (!visibleRows.length) {
+        const empty = document.createElement("p");
+        empty.className = "projection-empty";
+        empty.textContent = rows.length ? "No rostered players match these filters." : "No rostered players were found for this season.";
+        groups.append(empty);
+        return;
+      }
+
+      for (const [, teamRows] of grouped) {
+        const group = document.createElement("section");
+        group.className = "projection-group";
+        const heading = document.createElement("header");
+        const title = document.createElement("h3");
+        title.textContent = teamRows[0]?.teamName ?? "Fantasy team";
+        const count = document.createElement("span");
+        count.textContent = `${teamRows.filter((row) => row.projectedPoints !== null).length} / ${teamRows.length} projected`;
+        heading.append(title, count);
+        const list = document.createElement("div");
+        list.className = "projection-group__list";
+
+        teamRows.forEach((row) => {
+          const item = document.createElement("div");
+          item.className = "projection-row";
+          item.dataset.rowKey = row.key;
+          const position = document.createElement("span");
+          position.className = "projection-row__position";
+          position.textContent = row.position;
+          const copy = document.createElement("div");
+          copy.className = "projection-row__copy";
+          const player = document.createElement("strong");
+          player.textContent = row.playerName;
+          const nfl = document.createElement("small");
+          nfl.textContent = row.nflTeam ?? "NFL team unavailable";
+          copy.append(player, nfl);
+          const input = document.createElement("input");
+          input.type = "number";
+          input.min = "0";
+          input.max = "100";
+          input.step = "0.01";
+          input.inputMode = "decimal";
+          input.placeholder = "—";
+          input.setAttribute("aria-label", `${row.playerName} projected points`);
+          input.value = row.projectedPoints === null ? "" : String(row.projectedPoints);
+          input.addEventListener("input", () => {
+            const value = input.value.trim();
+            row.projectedPoints = value === "" ? null : Number(value);
+            renderSummary();
+          });
+          item.append(position, copy, input);
+          list.append(item);
+        });
+        group.append(heading, list);
+        groups.append(group);
+      }
+    }
+
+    function render(): void {
+      updateFilters();
+      renderSummary();
+      renderRows();
+    }
+
+    async function loadSeasons(): Promise<void> {
+      const [{ data, error }, { data: statusData }] = await Promise.all([
+        supabaseBrowser
+          .from("seasons")
+          .select("id,year")
+          .order("year", { ascending: false }),
+        supabaseBrowser.rpc("admin_sleeper_status"),
+      ]);
+      if (error) {
+        setMessage(`Unable to load seasons: ${error.message}`, true);
+        return;
+      }
+      const available = (data ?? []) as Season[];
+      const latestAvailableYear = Math.max(...available.map((season) => season.year));
+      const sleeperSeasonYear = Number((statusData as any)?.league?.season);
+      const currentYear = Number.isFinite(sleeperSeasonYear) && available.some((season) => season.year >= sleeperSeasonYear)
+        ? sleeperSeasonYear
+        : latestAvailableYear;
+      seasons = available.filter((season) => season.year >= currentYear);
+      seasonSelect?.replaceChildren(...seasons.map((season) => new Option(String(season.year), season.id)));
+      if (seasonSelect?.options.length) seasonSelect.selectedIndex = 0;
+      await loadSeasonWeek();
+    }
+
+    async function loadSeasonWeek(): Promise<void> {
+      const seasonId = seasonSelect?.value ?? "";
+      const week = selectedWeek();
+      if (!seasonId || week === null) return;
+      const season = seasons.find((item) => item.id === seasonId);
+      if (!season) return;
+      loadedSeasonId = seasonId;
+      loadedWeek = week;
+      setMessage(`Loading ${season.year} Week ${week} roster…`);
+      if (loadButton) loadButton.disabled = true;
+
+      const [{ data: teams, error: teamError }, { data: projections, error: projectionError }] = await Promise.all([
+        supabaseBrowser
+          .from("fantasy_teams")
+          .select("id,team_name,season_id,roster_players(sleeper_player_id,players(sleeper_player_id,full_name,first_name,last_name,position,nfl_team))")
+          .eq("season_id", seasonId),
+        supabaseBrowser
+          .from("player_weekly_projections")
+          .select("id,fantasy_team_id,sleeper_player_id,player_name,position,nfl_team,projected_points")
+          .eq("season_id", seasonId)
+          .eq("week", week),
+      ]);
+
+      if (loadButton) loadButton.disabled = false;
+      if (teamError || projectionError) {
+        setMessage(`Unable to load projections: ${(teamError ?? projectionError)?.message ?? "Unknown error"}`, true);
+        return;
+      }
+
+      const projectionMap = new Map((projections ?? []).map((projection: any) => [projection.sleeper_player_id, projection]));
+      const flattened: ProjectionRow[] = [];
+      for (const team of (teams ?? []) as any[]) {
+        const teamName = team.team_name ?? "Unnamed Team";
+        for (const rosterEntry of team.roster_players ?? []) {
+          const player = Array.isArray(rosterEntry.players) ? rosterEntry.players[0] : rosterEntry.players;
+          if (!player?.sleeper_player_id) continue;
+          const existing = projectionMap.get(player.sleeper_player_id);
+          flattened.push({
+            key: `${team.id}:${player.sleeper_player_id}`,
+            seasonId,
+            fantasyTeamId: team.id,
+            teamName,
+            sleeperPlayerId: player.sleeper_player_id,
+            playerName: player.full_name ?? [player.first_name, player.last_name].filter(Boolean).join(" ") ?? "Unknown Player",
+            position: player.position ?? "Other",
+            nflTeam: player.nfl_team ?? null,
+            projectedPoints: existing ? Number(existing.projected_points) : null,
+            projectionId: existing?.id ?? null,
+          });
+        }
+      }
+      rows = flattened.sort((a, b) => a.teamName.localeCompare(b.teamName) || (positionOrder.get(a.position) ?? 99) - (positionOrder.get(b.position) ?? 99) || a.playerName.localeCompare(b.playerName));
+      render();
+      setMessage(`${season.year} Week ${week} is ready. Enter projections and save when finished.`);
+    }
+
+    async function saveProjections(): Promise<void> {
+      if (!loadedSeasonId || !loadedWeek || !rows.length) return;
+      const invalid = rows.find((row) => row.projectedPoints !== null && (!Number.isFinite(row.projectedPoints) || row.projectedPoints < 0 || row.projectedPoints > 100));
+      if (invalid) {
+        setMessage(`${invalid.playerName} needs a number from 0 to 100.`, true);
+        return;
+      }
+      if (saveButton) { saveButton.disabled = true; saveButton.textContent = "Saving…"; }
+      setMessage("Saving weekly projections…");
+      const filled = rows.filter((row): row is ProjectionRow & { projectedPoints: number } => row.projectedPoints !== null);
+      const payload = filled.map((row) => ({
+        season_id: row.seasonId,
+        season_year: seasons.find((season) => season.id === row.seasonId)?.year ?? 0,
+        week: loadedWeek,
+        fantasy_team_id: row.fantasyTeamId,
+        sleeper_player_id: row.sleeperPlayerId,
+        player_name: row.playerName,
+        position: row.position,
+        nfl_team: row.nflTeam,
+        projected_points: row.projectedPoints,
+      }));
+      const { error: upsertError } = payload.length
+        ? await supabaseBrowser.from("player_weekly_projections").upsert(payload, { onConflict: "season_id,week,sleeper_player_id" })
+        : { error: null };
+      if (upsertError) {
+        if (saveButton) { saveButton.disabled = false; saveButton.textContent = "Save projections"; }
+        setMessage(`Unable to save projections: ${upsertError.message}`, true);
+        return;
+      }
+      const cleared = rows.filter((row) => row.projectedPoints === null && row.projectionId).map((row) => row.projectionId as string);
+      if (cleared.length) {
+        const { error: deleteError } = await supabaseBrowser.from("player_weekly_projections").delete().in("id", cleared);
+        if (deleteError) {
+          if (saveButton) { saveButton.disabled = false; saveButton.textContent = "Save projections"; }
+          setMessage(`Saved new values, but could not clear old values: ${deleteError.message}`, true);
+          return;
+        }
+      }
+      if (saveButton) saveButton.textContent = "Save projections";
+      await loadSeasonWeek();
+      setMessage("Weekly projections saved.");
+    }
+
+    function applyBulk(): void {
+      if (!bulkInput || !bulkResult) return;
+      const lines = bulkInput.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+      let applied = 0;
+      const missing: string[] = [];
+      for (const line of lines) {
+        const parts = line.includes("\t") ? line.split("\t") : line.split(/\s*\|\s*|\s*,\s*/);
+        if (parts.length < 3) { missing.push(line); continue; }
+        const scoreText = parts.pop()?.trim() ?? "";
+        const playerName = parts.pop()?.trim() ?? "";
+        const teamName = parts.join(" ").trim();
+        const score = Number(scoreText);
+        const match = rows.find((row) => normalize(row.teamName) === normalize(teamName) && normalize(row.playerName) === normalize(playerName));
+        if (!match || !Number.isFinite(score) || score < 0 || score > 100) { missing.push(line); continue; }
+        match.projectedPoints = score;
+        applied++;
+      }
+      render();
+      bulkResult.textContent = `${applied} row${applied === 1 ? "" : "s"} applied${missing.length ? ` · ${missing.length} could not be matched` : ""}.`;
+      bulkResult.dataset.error = missing.length ? "true" : "false";
+    }
+
+    async function initialize(): Promise<void> {
+      const { data: { user } } = await supabaseBrowser.auth.getUser();
+      if (!user) { window.location.replace("/admin/login"); return; }
+      const { data: admin } = await supabaseBrowser.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle();
+      if (!admin) { window.location.replace("/admin/articles"); return; }
+      if (page) page.hidden = false;
+      await loadSeasons();
+    }
+
+    loadButton?.addEventListener("click", () => void loadSeasonWeek());
+    saveButton?.addEventListener("click", () => void saveProjections());
+    applyBulkButton?.addEventListener("click", applyBulk);
+    searchInput?.addEventListener("input", renderRows);
+    teamFilter?.addEventListener("change", renderRows);
+    positionFilter?.addEventListener("change", renderRows);
+    void initialize();
+  </script>
+</AdminLayout>
+
+<style>
+  .projections-page { display: grid; gap: 1.5rem; }
+  .projections-page[hidden] { display: none; }
+  .projections-header { display: flex; align-items: end; justify-content: space-between; gap: 2rem; padding: clamp(1.5rem, 4vw, 2.75rem); border: 1px solid #29473b; border-radius: var(--radius-lg); background: linear-gradient(135deg, #132d23, #234a39); color: #fff; box-shadow: 0 16px 36px rgb(25 42 34 / 12%); }
+  .projections-header h1 { margin: .25rem 0; color: #fff; font-size: clamp(3.4rem, 8vw, 6.5rem); letter-spacing: -.055em; line-height: .86; }
+  .projections-header .eyebrow { color: #d9c47f; }
+  .projections-header p:last-child { max-width: 48rem; margin: 0; color: #d7e0dc; font-family: var(--font-editorial); font-size: 1.1rem; line-height: 1.5; }
+  .projections-header__badge { display: grid; min-width: 13rem; gap: .25rem; padding: 1rem 1.15rem; border: 1px solid rgb(255 255 255 / 18%); border-radius: var(--radius-sm); background: rgb(255 255 255 / 7%); }
+  .projections-header__badge span { color: #c6d2cd; font-size: .65rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+  .projections-message { min-height: 1.3rem; margin: 0; color: var(--color-green); }
+  .projections-message[data-error="true"] { color: #a32320; }
+  .projections-controls { display: flex; align-items: end; gap: 1rem; padding: 1.1rem 1.25rem; border: 1px solid var(--color-rule); border-left: 5px solid var(--color-green); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-card); }
+  .projections-controls label, .projections-filters label { display: grid; gap: .35rem; color: var(--color-ink-soft); font-size: .67rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+  .projections-controls select, .projections-controls input, .projections-filters input, .projections-filters select { min-height: 2.65rem; padding: .6rem .7rem; border: 1px solid var(--color-rule-dark); background: #fff; font: inherit; text-transform: none; letter-spacing: normal; }
+  .projections-controls button, .projections-bulk button { min-height: 2.65rem; padding: .65rem 1rem; border: 1px solid var(--color-green); border-radius: .4rem; background: var(--color-green); color: #fff; font-weight: 800; cursor: pointer; }
+  .projections-controls button:disabled { cursor: wait; opacity: .55; }
+  .projections-controls .secondary-action { margin-left: auto; border-color: var(--color-rule-dark); background: var(--color-paper-light); color: var(--color-green); }
+  .projections-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--color-rule); background: var(--color-rule); }
+  .projections-summary > div { display: grid; gap: .3rem; padding: 1rem 1.25rem; background: var(--color-surface); }
+  .projections-summary span { color: var(--color-ink-soft); font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+  .projections-summary strong { font-family: var(--font-display); font-size: 1.7rem; }
+  .projections-panel { overflow: hidden; border: 1px solid var(--color-rule); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-card); }
+  .projections-panel__heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; padding: 1.35rem 1.5rem; border-bottom: 1px solid var(--color-rule); }
+  .projections-panel__heading h2 { margin: .2rem 0 0; font-size: 2rem; }
+  .projections-panel__heading p:last-child { max-width: 34rem; margin: 0; color: var(--color-ink-soft); font-size: .84rem; line-height: 1.5; }
+  .projections-filters { display: flex; align-items: end; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-rule); }
+  .projections-search { flex: 1; }
+  .projection-groups { display: grid; gap: 1rem; padding: 1rem; }
+  .projection-group { overflow: hidden; border: 1px solid var(--color-rule); border-radius: var(--radius-sm); }
+  .projection-group > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1rem; background: var(--color-paper-light); border-bottom: 1px solid var(--color-rule); }
+  .projection-group h3 { margin: 0; font-family: var(--font-display); font-size: 1.25rem; }
+  .projection-group > header span { color: var(--color-ink-muted); font-family: var(--font-data); font-size: .62rem; letter-spacing: .05em; text-transform: uppercase; }
+  .projection-group__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .projection-row { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) 6rem; align-items: center; gap: .65rem; min-width: 0; padding: .75rem 1rem; border-bottom: 1px solid color-mix(in srgb, var(--color-rule) 68%, transparent); }
+  .projection-row:nth-child(even) { border-left: 1px solid color-mix(in srgb, var(--color-rule) 68%, transparent); }
+  .projection-row__position { color: var(--color-gold-dark); font-family: var(--font-data); font-size: .62rem; font-weight: 800; }
+  .projection-row__copy { display: grid; min-width: 0; gap: .15rem; }
+  .projection-row__copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .projection-row__copy small { color: var(--color-ink-muted); font-size: .68rem; }
+  .projection-row input { width: 100%; min-height: 2.35rem; padding: .45rem .55rem; border: 1px solid var(--color-rule-dark); background: #fff; font: 700 .82rem var(--font-data); text-align: right; }
+  .projection-row input:focus { outline: 2px solid color-mix(in srgb, var(--color-green) 40%, transparent); outline-offset: 2px; }
+  .projection-empty { padding: 2.5rem 1rem; color: var(--color-ink-soft); text-align: center; }
+  .projections-bulk { padding-bottom: 1rem; }
+  .projections-bulk textarea { display: block; width: calc(100% - 2.5rem); margin: 1rem 1.25rem; padding: .75rem; border: 1px solid var(--color-rule-dark); background: #fff; font: .78rem var(--font-data); line-height: 1.5; resize: vertical; }
+  .projections-bulk__footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 1.25rem; }
+  .projections-bulk__footer p { min-height: 1.2rem; margin: 0; color: var(--color-green); font-size: .78rem; }
+  .projections-bulk__footer p[data-error="true"] { color: #a32320; }
+  code { padding: .1em .3em; border-radius: .2rem; background: var(--color-paper-dark); font-size: .85em; }
+  @media (max-width: 850px) { .projections-header, .projections-panel__heading { align-items: flex-start; flex-direction: column; } .projections-controls, .projections-filters { align-items: stretch; flex-direction: column; } .projections-controls .secondary-action { margin-left: 0; } .projections-controls > *, .projections-filters > * { width: 100%; } }
+  @media (max-width: 650px) { .projections-summary { grid-template-columns: 1fr; } .projection-group__list { grid-template-columns: 1fr; } .projection-row:nth-child(even) { border-left: 0; } .projections-bulk__footer { align-items: stretch; flex-direction: column; } .projections-bulk__footer button { width: 100%; } }
+</style>

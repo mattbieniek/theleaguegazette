@@ -1079,6 +1079,27 @@ CREATE TABLE IF NOT EXISTS "public"."player_weekly_scores" (
 ALTER TABLE "public"."player_weekly_scores" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."player_weekly_projections" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "season_id" "uuid" NOT NULL,
+    "season_year" integer NOT NULL,
+    "week" integer NOT NULL,
+    "fantasy_team_id" "uuid" NOT NULL,
+    "sleeper_player_id" "text" NOT NULL,
+    "player_name" "text" NOT NULL,
+    "position" "text" NOT NULL,
+    "nfl_team" "text",
+    "projected_points" numeric(10,2) NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "player_weekly_projections_projected_points_check" CHECK (("projected_points" >= (0)::numeric) AND ("projected_points" <= (100)::numeric)),
+    CONSTRAINT "player_weekly_projections_week_check" CHECK (("week" >= 1) AND ("week" <= 18))
+);
+
+
+ALTER TABLE "public"."player_weekly_projections" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."players" (
     "sleeper_player_id" "text" NOT NULL,
     "first_name" "text",
@@ -1645,6 +1666,10 @@ ALTER TABLE ONLY "public"."player_weekly_scores"
     ADD CONSTRAINT "player_weekly_scores_season_id_week_sleeper_player_id_key" UNIQUE ("season_id", "week", "sleeper_player_id");
 
 
+ALTER TABLE ONLY "public"."player_weekly_projections"
+    ADD CONSTRAINT "player_weekly_projections_season_id_week_sleeper_player_id_key" UNIQUE ("season_id", "week", "sleeper_player_id");
+
+
 
 ALTER TABLE ONLY "public"."players"
     ADD CONSTRAINT "players_pkey" PRIMARY KEY ("sleeper_player_id");
@@ -1851,6 +1876,12 @@ CREATE INDEX "player_weekly_scores_position_points_idx" ON "public"."player_week
 CREATE INDEX "player_weekly_scores_season_week_idx" ON "public"."player_weekly_scores" USING "btree" ("season_year", "week");
 
 
+CREATE INDEX "player_weekly_projections_season_week_idx" ON "public"."player_weekly_projections" USING "btree" ("season_id", "week");
+
+
+CREATE INDEX "player_weekly_projections_team_idx" ON "public"."player_weekly_projections" USING "btree" ("season_id", "week", "fantasy_team_id");
+
+
 
 CREATE INDEX "players_nfl_team_idx" ON "public"."players" USING "btree" ("nfl_team");
 
@@ -1932,6 +1963,9 @@ CREATE OR REPLACE TRIGGER "set_gazette_articles_updated_at" BEFORE UPDATE ON "pu
 
 
 CREATE OR REPLACE TRIGGER "gazette_comments_updated_at" BEFORE UPDATE ON "public"."gazette_comments" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+
+
+CREATE OR REPLACE TRIGGER "player_weekly_projections_updated_at" BEFORE UPDATE ON "public"."player_weekly_projections" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 
 
 
@@ -2066,6 +2100,18 @@ ALTER TABLE ONLY "public"."player_weekly_scores"
     ADD CONSTRAINT "player_weekly_scores_season_id_fkey" FOREIGN KEY ("season_id") REFERENCES "public"."seasons"("id") ON DELETE CASCADE;
 
 
+ALTER TABLE ONLY "public"."player_weekly_projections"
+    ADD CONSTRAINT "player_weekly_projections_fantasy_team_id_fkey" FOREIGN KEY ("fantasy_team_id") REFERENCES "public"."fantasy_teams"("id") ON DELETE CASCADE;
+
+
+ALTER TABLE ONLY "public"."player_weekly_projections"
+    ADD CONSTRAINT "player_weekly_projections_season_id_fkey" FOREIGN KEY ("season_id") REFERENCES "public"."seasons"("id") ON DELETE CASCADE;
+
+
+ALTER TABLE ONLY "public"."player_weekly_projections"
+    ADD CONSTRAINT "player_weekly_projections_sleeper_player_id_fkey" FOREIGN KEY ("sleeper_player_id") REFERENCES "public"."players"("sleeper_player_id") ON DELETE CASCADE;
+
+
 
 ALTER TABLE ONLY "public"."power_rankings"
     ADD CONSTRAINT "power_rankings_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
@@ -2176,6 +2222,13 @@ CREATE POLICY "Admins can manage player weekly scores" ON "public"."player_weekl
   WHERE ("admin_users"."user_id" = "auth"."uid"()))));
 
 
+CREATE POLICY "Admins can manage weekly player projections" ON "public"."player_weekly_projections" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."admin_users"
+  WHERE ("admin_users"."user_id" = "auth"."uid"())))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM "public"."admin_users"
+  WHERE ("admin_users"."user_id" = "auth"."uid"()))));
+
+
 
 CREATE POLICY "Admins can manage poll windows" ON "public"."reader_poll_windows" TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."admin_users"
@@ -2249,6 +2302,9 @@ CREATE POLICY "Editorial participants can view review history" ON "public"."edit
 
 
 CREATE POLICY "Player weekly scores are public" ON "public"."player_weekly_scores" FOR SELECT USING (true);
+
+
+CREATE POLICY "Weekly player projections are public" ON "public"."player_weekly_projections" FOR SELECT USING (true);
 
 
 
@@ -2405,6 +2461,9 @@ ALTER TABLE "public"."matchups" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."player_weekly_scores" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."player_weekly_projections" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."players" ENABLE ROW LEVEL SECURITY;
@@ -2708,6 +2767,11 @@ GRANT ALL ON TABLE "public"."matchup_players" TO "service_role";
 GRANT ALL ON TABLE "public"."player_weekly_scores" TO "anon";
 GRANT ALL ON TABLE "public"."player_weekly_scores" TO "authenticated";
 GRANT ALL ON TABLE "public"."player_weekly_scores" TO "service_role";
+
+
+GRANT SELECT ON TABLE "public"."player_weekly_projections" TO "anon";
+GRANT SELECT,INSERT,UPDATE,DELETE ON TABLE "public"."player_weekly_projections" TO "authenticated";
+GRANT ALL ON TABLE "public"."player_weekly_projections" TO "service_role";
 
 
 
