@@ -6,6 +6,7 @@ import {
   getPublishedArticles,
 } from "../../lib/queries/gazette";
 import { formatPublicationDate } from "../../lib/formatDate";
+import { formatStoryCategory } from "../../lib/gazette/categories";
 
 export const prerender = false;
 
@@ -98,7 +99,7 @@ function getArticleImage(
 ): string {
   return (
     imageUrl ??
-    "/images/homepage/lead-story-placeholder.webp"
+    "/images/gazette/article-placeholder.webp"
   );
 }
 
@@ -112,7 +113,7 @@ const canonicalUrl = new URL(
 <BaseLayout
   title={story.headline}
   description={story.summary}
-  image={story.image_url ?? "/images/homepage/lead-story-placeholder.webp"}
+  image={story.image_url ?? "/images/gazette/article-placeholder.webp"}
   imageAlt={story.image_alt ?? story.headline}
   type="article"
   publishedTime={story.published_at}
@@ -131,12 +132,12 @@ const canonicalUrl = new URL(
 
         <span aria-hidden="true">/</span>
 
-        <span>{story.category}</span>
+        <span>{formatStoryCategory(story.category, story.subcategory)}</span>
       </nav>
 
       <div class="article-header__content">
         <p class="eyebrow">
-          {story.category}
+          {formatStoryCategory(story.category, story.subcategory)}
         </p>
 
         <h1>{story.headline}</h1>
@@ -240,7 +241,7 @@ const canonicalUrl = new URL(
         </a>
 
         <p>
-          {story.category}
+          {formatStoryCategory(story.category, story.subcategory)}
         </p>
       </aside>
 
@@ -342,7 +343,7 @@ const canonicalUrl = new URL(
 
                   <div class="related-story__content">
                     <p class="eyebrow">
-                      {article.category}
+                      {formatStoryCategory(article.category, article.subcategory)}
                     </p>
 
                     <h3>
@@ -469,7 +470,7 @@ const canonicalUrl = new URL(
 
   .article-header {
     padding-top: clamp(2rem, 5vw, 4rem);
-    padding-bottom: clamp(2.5rem, 6vw, 5rem);
+    padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
     border-bottom: 3px double var(--color-rule-dark);
   }
 
@@ -584,11 +585,16 @@ const canonicalUrl = new URL(
     font-weight: 650;
   }
 
+  .article-action-message:empty {
+    display: none;
+  }
+
   .article-image {
-  width: 100%;
-  min-width: 0;
-  padding-top: clamp(1.5rem, 4vw, 3rem);
-}
+    width: 100%;
+    max-width: 60rem;
+    min-width: 0;
+    padding-top: clamp(1rem, 2.5vw, 2rem);
+  }
 
 .article-image__frame {
   width: 100%;

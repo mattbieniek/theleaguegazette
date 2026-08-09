@@ -15,7 +15,7 @@ const participantNames = transaction.participants
   .filter((name): name is string => Boolean(name));
 const primaryTeamName = contextTeamName ?? participantNames[0] ?? "League transaction";
 const primaryTeam = teams.find((team) =>
-  [team.name, team.legacyName].some(
+  [team.name, team.legacyName, ...(team.aliases ?? [])].some(
     (name) => name.trim().toLowerCase() === primaryTeamName.trim().toLowerCase()
   )
 );

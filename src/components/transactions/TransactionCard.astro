@@ -7,7 +7,7 @@ const { transaction } = Astro.props;
 
 function normalize(value: string | null): string { return value?.trim().toLowerCase() ?? ""; }
 function profile(name: string | null) {
-  return teams.find((team) => [team.name, team.legacyName].some((value) => normalize(value) === normalize(name))) ?? null;
+  return teams.find((team) => [team.name, team.legacyName, ...(team.aliases ?? [])].some((value) => normalize(value) === normalize(name))) ?? null;
 }
 function typeLabel(type: string): string {
   if (type === "free_agent") return "Free Agent";

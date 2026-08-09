@@ -1,17 +1,21 @@
 alter table public.publication_contributors
   drop constraint if exists publication_contributors_role_check;
+
 alter table public.publication_contributors
   add constraint publication_contributors_role_check
   check (role in ('commissioner', 'op_ed'));
+
 update public.publication_contributors
 set role = 'op_ed'
 where role = 'commissioner';
+
 drop policy if exists "Commissioners can create Corner drafts" on public.gazette_articles;
 drop policy if exists "Commissioners can read their own Corner stories" on public.gazette_articles;
 drop policy if exists "Commissioners can update their own Corner drafts" on public.gazette_articles;
 drop policy if exists "Commissioners can delete their own Corner drafts" on public.gazette_articles;
 drop policy if exists "Commissioners can upload images for their own stories" on storage.objects;
 drop policy if exists "Commissioners can remove images from their own stories" on storage.objects;
+
 create policy "Contributors can create Op Ed drafts"
   on public.gazette_articles for insert to authenticated
   with check (
@@ -25,6 +29,7 @@ create policy "Contributors can create Op Ed drafts"
       where user_id = auth.uid() and role = 'op_ed'
     )
   );
+
 create policy "Contributors can read their own Op Ed stories"
   on public.gazette_articles for select to authenticated
   using (
@@ -35,6 +40,7 @@ create policy "Contributors can read their own Op Ed stories"
       where user_id = auth.uid() and role = 'op_ed'
     )
   );
+
 create policy "Contributors can update their own Op Ed drafts"
   on public.gazette_articles for update to authenticated
   using (
@@ -53,6 +59,7 @@ create policy "Contributors can update their own Op Ed drafts"
     and is_featured = false
     and homepage_order is null
   );
+
 create policy "Contributors can delete their own Op Ed drafts"
   on public.gazette_articles for delete to authenticated
   using (
@@ -64,6 +71,7 @@ create policy "Contributors can delete their own Op Ed drafts"
       where user_id = auth.uid() and role = 'op_ed'
     )
   );
+
 create policy "Contributors can upload their story images"
   on storage.objects for insert to authenticated
   with check (
@@ -77,6 +85,7 @@ create policy "Contributors can upload their story images"
         and gazette_articles.category = 'Op Ed'
     )
   );
+
 create policy "Contributors can remove their story images"
   on storage.objects for delete to authenticated
   using (
@@ -90,6 +99,7 @@ create policy "Contributors can remove their story images"
         and gazette_articles.category = 'Op Ed'
     )
   );
+
 create or replace function public.admin_add_publication_contributor(
   contributor_email text,
   contributor_display_name text
@@ -119,6 +129,7 @@ begin
   return contributor_user_id;
 end;
 $$;
+
 create or replace function public.article_login_identity(target_article_id uuid)
 returns table (user_id uuid, email text, login text)
 language plpgsql
@@ -142,5 +153,6 @@ begin
     where article.id = target_article_id;
 end;
 $$;
+
 revoke all on function public.article_login_identity(uuid) from public;
 grant execute on function public.article_login_identity(uuid) to authenticated;

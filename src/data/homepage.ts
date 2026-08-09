@@ -18,7 +18,7 @@ export const leadStory: HomepageStory = {
     "Optimism is high, projections are meaningless and every manager remains convinced this is finally the year everything goes according to plan.",
   author: "The Gazette Staff",
   publishedAt: "2026-07-25",
-  image: "/images/homepage/lead-story-placeholder.webp",
+    image: "/images/gazette/article-placeholder.webp",
   imageAlt:
     "Fantasy football draft materials arranged on a table before the season",
   body: [

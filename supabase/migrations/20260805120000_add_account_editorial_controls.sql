@@ -30,6 +30,7 @@ as $$
   )
   order by profile.created_at desc;
 $$;
+
 create or replace function public.admin_set_contributor_access(
   target_user_id uuid,
   access_enabled boolean
@@ -76,10 +77,12 @@ begin
   end if;
 end;
 $$;
+
 revoke all on function public.admin_site_accounts() from public;
 revoke all on function public.admin_set_contributor_access(uuid, boolean) from public;
 grant execute on function public.admin_site_accounts() to authenticated;
 grant execute on function public.admin_set_contributor_access(uuid, boolean) to authenticated;
+
 create or replace function public.public_matchup_lineups(target_matchup_team_ids uuid[])
 returns table (
   matchup_team_id uuid,
@@ -109,5 +112,6 @@ as $$
   where matchup_player.matchup_team_id = any(target_matchup_team_ids)
     and cardinality(target_matchup_team_ids) between 1 and 10;
 $$;
+
 revoke all on function public.public_matchup_lineups(uuid[]) from public;
 grant execute on function public.public_matchup_lineups(uuid[]) to anon, authenticated;

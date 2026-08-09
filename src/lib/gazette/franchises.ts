@@ -51,7 +51,7 @@ function formatPoints(value: number): string {
 function matchesFranchise(team: Team, name: string | null): boolean {
   const normalized = normalizeName(name);
 
-  return [team.name, team.legacyName]
+  return [team.name, team.legacyName, ...(team.aliases ?? [])]
     .map(normalizeName)
     .includes(normalized);
 }

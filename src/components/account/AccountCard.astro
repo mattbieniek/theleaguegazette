@@ -1,0 +1,16 @@
+---
+interface Props { eyebrow: string; title: string; intro: string }
+const { eyebrow, title, intro } = Astro.props;
+---
+<main class="account-shell site-shell">
+  <section class="account-card">
+    <header><p class="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{intro}</p></header>
+    <slot />
+  </section>
+</main>
+<style>
+  .account-shell{display:grid;min-height:60vh;place-items:center;padding-block:clamp(3rem,8vw,7rem)}
+  .account-card{width:min(100%,36rem);padding:clamp(1.5rem,5vw,3rem);border:1px solid var(--color-rule);border-top:5px solid var(--color-green);border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-card)}
+  header{padding-bottom:1.5rem;border-bottom:3px double var(--color-rule-dark)}header h1{margin:.2rem 0 .75rem;font-size:clamp(2.7rem,8vw,4.6rem);line-height:.9}header>p:last-child{margin:0;color:var(--color-ink-soft);line-height:1.55}
+  :global(.account-form){display:grid;gap:1.15rem;margin-top:1.5rem}:global(.account-form label){display:grid;gap:.4rem;font-weight:750}:global(.account-form input){min-height:3rem;padding:.75rem .9rem;border:1px solid var(--color-rule-dark);border-radius:var(--radius-sm);background:var(--color-paper-light);font:inherit}:global(.account-form button),:global(.account-action){display:flex;align-items:center;justify-content:center;min-height:3rem;padding:.75rem 1rem;border:0;border-radius:var(--radius-sm);background:var(--color-green);color:#fff;font:inherit;font-weight:800;cursor:pointer}:global(.account-form button:disabled){cursor:wait;opacity:.6}:global(.account-message){min-height:1.4rem;margin:0;color:var(--color-green);font-size:.85rem}:global(.account-message[data-error="true"]){color:#9a2f2f}:global(.account-links){display:flex;justify-content:space-between;gap:1rem;margin-top:1.25rem;font-size:.85rem}:global(.account-note){padding:1rem;border-left:3px solid var(--color-gold);background:color-mix(in srgb,var(--color-gold) 10%,transparent);color:var(--color-ink-soft);font-size:.82rem;line-height:1.5}
+</style>

@@ -1,0 +1,9 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import AccountCard from "../../components/account/AccountCard.astro";
+---
+<BaseLayout title="Account Confirmed" noindex>
+  <AccountCard eyebrow="Welcome to the Gazette" title="Email confirmed" intro="Your reader account is ready. You can now submit a weekly ballot and manage your Gazette membership.">
+    <a class="account-action" href="/account">Open my account</a>
+  </AccountCard>
+</BaseLayout>

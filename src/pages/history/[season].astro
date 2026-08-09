@@ -6,12 +6,12 @@ import { teams as leagueTeams } from "../../data/teams";
 import { getHistoricalResults } from "../../lib/queries/records";
 import { buildLeagueSeasonHistory } from "../../lib/gazette/history";
 import { formatTeamRecord } from "../../lib/gazette/statistics";
+import { supabase } from "../../lib/supabase";
 
 export const prerender = false;
 
 const requestedYear = Number(Astro.params.season);
-const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
-const results = await getHistoricalResults(sleeperLeagueId);
+const results = await getHistoricalResults();
 const season = Number.isInteger(requestedYear)
   ? buildLeagueSeasonHistory(results, requestedYear)
   : null;
@@ -19,6 +19,11 @@ const season = Number.isInteger(requestedYear)
 if (!season) {
   return Astro.redirect("/history");
 }
+
+const { data: rankingLineups } = await supabase.rpc("public_computer_poll_lineups", {
+  target_season_year: season.year,
+  target_through_week: season.lastWeek,
+});
 
 function formatPoints(value: number): string {
   return value.toLocaleString("en-US", {
@@ -33,7 +38,8 @@ function getTeamProfile(teamName: string | null) {
   return leagueTeams.find(
     (team) =>
       team.name.trim().toLowerCase() === normalized ||
-      team.legacyName.trim().toLowerCase() === normalized
+      team.legacyName.trim().toLowerCase() === normalized ||
+      team.aliases?.some((alias) => alias.trim().toLowerCase() === normalized)
   ) ?? null;
 }
 
@@ -102,7 +108,7 @@ const championProfile = getTeamProfile(season.champion);
       </div>
     </section>
 
-    <RankingJourney results={results} season={season.year} />
+    <RankingJourney results={results} season={season.year} playerRows={rankingLineups ?? []} />
 
     <section class="performance" aria-labelledby="performance-title">
       <div class="section-heading">

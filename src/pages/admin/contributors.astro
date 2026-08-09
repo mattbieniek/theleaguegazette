@@ -5,75 +5,198 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
 <AdminLayout title="Contributors | The League Gazette">
   <main class="admin-shell contributors" hidden id="contributors-page">
     <header class="contributors__header">
-      <div><p class="eyebrow">Editorial access</p><h1>Contributors</h1><p>Grant Op-Ed submission access to an existing Supabase user.</p></div>
+      <div>
+        <p class="eyebrow">People &amp; permissions</p>
+        <h1>Contributors</h1>
+        <p>Every registered Gazette account appears here. Grant or remove limited Op-Ed access with one click.</p>
+      </div>
+      <div class="contributors__summary" id="account-summary" aria-label="Account summary"></div>
     </header>
+
     <section class="contributors__panel">
-      <h2>Add a contributor</h2>
-      <p>The person must already have an account in Supabase Authentication. Adding them here grants publication access; it does not send an invitation.</p>
-      <form id="contributor-form">
-        <label>Email address<input id="contributor-email" type="email" required autocomplete="off" placeholder="name@example.com" /></label>
-        <label>Display name<input id="contributor-name" type="text" required autocomplete="off" placeholder="Contributor name" /></label>
-        <button type="submit">Grant contributor access</button>
-      </form>
+      <div class="contributors__toolbar">
+        <div>
+          <p class="eyebrow">Account directory</p>
+          <h2>Gazette readers</h2>
+        </div>
+        <label>
+          <span>Find an account</span>
+          <input id="account-search" type="search" placeholder="Search name or email" autocomplete="off" />
+        </label>
+      </div>
+      <p class="contributors__note">Limited contributors can create Op-Ed drafts and submit them for approval. They cannot publish stories or access administrative tools.</p>
       <p id="contributor-message" role="status" aria-live="polite"></p>
+      <div id="account-list" class="account-list"></div>
+      <div class="contributors__empty" id="account-empty" hidden>No accounts match that search.</div>
     </section>
-    <section class="contributors__panel"><h2>Current contributors</h2><div id="contributor-list"></div></section>
   </main>
 
   <script>
     import { supabaseBrowser } from "../../lib/supabase-browser";
-    type Contributor = { user_id: string; email: string; display_name: string; role: string; created_at: string };
-    const page = document.querySelector<HTMLElement>("#contributors-page");
-    const form = document.querySelector<HTMLFormElement>("#contributor-form");
-    const list = document.querySelector<HTMLElement>("#contributor-list");
-    const message = document.querySelector<HTMLElement>("#contributor-message");
-    const emailInput = document.querySelector<HTMLInputElement>("#contributor-email");
-    const nameInput = document.querySelector<HTMLInputElement>("#contributor-name");
 
-    function setMessage(text: string, error = false) { if (message) { message.textContent = text; message.dataset.error = String(error); } }
-    function render(contributors: Contributor[]) {
-      if (!list) return; list.replaceChildren();
-      if (!contributors.length) { list.textContent = "No contributors have been added yet."; return; }
-      for (const contributor of contributors) {
-        const row = document.createElement("article"); row.className = "contributor-row";
+    type SiteAccount = {
+      user_id: string;
+      email: string;
+      display_name: string;
+      digest_enabled: boolean;
+      is_contributor: boolean;
+      is_admin: boolean;
+      created_at: string;
+    };
+
+    const page = document.querySelector<HTMLElement>("#contributors-page");
+    const list = document.querySelector<HTMLElement>("#account-list");
+    const empty = document.querySelector<HTMLElement>("#account-empty");
+    const message = document.querySelector<HTMLElement>("#contributor-message");
+    const search = document.querySelector<HTMLInputElement>("#account-search");
+    const summary = document.querySelector<HTMLElement>("#account-summary");
+    let accounts: SiteAccount[] = [];
+
+    function setMessage(text: string, error = false) {
+      if (!message) return;
+      message.textContent = text;
+      message.dataset.error = String(error);
+    }
+
+    function stat(label: string, value: number) {
+      const item = document.createElement("div");
+      const strong = document.createElement("strong");
+      const span = document.createElement("span");
+      strong.textContent = String(value);
+      span.textContent = label;
+      item.append(strong, span);
+      return item;
+    }
+
+    function renderSummary() {
+      if (!summary) return;
+      summary.replaceChildren(
+        stat("Accounts", accounts.length),
+        stat("Contributors", accounts.filter((account) => account.is_contributor).length),
+        stat("Admins", accounts.filter((account) => account.is_admin).length),
+      );
+    }
+
+    function render() {
+      if (!list || !empty) return;
+      const query = search?.value.trim().toLowerCase() ?? "";
+      const visible = accounts.filter((account) =>
+        `${account.display_name} ${account.email}`.toLowerCase().includes(query)
+      );
+      list.replaceChildren();
+      empty.hidden = visible.length > 0;
+
+      for (const account of visible) {
+        const row = document.createElement("article");
+        row.className = "account-row";
+
+        const identity = document.createElement("div");
+        identity.className = "account-row__identity";
+        const avatar = document.createElement("span");
+        avatar.className = "account-row__avatar";
+        avatar.textContent = account.display_name.charAt(0).toUpperCase();
         const copy = document.createElement("div");
-        const title = document.createElement("h3"); title.textContent = contributor.display_name;
-        const detail = document.createElement("p"); detail.textContent = `${contributor.email} · Op-Ed contributor`;
-        const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Remove access"; remove.className = "secondary";
-        remove.addEventListener("click", async () => {
-          if (!confirm(`Remove publication access for ${contributor.display_name}? Their existing stories will remain.`)) return;
-          remove.disabled = true;
-          const { error } = await supabaseBrowser.rpc("admin_remove_publication_contributor", { contributor_user_id: contributor.user_id });
-          if (error) { setMessage(error.message, true); remove.disabled = false; return; }
-          setMessage(`Access removed for ${contributor.display_name}.`); await load();
-        });
-        copy.append(title, detail); row.append(copy, remove); list.append(row);
+        const heading = document.createElement("h3");
+        heading.textContent = account.display_name;
+        const detail = document.createElement("p");
+        detail.textContent = account.email;
+        copy.append(heading, detail);
+        identity.append(avatar, copy);
+
+        const flags = document.createElement("div");
+        flags.className = "account-row__flags";
+        const accountBadge = document.createElement("span");
+        accountBadge.textContent = "Reader";
+        flags.append(accountBadge);
+        if (account.digest_enabled) {
+          const digestBadge = document.createElement("span");
+          digestBadge.textContent = "Weekly digest";
+          flags.append(digestBadge);
+        }
+        if (account.is_admin) {
+          const adminBadge = document.createElement("span");
+          adminBadge.className = "account-row__badge--admin";
+          adminBadge.textContent = "Full admin";
+          flags.append(adminBadge);
+        } else if (account.is_contributor) {
+          const contributorBadge = document.createElement("span");
+          contributorBadge.className = "account-row__badge--contributor";
+          contributorBadge.textContent = "Op-Ed contributor";
+          flags.append(contributorBadge);
+        }
+
+        const access = document.createElement("button");
+        access.type = "button";
+        access.className = account.is_contributor ? "secondary" : "primary";
+        access.textContent = account.is_admin
+          ? "Full access"
+          : account.is_contributor
+            ? "Remove editorial access"
+            : "Grant editorial access";
+        access.disabled = account.is_admin;
+        if (!account.is_admin) {
+          access.addEventListener("click", async () => {
+            const enabling = !account.is_contributor;
+            access.disabled = true;
+            access.textContent = enabling ? "Granting…" : "Removing…";
+            const { error } = await supabaseBrowser.rpc("admin_set_contributor_access", {
+              target_user_id: account.user_id,
+              access_enabled: enabling,
+            });
+            if (error) {
+              setMessage(error.message, true);
+              access.disabled = false;
+              access.textContent = enabling ? "Grant editorial access" : "Remove editorial access";
+              return;
+            }
+            setMessage(`${account.display_name} ${enabling ? "now has" : "no longer has"} limited editorial access.`);
+            await load();
+          });
+        }
+
+        const joined = document.createElement("p");
+        joined.className = "account-row__joined";
+        joined.textContent = `Joined ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(account.created_at))}`;
+
+        const meta = document.createElement("div");
+        meta.className = "account-row__meta";
+        meta.append(flags, joined);
+        row.append(identity, meta, access);
+        list.append(row);
       }
     }
+
     async function load() {
-      const { data, error } = await supabaseBrowser.rpc("admin_publication_contributors");
-      if (error) { setMessage(error.message, true); return; }
-      render((data ?? []) as Contributor[]);
+      const { data, error } = await supabaseBrowser.rpc("admin_site_accounts");
+      if (error) {
+        setMessage(error.message, true);
+        return;
+      }
+      accounts = (data ?? []) as SiteAccount[];
+      renderSummary();
+      render();
     }
+
     async function initialize() {
       const { data: { user } } = await supabaseBrowser.auth.getUser();
-      if (!user) { window.location.replace("/admin/login"); return; }
+      if (!user) {
+        window.location.replace("/admin/login");
+        return;
+      }
       const { data: admin } = await supabaseBrowser.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle();
-      if (!admin) { window.location.replace("/admin/articles"); return; }
-      if (page) page.hidden = false; await load();
+      if (!admin) {
+        window.location.replace("/admin/articles");
+        return;
+      }
+      if (page) page.hidden = false;
+      await load();
     }
-    form?.addEventListener("submit", async (event) => {
-      event.preventDefault(); if (!emailInput || !nameInput) return;
-      const button = form.querySelector<HTMLButtonElement>("button"); if (button) button.disabled = true; setMessage("Adding contributor…");
-      const { error } = await supabaseBrowser.rpc("admin_add_publication_contributor", { contributor_email: emailInput.value, contributor_display_name: nameInput.value });
-      if (button) button.disabled = false;
-      if (error) { setMessage(error.message, true); return; }
-      setMessage(`${nameInput.value.trim()} now has contributor access.`); form.reset(); await load();
-    });
+
+    search?.addEventListener("input", render);
     void initialize();
   </script>
 </AdminLayout>
 
-<style>
-  .contributors{display:grid;gap:1.5rem}.contributors__header h1{margin:.25rem 0;font-family:Georgia,serif;font-size:clamp(2rem,4vw,3.25rem)}.contributors__header p:last-child,.contributors__panel>p{color:#625d55}.contributors__panel{padding:1.5rem;border:1px solid #d8d1c5;background:#fff}.contributors__panel h2{margin-top:0;font-family:Georgia,serif}.contributors form{display:grid;grid-template-columns:1fr 1fr auto;gap:1rem;align-items:end;margin-top:1.25rem}.contributors label{display:grid;gap:.4rem;font-weight:700}.contributors input{min-height:2.75rem;padding:.65rem;border:1px solid #aaa39a}.contributors button{min-height:2.75rem;padding:.65rem 1rem;border:1px solid #1d1b19;background:#1d1b19;color:#fff;font-weight:700;cursor:pointer}.contributors button.secondary{background:transparent;color:#7d211f;border-color:#7d211f}.contributors button:disabled{opacity:.55}.contributor-row{display:flex;justify-content:space-between;gap:1rem;align-items:center;padding:1rem 0;border-top:1px solid #e2ddd5}.contributor-row:first-child{border-top:0}.contributor-row h3,.contributor-row p{margin:0}.contributor-row p{margin-top:.25rem;color:#625d55}#contributor-message[data-error="true"]{color:#a32320}@media(max-width:760px){.contributors form{grid-template-columns:1fr}.contributor-row{align-items:flex-start;flex-direction:column}}
+<style is:global>
+  .contributors{display:grid;gap:1.5rem}.contributors__header{display:flex;justify-content:space-between;align-items:end;gap:2rem;padding:clamp(1.5rem,3vw,2.25rem);border:1px solid #29473b;background:linear-gradient(135deg,#132d23,#1d4032);color:#fff;box-shadow:0 12px 30px rgb(25 42 34 / 10%)}.contributors__header .eyebrow{color:#d8bd68}.contributors__header h1{margin:.25rem 0;color:#fff;font-family:Georgia,serif;font-size:clamp(2.2rem,4vw,3.5rem);letter-spacing:-.035em}.contributors__header p:last-child{max-width:45rem;margin-bottom:0;color:#d4ddd9}.contributors__summary{display:flex;gap:.5rem}.contributors__summary>div{display:grid;min-width:6rem;padding:.85rem;border:1px solid #597166;background:rgb(255 255 255 / 5%);text-align:center}.contributors__summary strong{font:700 1.6rem Georgia,serif;color:#ead17d}.contributors__summary span{margin-top:.2rem;color:#d4ddd9;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase}.contributors__panel{padding:clamp(1.25rem,2.5vw,2rem);border:1px solid #d8d1c5;background:#fff;box-shadow:0 10px 28px rgb(45 38 28 / 6%)}.contributors__toolbar{display:flex;justify-content:space-between;align-items:end;gap:2rem;padding-bottom:1.25rem;border-bottom:3px double #9d968a}.contributors__toolbar h2{margin:.2rem 0 0;font-family:Georgia,serif;font-size:2rem;letter-spacing:-.025em}.contributors__toolbar label{display:grid;gap:.35rem;min-width:min(21rem,100%);font-size:.7rem;font-weight:750;letter-spacing:.05em;text-transform:uppercase}.contributors__toolbar input{min-height:2.75rem;padding:.65rem .8rem;border:1px solid #aaa39a;background:#faf8f3;font:inherit;text-transform:none;letter-spacing:0}.contributors__toolbar input:focus{outline:2px solid #b8953e;outline-offset:2px;border-color:#173126}.contributors__note{max-width:58rem;margin:1.1rem 0 .4rem;color:#625d55;line-height:1.55}.account-list{border-top:1px solid #d8d1c5}.account-row{display:grid;grid-template-columns:minmax(14rem,1.2fr) minmax(14rem,1fr) auto;gap:1.25rem;align-items:center;padding:1.15rem .75rem;border-bottom:1px solid #e2ddd5;transition:background .15s ease}.account-row:hover{background:#faf8f3}.account-row__identity{display:flex;align-items:center;gap:.8rem;min-width:0}.account-row__avatar{display:grid;width:2.9rem;height:2.9rem;flex:0 0 auto;place-items:center;border:1px solid #345346;border-radius:50%;background:#173126;color:#fff;font:700 1.2rem Georgia,serif;box-shadow:inset 0 0 0 3px #f4efe2}.account-row h3,.account-row p{margin:0}.account-row h3{font:700 1.08rem Georgia,serif;letter-spacing:-.01em}.account-row__identity p{margin-top:.2rem;color:#625d55;font-size:.78rem;overflow-wrap:anywhere}.account-row__flags{display:flex;flex-wrap:wrap;gap:.35rem}.account-row__flags span{padding:.3rem .48rem;border:1px solid #cdc6ba;background:#f5f1e9;color:#625d55;font-size:.58rem;font-weight:750;letter-spacing:.05em;text-transform:uppercase}.account-row__flags .account-row__badge--admin{border-color:#173126;background:#173126;color:#fff}.account-row__flags .account-row__badge--contributor{border-color:#b5933d;background:#f4e8bf;color:#59450f}.account-row__joined{margin-top:.4rem!important;color:#817a70;font-family:var(--font-data);font-size:.62rem;letter-spacing:.02em}.account-row button{min-height:2.6rem;padding:.55rem .85rem;border:1px solid #173126;background:#fff;font-weight:750;cursor:pointer;transition:background .15s ease,color .15s ease}.account-row button.primary{background:#173126;color:#fff}.account-row button.primary:hover{background:#244b3b}.account-row button.secondary{background:transparent;color:#7d211f;border-color:#7d211f}.account-row button.secondary:hover{background:#f9ece9}.account-row button:disabled{cursor:default;opacity:.55}#contributor-message{min-height:1.25rem;margin:.3rem 0;color:#315e49}#contributor-message[data-error="true"]{color:#a32320}.contributors__empty{padding:2rem;text-align:center;color:#625d55}@media(max-width:900px){.contributors__header,.contributors__toolbar{align-items:stretch;flex-direction:column}.contributors__summary{width:100%}.contributors__summary>div{flex:1}.account-row{grid-template-columns:1fr auto}.account-row__meta{grid-column:1}.account-row button{grid-column:2;grid-row:1 / span 2}}@media(max-width:620px){.contributors__summary{display:grid;grid-template-columns:repeat(3,1fr)}.contributors__summary>div{min-width:0;padding:.65rem .25rem}.account-row{grid-template-columns:1fr;padding:1.1rem .25rem}.account-row button{grid-column:1;grid-row:auto;width:100%}}
 </style>

@@ -223,113 +223,6 @@ export type Database = {
           },
         ]
       }
-      editorial_notifications: {
-        Row: {
-          action_url: string | null
-          article_id: string | null
-          created_at: string
-          id: string
-          kind: string
-          message: string
-          read_at: string | null
-          recipient_user_id: string
-          title: string
-        }
-        Insert: {
-          action_url?: string | null
-          article_id?: string | null
-          created_at?: string
-          id?: string
-          kind: string
-          message: string
-          read_at?: string | null
-          recipient_user_id: string
-          title: string
-        }
-        Update: {
-          action_url?: string | null
-          article_id?: string | null
-          created_at?: string
-          id?: string
-          kind?: string
-          message?: string
-          read_at?: string | null
-          recipient_user_id?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "editorial_notifications_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "editorial_articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "editorial_notifications_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "gazette_articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "editorial_notifications_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "public_gazette_articles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      editorial_review_events: {
-        Row: {
-          action: string
-          actor_user_id: string | null
-          article_id: string
-          created_at: string
-          id: string
-          note: string | null
-        }
-        Insert: {
-          action: string
-          actor_user_id?: string | null
-          article_id: string
-          created_at?: string
-          id?: string
-          note?: string | null
-        }
-        Update: {
-          action?: string
-          actor_user_id?: string | null
-          article_id?: string
-          created_at?: string
-          id?: string
-          note?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "editorial_review_events_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "editorial_articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "editorial_review_events_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "gazette_articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "editorial_review_events_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "public_gazette_articles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       fantasy_teams: {
         Row: {
           avatar: string | null
@@ -478,6 +371,108 @@ export type Database = {
           subcategory?: string | null
           summary?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      publication_contributors: {
+        Row: {
+          created_at: string
+          display_name: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reader_profiles: {
+        Row: { user_id: string; display_name: string; digest_enabled: boolean; created_at: string; updated_at: string }
+        Insert: { user_id: string; display_name: string; digest_enabled?: boolean; created_at?: string; updated_at?: string }
+        Update: { user_id?: string; display_name?: string; digest_enabled?: boolean; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      reader_poll_windows: {
+        Row: { season_year: number; week: number; is_open: boolean; closes_at: string | null; updated_at: string }
+        Insert: { season_year: number; week: number; is_open?: boolean; closes_at?: string | null; updated_at?: string }
+        Update: { season_year?: number; week?: number; is_open?: boolean; closes_at?: string | null; updated_at?: string }
+        Relationships: []
+      }
+      reader_power_ballots: {
+        Row: { id: string; user_id: string; season_year: number; week: number; rankings: Json; created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; season_year: number; week: number; rankings: Json; created_at?: string; updated_at?: string }
+        Update: { id?: string; user_id?: string; season_year?: number; week?: number; rankings?: Json; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      editorial_notifications: {
+        Row: {
+          action_url: string | null
+          article_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          message: string
+          read_at: string | null
+          recipient_user_id: string
+          title: string
+        }
+        Insert: {
+          action_url?: string | null
+          article_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          message: string
+          read_at?: string | null
+          recipient_user_id: string
+          title: string
+        }
+        Update: {
+          action_url?: string | null
+          article_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          message?: string
+          read_at?: string | null
+          recipient_user_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      editorial_review_events: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          article_id: string
+          created_at: string
+          id: string
+          note: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          article_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          article_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
         }
         Relationships: []
       }
@@ -889,59 +884,6 @@ export type Database = {
           },
         ]
       }
-      player_weekly_scores: {
-        Row: {
-          created_at: string
-          id: string
-          nfl_team: string | null
-          player_name: string
-          points: number
-          position: string
-          raw_stats: Json
-          season_id: string
-          season_year: number
-          sleeper_player_id: string
-          updated_at: string
-          week: number
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          nfl_team?: string | null
-          player_name: string
-          points?: number
-          position: string
-          raw_stats?: Json
-          season_id: string
-          season_year: number
-          sleeper_player_id: string
-          updated_at?: string
-          week: number
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          nfl_team?: string | null
-          player_name?: string
-          points?: number
-          position?: string
-          raw_stats?: Json
-          season_id?: string
-          season_year?: number
-          sleeper_player_id?: string
-          updated_at?: string
-          week?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "player_weekly_scores_season_id_fkey"
-            columns: ["season_id"]
-            isOneToOne: false
-            referencedRelation: "seasons"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       players: {
         Row: {
           active: boolean | null
@@ -1008,141 +950,6 @@ export type Database = {
           status?: string | null
           updated_at?: string
           years_experience?: number | null
-        }
-        Relationships: []
-      }
-      power_rankings: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          entries: Json
-          id: string
-          season_year: number
-          status: string
-          title: string
-          updated_at: string
-          week: number
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          entries?: Json
-          id?: string
-          season_year: number
-          status?: string
-          title?: string
-          updated_at?: string
-          week: number
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          entries?: Json
-          id?: string
-          season_year?: number
-          status?: string
-          title?: string
-          updated_at?: string
-          week?: number
-        }
-        Relationships: []
-      }
-      publication_contributors: {
-        Row: {
-          created_at: string
-          display_name: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          display_name: string
-          role?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          display_name?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      reader_poll_windows: {
-        Row: {
-          closes_at: string | null
-          is_open: boolean
-          season_year: number
-          updated_at: string
-          week: number
-        }
-        Insert: {
-          closes_at?: string | null
-          is_open?: boolean
-          season_year: number
-          updated_at?: string
-          week: number
-        }
-        Update: {
-          closes_at?: string | null
-          is_open?: boolean
-          season_year?: number
-          updated_at?: string
-          week?: number
-        }
-        Relationships: []
-      }
-      reader_power_ballots: {
-        Row: {
-          created_at: string
-          id: string
-          rankings: Json
-          season_year: number
-          updated_at: string
-          user_id: string
-          week: number
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          rankings: Json
-          season_year: number
-          updated_at?: string
-          user_id: string
-          week: number
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          rankings?: Json
-          season_year?: number
-          updated_at?: string
-          user_id?: string
-          week?: number
-        }
-        Relationships: []
-      }
-      reader_profiles: {
-        Row: {
-          created_at: string
-          digest_enabled: boolean
-          display_name: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          digest_enabled?: boolean
-          display_name: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          digest_enabled?: boolean
-          display_name?: string
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -1577,48 +1384,6 @@ export type Database = {
           },
         ]
       }
-      weekly_digest_runs: {
-        Row: {
-          completed_at: string | null
-          created_at: string
-          delivered_count: number
-          error_message: string | null
-          failed_count: number
-          id: string
-          recipient_count: number
-          season_year: number | null
-          status: string
-          subject: string
-          week: number | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string
-          delivered_count?: number
-          error_message?: string | null
-          failed_count?: number
-          id?: string
-          recipient_count?: number
-          season_year?: number | null
-          status?: string
-          subject: string
-          week?: number | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string
-          delivered_count?: number
-          error_message?: string | null
-          failed_count?: number
-          id?: string
-          recipient_count?: number
-          season_year?: number | null
-          status?: string
-          subject?: string
-          week?: number | null
-        }
-        Relationships: []
-      }
     }
     Views: {
       all_play_standings: {
@@ -1812,21 +1577,6 @@ export type Database = {
         }
         Relationships: []
       }
-      public_reader_profiles: {
-        Row: {
-          display_name: string | null
-          user_id: string | null
-        }
-        Insert: {
-          display_name?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          display_name?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       season_standings: {
         Row: {
           average_points: number | null
@@ -1995,12 +1745,56 @@ export type Database = {
       }
     }
     Functions: {
+      admin_sleeper_status: { Args: never; Returns: Json }
+      admin_site_accounts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          email: string
+          display_name: string
+          digest_enabled: boolean
+          is_contributor: boolean
+          is_admin: boolean
+          created_at: string
+        }[]
+      }
+      admin_set_contributor_access: {
+        Args: { target_user_id: string; access_enabled: boolean }
+        Returns: undefined
+      }
+      public_matchup_lineups: {
+        Args: { target_matchup_team_ids: string[] }
+        Returns: {
+          matchup_team_id: string
+          sleeper_player_id: string
+          player_name: string
+          player_position: string
+          nfl_team: string | null
+          points: number
+          is_starter: boolean
+        }[]
+      }
+      public_computer_poll_lineups: {
+        Args: { target_season_year: number; target_through_week: number }
+        Returns: {
+          fantasy_team_id: string
+          week: number
+          sleeper_player_id: string
+          player_position: string
+          points: number
+          is_starter: boolean
+        }[]
+      }
+      admin_return_article_for_changes: {
+        Args: { review_note: string; target_article_id: string }
+        Returns: undefined
+      }
       admin_add_publication_contributor: {
         Args: { contributor_display_name: string; contributor_email: string }
         Returns: string
       }
       admin_publication_contributors: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
           created_at: string
           display_name: string
@@ -2013,63 +1807,11 @@ export type Database = {
         Args: { contributor_user_id: string }
         Returns: undefined
       }
-      admin_return_article_for_changes: {
-        Args: { review_note: string; target_article_id: string }
-        Returns: undefined
-      }
-      admin_set_contributor_access: {
-        Args: { access_enabled: boolean; target_user_id: string }
-        Returns: undefined
-      }
-      admin_site_accounts: {
-        Args: never
-        Returns: {
-          created_at: string
-          digest_enabled: boolean
-          display_name: string
-          email: string
-          is_admin: boolean
-          is_contributor: boolean
-          user_id: string
-        }[]
-      }
-      admin_sleeper_status: { Args: never; Returns: Json }
       article_login_identity: {
         Args: { target_article_id: string }
-        Returns: {
-          email: string
-          login: string
-          user_id: string
-        }[]
+        Returns: { user_id: string; email: string; login: string }[]
       }
       is_gazette_admin: { Args: never; Returns: boolean }
-      public_computer_poll_lineups: {
-        Args: { target_season_year: number; target_through_week: number }
-        Returns: {
-          fantasy_team_id: string
-          is_starter: boolean
-          player_position: string
-          points: number
-          sleeper_player_id: string
-          week: number
-        }[]
-      }
-      public_matchup_lineups: {
-        Args: { target_matchup_team_ids: string[] }
-        Returns: {
-          is_starter: boolean
-          matchup_team_id: string
-          nfl_team: string
-          player_name: string
-          player_position: string
-          points: number
-          sleeper_player_id: string
-        }[]
-      }
-      reader_poll_is_open: {
-        Args: { target_season: number; target_week: number }
-        Returns: boolean
-      }
     }
     Enums: {
       [_ in never]: never

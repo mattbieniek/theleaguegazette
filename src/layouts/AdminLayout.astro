@@ -187,6 +187,14 @@ function isActive(path: string, exact = false) {
               </a>
 
               <a
+                class:list={["admin-navigation__link", { "admin-navigation__link--active": currentPath === "/admin/readers" }]}
+                href="/admin/readers"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4V5Zm4 4h8M8 13h5M17 13h1" /></svg>
+                <span>Readers Poll</span>
+              </a>
+
+              <a
                 class:list={["admin-navigation__link", { "admin-navigation__link--active": currentPath === "/admin/awards" }]}
                 href="/admin/awards"
               >
@@ -403,12 +411,11 @@ function isActive(path: string, exact = false) {
             notificationCount.textContent = count > 99 ? "99+" : String(count);
             notificationCount.hidden = false;
           }
-          const { data: contributor } = await supabaseBrowser
-            .from("publication_contributors")
-            .select("role")
-            .eq("user_id", user.id)
-            .maybeSingle();
-          if (contributor?.role === "op_ed") {
+          const [{ data: admin }, { data: contributor }] = await Promise.all([
+            supabaseBrowser.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle(),
+            supabaseBrowser.from("publication_contributors").select("role").eq("user_id", user.id).maybeSingle(),
+          ]);
+          if (!admin && contributor?.role === "op_ed") {
             document.querySelectorAll<HTMLElement>("[data-admin-only]").forEach((element) => {
               element.hidden = true;
             });

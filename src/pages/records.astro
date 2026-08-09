@@ -3,15 +3,20 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import HistoryNav from "../components/history/HistoryNav.astro";
 import { getHistoricalResults } from "../lib/queries/records";
 import { buildLeagueRecords } from "../lib/gazette/records";
+import LineupTable from "../components/LineupTable.astro";
+import { buildSeasonSlotRecords, getPlayerWeeklyScores } from "../lib/queries/playerScores";
 
 export const prerender = false;
 
-const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
-const results = await getHistoricalResults(sleeperLeagueId);
+const results = await getHistoricalResults();
 const records = buildLeagueRecords(results);
 const seasons = [...new Set(results.map((result) => result.season_year))]
   .sort((first, second) => second - first);
 const matchupCount = new Set(results.map((result) => result.matchup_id)).size;
+const requestedPlayerSeason = Number(Astro.url.searchParams.get("season"));
+const playerSeason = Number.isInteger(requestedPlayerSeason) && seasons.includes(requestedPlayerSeason) ? requestedPlayerSeason : seasons[0] ?? null;
+const playerScores = playerSeason ? await getPlayerWeeklyScores(playerSeason) : [];
+const slotRecords = buildSeasonSlotRecords(playerScores);
 
 const featuredRecord = records[0] ?? null;
 const remainingRecords = records.slice(1);
@@ -153,6 +158,12 @@ const remainingRecords = records.slice(1);
         </p>
       </section>
     )}
+
+    <section class="player-records" aria-labelledby="player-records-title">
+      <div class="section-heading"><div><p class="eyebrow">Individual Performances</p><h2 id="player-records-title">Positional Record Lineup</h2></div><p>The season’s greatest single-week player performances arranged in the league’s actual starting slots.</p></div>
+      <form class="player-records__filter" method="get" action="/records"><label>Season<select name="season">{seasons.map((season)=><option value={season} selected={season===playerSeason}>{season}</option>)}</select></label><button>View records</button><a href={`/perfect-lineup?season=${playerSeason}`}>Explore weekly perfect lineups →</a></form>
+      {slotRecords.length ? <LineupTable entries={slotRecords} caption={`${playerSeason} positional performance records`} showWeek /> : <div class="player-records__empty"><h3>Player scoring records are awaiting import.</h3><p>Once all-player Sleeper scores are synchronized, the record lineup will appear here.</p></div>}
+    </section>
   </div>
 </BaseLayout>
 
@@ -161,6 +172,8 @@ const remainingRecords = records.slice(1);
     padding-top: clamp(2.5rem, 6vw, 5rem);
     padding-bottom: var(--space-9);
   }
+
+  .player-records{padding-top:var(--space-9)}.player-records__filter{display:flex;align-items:end;gap:1rem;margin-bottom:var(--space-5);padding:1rem 1.25rem;border:1px solid var(--color-rule);background:var(--color-surface)}.player-records__filter label{display:grid;gap:.3rem;font-family:var(--font-data);font-size:.62rem;font-weight:750;text-transform:uppercase}.player-records__filter select,.player-records__filter button{min-height:2.7rem;padding:.55rem .8rem;border:1px solid var(--color-rule-dark);background:white}.player-records__filter button{border-color:var(--color-green);background:var(--color-green);color:white;font-weight:750}.player-records__filter a{margin-left:auto;color:var(--color-green);font-weight:750}.player-records__empty{padding:3rem;border:1px dashed var(--color-rule-dark);text-align:center}
 
   .records-header {
     display: grid;

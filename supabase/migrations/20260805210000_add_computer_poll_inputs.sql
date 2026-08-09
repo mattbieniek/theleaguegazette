@@ -36,5 +36,6 @@ as $$
     and target_season_year between 2000 and 2200
     and target_through_week between 1 and 18;
 $$;
+
 revoke all on function public.public_computer_poll_lineups(integer, integer) from public;
 grant execute on function public.public_computer_poll_lineups(integer, integer) to anon, authenticated;

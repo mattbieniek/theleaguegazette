@@ -61,7 +61,7 @@ function normalize(value: string | null | undefined): string {
 function getStaticTeam(teamName: string | null): Team | null {
   if (!teamName) return null;
   return teams.find((team) =>
-    [team.name, team.legacyName].some((name) => normalize(name) === normalize(teamName))
+    [team.name, team.legacyName, ...(team.aliases ?? [])].some((name) => normalize(name) === normalize(teamName))
   ) ?? null;
 }
 

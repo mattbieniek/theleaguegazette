@@ -1,0 +1,14 @@
+---
+import type { LineupEntry } from "../lib/queries/playerScores";
+interface Props { entries: LineupEntry[]; caption: string; showWeek?: boolean; }
+const { entries, caption, showWeek = false } = Astro.props;
+const total = entries.reduce((sum, entry) => sum + entry.points, 0);
+---
+<div class="lineup-table" role="region" aria-label={caption} tabindex="0">
+  <table><caption class="sr-only">{caption}</caption><thead><tr><th>Slot</th><th>Player</th><th>Pos.</th>{showWeek && <th>Week</th>}<th>Points</th></tr></thead>
+  <tbody>{entries.map((entry) => <tr><td><b>{entry.slot}</b></td><td><strong>{entry.player_name}</strong></td><td>{entry.position}</td>{showWeek && <td>{entry.week}</td>}<td>{entry.points.toFixed(2)}</td></tr>)}</tbody>
+  <tfoot><tr><td colspan={showWeek ? 4 : 3}>Combined score</td><td>{total.toFixed(2)}</td></tr></tfoot></table>
+</div>
+<style>
+  .lineup-table{overflow-x:auto;border:1px solid var(--color-rule);background:var(--color-surface)}table{width:100%;border-collapse:collapse}th,td{padding:.9rem 1rem;border-bottom:1px solid var(--color-rule);text-align:left}th{color:var(--color-ink-muted);font-family:var(--font-data);font-size:.61rem;letter-spacing:.06em;text-transform:uppercase}td{font-family:var(--font-data);font-size:.75rem;font-variant-numeric:tabular-nums}td:nth-child(2) strong{font-family:var(--font-editorial);font-size:1.05rem}td:last-child,th:last-child{text-align:right}tbody b{display:inline-grid;min-width:2.8rem;padding:.3rem .45rem;border-radius:999px;background:var(--color-green);color:white;text-align:center}tfoot td{border-bottom:0;background:var(--color-green-faint);font-weight:800;text-transform:uppercase}tfoot td:last-child{font-size:1rem}
+</style>

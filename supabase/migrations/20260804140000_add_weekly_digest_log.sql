@@ -11,8 +11,10 @@ create table if not exists public.weekly_digest_runs (
   created_at timestamptz not null default now(),
   completed_at timestamptz
 );
+
 alter table public.weekly_digest_runs enable row level security;
 grant select on public.weekly_digest_runs to authenticated;
+
 create policy "Admins can inspect digest runs"
   on public.weekly_digest_runs for select to authenticated
   using (exists (select 1 from public.admin_users where user_id = auth.uid()));

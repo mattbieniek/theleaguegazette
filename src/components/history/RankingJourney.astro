@@ -1,18 +1,19 @@
 ---
 import { teams as leagueTeams } from "../../data/teams";
 import { buildComputerPoll } from "../../lib/gazette/powerRankings";
-import type { WeeklyTeamResult } from "../../lib/queries/awards";
+import type { RankingInput, RankingPlayerInput } from "../../lib/gazette/powerRankings";
 
-type Props = { results: WeeklyTeamResult[]; season: number };
-const { results, season } = Astro.props;
+type SeasonRankingInput = RankingInput & { season_year: number | null };
+type Props = { results: SeasonRankingInput[]; season: number; playerRows?: RankingPlayerInput[] };
+const { results, season, playerRows = [] } = Astro.props;
 const seasonResults = results.filter((result) => result.season_year === season);
-const weeks = [...new Set(seasonResults.map((result) => result.week))].sort((a, b) => a - b);
-const weeklyPolls = weeks.map((week) => ({ week, rankings: buildComputerPoll(seasonResults, week) }));
+const weeks = [...new Set(seasonResults.map((result) => result.week).filter((week): week is number => week !== null))].sort((a, b) => a - b);
+const weeklyPolls = weeks.map((week) => ({ week, rankings: buildComputerPoll(seasonResults, week, playerRows) }));
 const teamNames = [...new Set(weeklyPolls.flatMap((poll) => poll.rankings.map((team) => team.teamName)))];
 const fallbackColors = ["#17382b", "#9b352d", "#b37b22", "#425f75", "#7447c6", "#d8577c", "#5e8c3a", "#d96a1b", "#203b73", "#8a5a2b"];
 const chartTeams = teamNames.map((teamName, index) => {
   const normalized = teamName.trim().toLowerCase();
-  const profile = leagueTeams.find((team) => team.name.toLowerCase() === normalized || team.legacyName.toLowerCase() === normalized);
+  const profile = leagueTeams.find((team) => team.name.toLowerCase() === normalized || team.legacyName.toLowerCase() === normalized || team.aliases?.some((alias) => alias.toLowerCase() === normalized));
   return {
     id: `team-${index}`,
     name: teamName,

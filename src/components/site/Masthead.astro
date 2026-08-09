@@ -35,7 +35,7 @@ const dateTime = new Intl.DateTimeFormat("en-CA", {
       aria-label="The League Gazette homepage"
     >
       <span class="masthead__kicker">
-        The official publication of
+        The official publication of{" "}
         <span>Far Far Away Football</span>
       </span>
 
@@ -44,21 +44,57 @@ const dateTime = new Intl.DateTimeFormat("en-CA", {
       </span>
 
       <span class="masthead__tagline">
-        News, analysis and nonsense from around the league
+        News, analysis, and some good old-fashioned fuckery from around the league
       </span>
     </a>
 
     <div class="masthead__meta masthead__meta--right">
-      <time datetime={dateTime}>
+      <time datetime={dateTime} data-current-publication-date>
         {publicationDate}
       </time>
 
-      <span class="masthead__edition">
+      <span class="masthead__edition" data-reader-location>
         Houston, Texas
       </span>
     </div>
   </div>
 </header>
+
+<script>
+  const currentDate = document.querySelector<HTMLTimeElement>(
+    "[data-current-publication-date]"
+  );
+
+  if (currentDate) {
+    const now = new Date();
+    const timeZone = "America/Chicago";
+
+    currentDate.dateTime = new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone,
+    }).format(now);
+
+    currentDate.textContent = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      timeZone,
+    }).format(now);
+  }
+
+  const readerLocation = document.querySelector<HTMLElement>("[data-reader-location]");
+  if (readerLocation) {
+    fetch("/api/location.json", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (data?.location) readerLocation.textContent = data.location;
+      })
+      .catch(() => undefined);
+  }
+</script>
 
 <style>
   .masthead {

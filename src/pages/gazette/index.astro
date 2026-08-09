@@ -1,18 +1,23 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { COMMISSIONERS_CORNER_CATEGORY, getPublishedArticles } from "../../lib/queries/gazette";
+import { getPublishedArticles } from "../../lib/queries/gazette";
 import { formatPublicationDate } from "../../lib/formatDate";
-import CommissionersCorner from "../../components/gazette/CommissionersCorner.astro";
+import GazetteRankings from "../../components/gazette/GazetteRankings.astro";
+import { getLatestPublishedPowerRanking } from "../../lib/queries/powerRankings";
+import ReadersPoll from "../../components/gazette/ReadersPoll.astro";
+import { getLatestReaderPollPreview } from "../../lib/queries/readerPoll";
+import { STORY_CATEGORIES, formatStoryCategory, isStoryCategory } from "../../lib/gazette/categories";
 
 export const prerender = false;
 
 const articles = await getPublishedArticles();
-const commissionersCornerArticles = articles.filter(
-  (article) => article.category === COMMISSIONERS_CORNER_CATEGORY,
-);
-const generalArticles = articles.filter(
-  (article) => article.category !== COMMISSIONERS_CORNER_CATEGORY,
-);
+const latestGazetteRanking = await getLatestPublishedPowerRanking();
+const latestReaderPoll = await getLatestReaderPollPreview();
+const requestedCategory = Astro.url.searchParams.get("category")?.trim() ?? "";
+const selectedCategory = isStoryCategory(requestedCategory) ? requestedCategory : "";
+const generalArticles = selectedCategory
+  ? articles.filter((article) => article.category === selectedCategory)
+  : articles;
 
 const leadArticle = generalArticles[0] ?? null;
 const archiveArticles = generalArticles.slice(1);
@@ -28,7 +33,7 @@ function getArticleImage(
 ): string {
   return (
     imageUrl ??
-    "/images/homepage/lead-story-placeholder.webp"
+    "/images/gazette/article-placeholder.webp"
   );
 }
 ---
@@ -55,7 +60,21 @@ function getArticleImage(
       </div>
     </header>
 
-    <CommissionersCorner articles={commissionersCornerArticles} context="gazette" />
+    <GazetteRankings ranking={latestGazetteRanking} context="gazette" />
+
+    <ReadersPoll poll={latestReaderPoll} />
+
+    <nav class="category-filter" aria-label="Filter stories by category">
+      <a href="/gazette" aria-current={!selectedCategory ? "page" : undefined}>All stories</a>
+      {STORY_CATEGORIES.map((category) => (
+        <a
+          href={`/gazette?category=${encodeURIComponent(category)}`}
+          aria-current={selectedCategory === category ? "page" : undefined}
+        >
+          {category}
+        </a>
+      ))}
+    </nav>
 
     {
       leadArticle ? (
@@ -84,7 +103,7 @@ function getArticleImage(
 
             <div class="lead-story__content">
               <p class="eyebrow">
-                {leadArticle.category}
+                {formatStoryCategory(leadArticle.category, leadArticle.subcategory)}
               </p>
 
               <h2 id="lead-story-title">
@@ -199,7 +218,7 @@ function getArticleImage(
 
                           <div class="story-card__content">
                             <p class="eyebrow">
-                              {story.category}
+                              {formatStoryCategory(story.category, story.subcategory)}
                             </p>
 
                             <h3>
@@ -274,7 +293,7 @@ function getArticleImage(
             }
           </section>
         </>
-      ) : commissionersCornerArticles.length === 0 ? (
+      ) : (
         <section class="empty-state">
           <p class="eyebrow">
             The Weekly Gazette
@@ -287,7 +306,7 @@ function getArticleImage(
             first edition is released.
           </p>
         </section>
-      ) : null
+      )
     }
   </div>
 </BaseLayout>
@@ -609,6 +628,31 @@ function getArticleImage(
     font-family: var(--font-editorial);
     font-size: var(--text-xl);
     line-height: 1.5;
+  }
+
+  .category-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    padding-block: var(--space-5);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .category-filter a {
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--color-rule-dark);
+    border-radius: 999px;
+    color: var(--color-ink);
+    font-family: var(--font-data);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .category-filter a[aria-current="page"] {
+    border-color: var(--color-green);
+    background: var(--color-green);
+    color: var(--color-paper-light);
   }
 
   @media (max-width: 900px) {

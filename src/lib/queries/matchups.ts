@@ -5,6 +5,7 @@ export type TeamWeeklyResult =
   Database["public"]["Views"]["team_weekly_results"]["Row"];
 
 export type MatchupTeam = {
+  matchupTeamId: string | null;
   fantasyTeamId: string | null;
   teamName: string;
   points: number | null;
@@ -13,6 +14,16 @@ export type MatchupTeam = {
   result: string | null;
   isWinner: boolean;
   isTie: boolean;
+  lineup: MatchupPlayer[];
+};
+
+export type MatchupPlayer = {
+  sleeperPlayerId: string;
+  name: string;
+  position: string;
+  nflTeam: string | null;
+  points: number;
+  isStarter: boolean;
 };
 
 export type WeeklyMatchup = {
@@ -33,6 +44,7 @@ function toMatchupTeam(
   row: TeamWeeklyResult
 ): MatchupTeam {
   return {
+    matchupTeamId: row.matchup_team_id,
     fantasyTeamId: row.fantasy_team_id,
     teamName: row.team_name ?? "Unnamed Team",
     points: row.points_for,
@@ -41,16 +53,43 @@ function toMatchupTeam(
     result: row.result,
     isWinner: row.is_winner === true,
     isTie: row.is_tie === true,
+    lineup: [],
   };
 }
 
+async function loadMatchupLineups(matchupTeamIds: string[]) {
+  const { data: matchupPlayers, error } = await supabase.rpc("public_matchup_lineups", {
+    target_matchup_team_ids: matchupTeamIds,
+  });
+  if (error) throw new Error(`Unable to load matchup lineups: ${error.message}`);
+
+  const lineups = new Map<string, MatchupPlayer[]>();
+  for (const row of matchupPlayers ?? []) {
+    const lineup = lineups.get(row.matchup_team_id) ?? [];
+    lineup.push({
+      sleeperPlayerId: row.sleeper_player_id,
+      name: row.player_name,
+      position: row.player_position,
+      nflTeam: row.nfl_team,
+      points: Number(row.points),
+      isStarter: row.is_starter,
+    });
+    lineups.set(row.matchup_team_id, lineup);
+  }
+
+  const positionOrder = new Map(["QB", "RB", "WR", "TE", "K", "DEF"].map((position, index) => [position, index]));
+  for (const lineup of lineups.values()) {
+    lineup.sort((a, b) => Number(b.isStarter) - Number(a.isStarter) || (positionOrder.get(a.position) ?? 99) - (positionOrder.get(b.position) ?? 99) || b.points - a.points);
+  }
+  return lineups;
+}
+
 export async function getSeasonMatchups(
-  sleeperLeagueId: string
+  sleeperLeagueId?: string
 ): Promise<MatchupWeek[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("team_weekly_results")
     .select("*")
-    .eq("sleeper_league_id", sleeperLeagueId)
     .not("week", "is", null)
     .not("matchup_id", "is", null)
     .order("week", {
@@ -60,6 +99,12 @@ export async function getSeasonMatchups(
       ascending: true,
       nullsFirst: false,
     });
+
+  if (sleeperLeagueId) {
+    query = query.eq("sleeper_league_id", sleeperLeagueId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(
@@ -113,32 +158,39 @@ export async function getSeasonMatchups(
         first.sleeper_matchup_id,
       week: first.week,
       seasonYear: first.season_year,
-      teams: [
-        toMatchupTeam(first),
-        toMatchupTeam(second),
-      ],
+      teams: [toMatchupTeam(first), toMatchupTeam(second)],
     });
   }
 
-  const weeks = new Map<number, WeeklyMatchup[]>();
+  const weeks = new Map<
+    string,
+    {
+      week: number;
+      seasonYear: number | null;
+      matchups: WeeklyMatchup[];
+    }
+  >();
 
   for (const matchup of weeklyMatchups) {
-    const current =
-      weeks.get(matchup.week) ?? [];
+    const key = `${matchup.seasonYear ?? "unknown"}:${matchup.week}`;
+    const current = weeks.get(key) ?? {
+      week: matchup.week,
+      seasonYear: matchup.seasonYear,
+      matchups: [],
+    };
 
-    current.push(matchup);
-    weeks.set(matchup.week, current);
+    current.matchups.push(matchup);
+    weeks.set(key, current);
   }
 
-  return [...weeks.entries()]
-    .sort(([weekA], [weekB]) => weekA - weekB)
-    .map(([week, matchups]) => ({
+  return [...weeks.values()]
+    .sort((a, b) =>
+      (a.seasonYear ?? 0) - (b.seasonYear ?? 0) ||
+      a.week - b.week
+    )
+    .map(({ week, seasonYear, matchups }) => ({
       week,
-      seasonYear:
-        matchups.find(
-          (matchup) =>
-            matchup.seasonYear !== null
-        )?.seasonYear ?? null,
+      seasonYear,
       matchups: matchups.sort((a, b) =>
         String(a.sleeperMatchupId ?? "").localeCompare(
           String(b.sleeperMatchupId ?? ""),
@@ -149,4 +201,15 @@ export async function getSeasonMatchups(
         )
       ),
     }));
+}
+
+export async function hydrateMatchupLineups(matchups: WeeklyMatchup[]) {
+  const matchupTeamIds = [...new Set(matchups.flatMap((matchup) => matchup.teams.map((team) => team.matchupTeamId)).filter((id): id is string => Boolean(id)))];
+  if (!matchupTeamIds.length) return;
+  const lineups = await loadMatchupLineups(matchupTeamIds);
+  for (const matchup of matchups) {
+    for (const team of matchup.teams) {
+      team.lineup = team.matchupTeamId ? lineups.get(team.matchupTeamId) ?? [] : [];
+    }
+  }
 }
