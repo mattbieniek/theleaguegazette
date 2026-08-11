@@ -47,6 +47,11 @@ Season, week, and search controls are represented in query parameters where appl
 
 Pages generally render a deliberate empty-state message when no completed league data or stories are available. Database errors should remain visible to the user in the relevant page state rather than silently presenting stale-looking values. When a page depends on a recent Sleeper sync, show the dataset's last-known freshness or explain that the archive is incomplete.
 
+The administrator Sleeper workspace labels each active-season dataset as
+Fresh, Stale, or Not synced. Its default thresholds are 24 hours for the
+player/user directory, 6 hours for rosters, matchups, and transactions, 7
+days for drafts, and 8 days for roster snapshots.
+
 ## SEO and accessibility contracts
 
 - Give every public page a meaningful title and description through `BaseLayout`.

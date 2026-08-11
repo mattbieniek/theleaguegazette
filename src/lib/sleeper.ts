@@ -1,4 +1,6 @@
-export const LEAGUE_ID = '1257085409687506944';
+import { ACTIVE_SLEEPER_LEAGUE_ID } from "./currentLeague";
+
+export const LEAGUE_ID = ACTIVE_SLEEPER_LEAGUE_ID;
 const API = 'https://api.sleeper.app/v1';
 
 export type SleeperLeague = { league_id: string; name: string; season: string; total_rosters: number; settings?: Record<string, number> };

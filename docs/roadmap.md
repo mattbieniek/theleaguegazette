@@ -35,6 +35,7 @@ This page separates implemented foundations, active verification work, and expli
 - Confirm the Vercel production branch, deployment-protection behavior, DNS ownership, and a tested rollback procedure; the project, Git integration, environment-variable names, domains, framework, build command, and Node version are verified.
 - Confirm Supabase linkage, migration/function deployment commands, backups, Auth redirects, and Storage configuration.
 - Locate or establish the weekly-digest scheduler; neither Supabase PostgreSQL cron nor a configured Vercel Cron Job was found. Inventory external Sleeper triggers and verify data-freshness expectations.
+- Configure and verify the 2026 active-season Sleeper automation workflow, including its GitHub Actions secrets, Edge Function secret, first run in each mode, and recovery behavior.
 
 ### Priority 3 — public experience
 

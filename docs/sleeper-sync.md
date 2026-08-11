@@ -14,6 +14,18 @@ Each function requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. The share
 
 The league identifier is supplied as `sleeper_league_id` where the function supports an explicit body value; functions with a configured default fall back to the project league ID. The admin UI obtains the current ID from `admin_sleeper_status()`.
 
+Automated imports use the active-season configuration in
+`supabase/functions/_shared/activeLeague.ts`:
+
+- Active Sleeper league: `1389719207712681984`
+- Active season: `2026`
+- Production overrides: `ACTIVE_SLEEPER_LEAGUE_ID` and `ACTIVE_SEASON_YEAR`
+
+The scheduled orchestration function validates both values against Sleeper
+before it writes. A historical league can still be imported through an
+explicit administrator action, but it can never flow through the scheduled
+path by accident.
+
 ## Canonical admin sequence
 
 The `/admin/sleeper` page presents the foundational syncs in dependency order:
@@ -53,6 +65,12 @@ Responses are JSON with `success: true` on completion. Validation, Sleeper HTTP 
 
 Roster, matchup, snapshot, and transaction functions write `sync_runs` entries containing the dataset type, start/completion times, processed counts, and details or error messages. The admin status RPC displays the newest run history and dataset freshness. Status strings observed in the checked-in functions include `running`, `success`, `error`, and `failed`; reconcile those values with the hosted constraint before treating them as a stable enum.
 
+`automate-sleeper-sync` is the scheduled entry point. It accepts a dedicated
+`x-sync-cron-secret` and runs child functions sequentially, with a short delay
+and one retry for transient failures. It records an overall
+`sleeper_automation` run in addition to each child function's run. Supported
+modes are `hourly`, `operations`, `daily`, and `weekly-finalize`.
+
 ## Retry and recovery guidance
 
 - Repeating league, player, user, roster, draft, matchup, and transaction syncs is designed to update existing provider-keyed rows rather than duplicate them.
@@ -64,7 +82,8 @@ Roster, matchup, snapshot, and transaction functions write `sync_runs` entries c
 
 ## Verification gaps
 
-- TODO: Confirm the production trigger (manual admin action, scheduled job, or external automation) for each function.
-- TODO: Confirm the canonical production league ID, supported historical seasons, and expected freshness windows.
+- TODO: Add `ACTIVE_SLEEPER_LEAGUE_ID`, `ACTIVE_SEASON_YEAR`, and `SYNC_CRON_SECRET` to the hosted Edge Function environment.
+- TODO: Add the repository's `SUPABASE_URL` and `SYNC_CRON_SECRET` as GitHub Actions secrets.
+- TODO: Confirm the canonical production league ID and season response from Sleeper before the first scheduled run.
 - TODO: Reconcile `sync_runs` status constraints and hosted function versions with this checkout.
-- TODO: Record monitoring, alerting, rate-limit behavior, and an approved production recovery runbook.
+- TODO: Record monitoring, alerting, rate-limit behavior, and the approved production recovery runbook after the first scheduled run.

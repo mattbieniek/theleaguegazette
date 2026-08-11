@@ -25,6 +25,7 @@ import {
 import { buildTeamDraftHistory } from "../../lib/gazette/teamDrafts";
 import { getTeamTransactionHighlights } from "../../lib/gazette/transactionHighlights";
 import { getFormerTeamNames, teams } from "../../data/teams";
+import { ACTIVE_SLEEPER_LEAGUE_ID } from "../../lib/currentLeague";
 
 type Team = (typeof teams)[number];
 
@@ -53,7 +54,7 @@ export async function getStaticPaths() {
 const { team, teamTransactions } = Astro.props as Props;
 
 const sleeperLeagueId =
-  import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+  ACTIVE_SLEEPER_LEAGUE_ID;
 
 const standings = sleeperLeagueId
   ? await getSeasonStandings(sleeperLeagueId)

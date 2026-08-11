@@ -1,8 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireAdmin } from "../_shared/requireAdmin.ts";
+import { activeSleeperLeagueId } from "../_shared/activeLeague.ts";
 
-const DEFAULT_LEAGUE_ID = "1257085409687506944";
 const ELIGIBLE = new Set(["QB", "RB", "WR", "TE", "K", "DEF"]);
 const DEFENSE_SCORING_KEYS = new Set([
   "sack", "int", "ff", "fum_rec", "safe", "blk_kick", "def_td",
@@ -42,7 +42,9 @@ Deno.serve(async (req: Request) => {
     await requireAdmin(req, supabaseUrl, serviceRoleKey);
     const db = createClient(supabaseUrl, serviceRoleKey);
     const body = await req.json().catch(() => ({})) as { sleeper_league_id?: string; start_week?: number; end_week?: number };
-    const leagueId = String(body.sleeper_league_id ?? DEFAULT_LEAGUE_ID).trim();
+    const leagueId = String(
+      body.sleeper_league_id ?? activeSleeperLeagueId(),
+    ).trim();
     const startWeek = Number(body.start_week ?? 1);
     const endWeek = Number(body.end_week ?? 17);
     if (!/^\d+$/.test(leagueId) || !Number.isInteger(startWeek) || !Number.isInteger(endWeek) || startWeek < 1 || endWeek > 18 || startWeek > endWeek) throw new Error("Choose a valid league ID and week range.");

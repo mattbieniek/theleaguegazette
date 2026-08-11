@@ -45,6 +45,9 @@ Server and Edge Function variables:
 ```text
 SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
+ACTIVE_SLEEPER_LEAGUE_ID
+ACTIVE_SEASON_YEAR
+SYNC_CRON_SECRET
 ```
 
 The deployed weekly digest additionally uses these confirmed secret names:
@@ -57,6 +60,12 @@ WEEKLY_DIGEST_FROM
 ```
 
 Only the `PUBLIC_` values may reach browser code. Never expose `SUPABASE_SERVICE_ROLE_KEY` in Astro client code, logs, screenshots, or handbook pages.
+
+At the start of a new season, update `PUBLIC_SLEEPER_LEAGUE_ID` to the new
+league only after the active-season foundation sync has created its league,
+season, users, and roster rows. The 2026 value is
+`1389719207712681984`; keep the 2025 value in place until that initial import
+has been verified so public pages do not point at an empty season.
 
 ## Local release checks
 
@@ -92,6 +101,14 @@ On August 9, 2026, a read-only production walkthrough successfully rendered the 
 
 The lack of a configured Vercel cron reinforces the Supabase audit finding: the deployed weekly digest has no verified scheduler. Do not describe it as automatic until an external trigger is located or a schedule is added and tested.
 
+Sleeper automation is configured as a GitHub Actions workflow in
+`.github/workflows/sleeper-sync.yml`. It calls the protected
+`automate-sleeper-sync` Edge Function using `SUPABASE_URL` and
+`SYNC_CRON_SECRET` repository secrets. The workflow runs hourly, every six
+hours, daily, and Tuesday morning for weekly finalization. Schedules are UTC;
+the function itself determines the active Sleeper week and rejects a league
+whose returned season does not match the configured 2026 season.
+
 ## Rollback principles
 
 - Application rollback should restore the last known-good Vercel deployment.
@@ -108,6 +125,7 @@ The lack of a configured Vercel cron reinforces the Supabase audit finding: the 
 - [ ] Changed Edge Functions are deployed.
 - [ ] Public representative routes and anonymous admin redirects pass; authenticated admin/contributor presentation remains pending.
 - [ ] Scheduled publication and a representative Sleeper status/sync path are verified.
+- [ ] GitHub Actions secrets and Supabase automation secrets are configured; run each sync mode manually once.
 - [ ] Deployed commit and rollback target are recorded.
 
 ## Hosted-system TODOs

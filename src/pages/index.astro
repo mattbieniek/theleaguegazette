@@ -18,6 +18,7 @@ import { seasonHistoryMetadata } from "../data/seasonHistory";
 import { getTransactionArchive } from "../lib/queries/transactions";
 import { getHomepageTransactionHighlights } from "../lib/gazette/transactionHighlights";
 import { getSeasonMatchups } from "../lib/queries/matchups";
+import { ACTIVE_SLEEPER_LEAGUE_ID } from "../lib/currentLeague";
 
 export const prerender = false;
 
@@ -38,8 +39,7 @@ const currentYear = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Chicago",
 }).format(new Date());
 
-const sleeperLeagueId =
-  import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+const sleeperLeagueId = ACTIVE_SLEEPER_LEAGUE_ID;
 
 const standings = sleeperLeagueId
   ? await getSeasonStandings(sleeperLeagueId)

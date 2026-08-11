@@ -2,9 +2,9 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getSeasonStandings } from "../../lib/queries/standings";
 import { getFormerTeamNames, teams } from "../../data/teams";
+import { ACTIVE_SLEEPER_LEAGUE_ID } from "../../lib/currentLeague";
 
-const sleeperLeagueId =
-  import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+const sleeperLeagueId = ACTIVE_SLEEPER_LEAGUE_ID;
 
 const standings = sleeperLeagueId
   ? await getSeasonStandings(sleeperLeagueId)
