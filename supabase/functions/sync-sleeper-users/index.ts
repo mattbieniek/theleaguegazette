@@ -1,8 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireAdmin } from "../_shared/requireAdmin.ts";
-
-const DEFAULT_LEAGUE_ID = "1257085409687506944";
+import { activeSleeperLeagueId } from "../_shared/activeLeague.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,7 +33,7 @@ Deno.serve(async (req: Request) => {
       sleeper_league_id?: string;
     };
     const sleeperLeagueId = String(
-      body.sleeper_league_id ?? DEFAULT_LEAGUE_ID,
+      body.sleeper_league_id ?? activeSleeperLeagueId(),
     ).trim();
 
     if (!/^\d+$/.test(sleeperLeagueId)) {

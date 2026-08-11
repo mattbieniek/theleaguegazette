@@ -1,0 +1,65 @@
+name: Automated Sleeper sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Sync mode to run immediately
+        required: true
+        default: hourly
+        type: choice
+        options:
+          - hourly
+          - operations
+          - daily
+          - weekly-finalize
+  # GitHub schedules use UTC. These run hourly, every six hours, once daily,
+  # and Tuesday morning for the final previous-week snapshot respectively.
+  schedule:
+    - cron: "0 * * * *"
+    - cron: "15 */6 * * *"
+    - cron: "30 8 * * *"
+    - cron: "30 14 * * 2"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Choose sync mode
+        id: mode
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_MODE: ${{ inputs.mode }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            mode="$INPUT_MODE"
+          else
+            case "$SCHEDULE" in
+              "0 * * * *") mode="hourly" ;;
+              "15 */6 * * *") mode="operations" ;;
+              "30 8 * * *") mode="daily" ;;
+              "30 14 * * 2") mode="weekly-finalize" ;;
+              *) echo "Unknown schedule: $SCHEDULE" >&2; exit 1 ;;
+            esac
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+
+      - name: Run protected Sleeper sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SYNC_CRON_SECRET: ${{ secrets.SYNC_CRON_SECRET }}
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SYNC_CRON_SECRET" ]; then
+            echo "SUPABASE_URL and SYNC_CRON_SECRET repository secrets are required." >&2
+            exit 1
+          fi
+          base_url="${SUPABASE_URL%/}"
+          curl --fail-with-body --retry 2 --retry-all-errors \
+            --connect-timeout 15 --max-time 540 \
+            -X POST "$base_url/functions/v1/automate-sleeper-sync?mode=$MODE" \
+            -H "Content-Type: application/json" \
+            -H "X-Sync-Cron-Secret: $SYNC_CRON_SECRET" \
+            --data '{}'

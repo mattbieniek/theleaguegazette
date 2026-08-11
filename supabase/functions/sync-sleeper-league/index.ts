@@ -1,8 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireAdmin } from "../_shared/requireAdmin.ts";
-
-const DEFAULT_LEAGUE_ID = "1257085409687506944";
+import {
+  activeSleeperLeagueId,
+  assertActiveLeague,
+} from "../_shared/activeLeague.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -33,7 +35,7 @@ Deno.serve(async (req: Request) => {
       sleeper_league_id?: string;
     };
     const sleeperLeagueId = String(
-      body.sleeper_league_id ?? DEFAULT_LEAGUE_ID,
+      body.sleeper_league_id ?? activeSleeperLeagueId(),
     ).trim();
 
     if (!/^\d+$/.test(sleeperLeagueId)) {
@@ -56,6 +58,14 @@ Deno.serve(async (req: Request) => {
       throw new Error("Sleeper returned an invalid league response.");
     }
 
+    // The no-body path is used by automation and is restricted to the
+    // configured active season. An administrator can still explicitly
+    // import a historical league by passing its ID in the request body.
+    if (!body.sleeper_league_id) {
+      assertActiveLeague(sleeperLeagueId, league);
+    }
+
+    const syncedAt = new Date().toISOString();
     const leagueRecord = {
       sleeper_league_id: league.league_id,
       name: league.name,
@@ -70,7 +80,8 @@ Deno.serve(async (req: Request) => {
       scoring_settings: league.scoring_settings || {},
       roster_positions: league.roster_positions || [],
       metadata: league.metadata || {},
-      updated_at: new Date().toISOString(),
+      last_synced_at: syncedAt,
+      updated_at: syncedAt,
     };
 
     const { data, error } = await supabase
@@ -102,7 +113,7 @@ Deno.serve(async (req: Request) => {
         roster_positions: league.roster_positions ?? [],
         metadata: league.metadata ?? {},
         raw_data: league,
-        updated_at: new Date().toISOString(),
+        updated_at: syncedAt,
     };
 
     const { data: existingSeason, error: existingSeasonError } = await supabase

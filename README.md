@@ -31,9 +31,14 @@ No API key is needed for Sleeper. The integration is read-only.
 
 ## Sleeper league
 
-- League ID: `1257085409687506944`
+- Active league ID: `1389719207712681984` (2026)
 - API utility: `src/lib/sleeper.ts`
 - Homepage performs client-side hydration and keeps polished fallback data when the API is unavailable.
+
+Automated active-season imports run through `automate-sleeper-sync` from the
+GitHub Actions workflow in `.github/workflows/sleeper-sync.yml`. Historical
+league rows remain unchanged; administrator-triggered imports are required for
+archived seasons.
 
 ## Current routes
 

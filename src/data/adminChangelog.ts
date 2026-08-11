@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "sleeper-automation",
+    date: "2026-08-11",
+    title: "Automated active-season Sleeper updates",
+    summary:
+      "The League Gazette can now keep the active season's league data refreshed on a schedule while showing administrators when a dataset needs attention.",
+    changes: [
+      "Added protected hourly, six-hour, daily, and weekly-finalization refreshes for the active 2026 Sleeper league.",
+      "Kept historical seasons outside the scheduled update path, with checks that confirm the league ID and season before anything is written.",
+      "Added safe retries, run history, and non-overwriting roster snapshots so a temporary Sleeper or network problem does not replace older records.",
+      "Added Fresh, Stale, and Not synced labels to the administrator Sleeper workspace so data problems are easier to spot.",
+    ],
+  },
+  {
     id: "sleeper-data-styling",
     date: "2026-08-09",
     title: "Polished the Sleeper Data workspace",

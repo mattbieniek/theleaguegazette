@@ -1,8 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireAdmin } from "../_shared/requireAdmin.ts";
+import { activeSleeperLeagueId } from "../_shared/activeLeague.ts";
 
-const DEFAULT_LEAGUE_ID = "1257085409687506944";
 const SLEEPER_API = "https://api.sleeper.app/v1";
 
 type SleeperDraft = {
@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
     await requireAdmin(req, supabaseUrl, serviceRoleKey);
 
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const sleeperLeagueId = body.sleeper_league_id ?? DEFAULT_LEAGUE_ID;
+    const sleeperLeagueId = body.sleeper_league_id ?? activeSleeperLeagueId();
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: league, error: leagueError } = await supabase

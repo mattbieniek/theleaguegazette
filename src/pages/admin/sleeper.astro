@@ -5,7 +5,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
 <AdminLayout title="Sleeper Data | The League Gazette">
   <main id="sleeper-page" class="admin-shell sleeper-page" hidden>
     <header class="sleeper-header">
-      <div><p class="eyebrow">League operations</p><h1>Sleeper Data</h1><p>Inspect data freshness and run controlled imports from a current or historical Sleeper league.</p></div>
+      <div><p class="eyebrow">League operations</p><h1>Sleeper Data</h1><p>Monitor the active season, review automated refreshes, and run controlled imports when a correction is needed.</p></div>
       <button id="refresh-status" class="secondary" type="button">Refresh status</button>
     </header>
     <p id="sleeper-message" class="sleeper-message" role="status" aria-live="polite"></p>
@@ -13,10 +13,10 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
     <section id="league-summary" class="league-summary"></section>
 
     <section class="league-selector" aria-labelledby="league-selector-title">
-      <div><p class="eyebrow">Import target</p><h2 id="league-selector-title">Sleeper league ID</h2><p>Choose the season that the sync actions below should update.</p></div>
+      <div><p class="eyebrow">Import target</p><h2 id="league-selector-title">Sleeper league ID</h2><p>Automation is locked to the active season. Historical IDs remain available only for deliberate administrator imports.</p></div>
       <label for="sleeper-league-id">League ID</label>
-      <input id="sleeper-league-id" inputmode="numeric" value="1257085409687506944" />
-      <button id="use-2024-league" class="secondary" type="button">Use 2024 league</button>
+      <input id="sleeper-league-id" inputmode="numeric" value="1389719207712681984" />
+      <button id="use-2025-league" class="secondary" type="button">Use 2025 league</button>
     </section>
 
     <section class="sleeper-grid">
@@ -54,7 +54,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
     type League = { name: string; sleeper_league_id: string; season: number; status: string | null; current_week: number | null; total_rosters: number | null; last_synced_at: string; updated_at: string };
     type Dataset = { key: string; label: string; last_synced_at: string | null };
     type SyncRun = { id: string; sync_type: string; status: string; started_at: string; completed_at: string | null; records_processed: number; error_message: string | null };
-    type Status = { league: League | null; datasets: Dataset[]; recent_runs: SyncRun[] };
+    type Status = { active_season_year?: number | null; active_league_id?: string | null; league: League | null; datasets: Dataset[]; recent_runs: SyncRun[] };
     const page = document.querySelector<HTMLElement>("#sleeper-page");
     const message = document.querySelector<HTMLElement>("#sleeper-message");
     const leagueSummary = document.querySelector<HTMLElement>("#league-summary");
@@ -65,16 +65,17 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
     const leagueIdInput = document.querySelector<HTMLInputElement>("#sleeper-league-id");
     const result = document.querySelector<HTMLElement>("#sync-result");
     let status: Status = { league: null, datasets: [], recent_runs: [] };
+    const freshnessWindowsMinutes: Record<string, number> = { players: 24 * 60, managers: 24 * 60, rosters: 6 * 60, matchups: 6 * 60, drafts: 7 * 24 * 60, transactions: 6 * 60, snapshots: 8 * 24 * 60 };
     function formatDate(value: string | null): string { return value ? new Intl.DateTimeFormat("en-US", { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit" }).format(new Date(value)) : "Never"; }
     function setMessage(text: string, error = false): void { if (message) { message.textContent = text; message.dataset.error = String(error); } }
     function render(): void {
       if (leagueSummary) {
         leagueSummary.replaceChildren();
         if (!status.league) leagueSummary.textContent = "No Sleeper league record is available.";
-        else for (const [label, value] of [["League", status.league.name], ["Season", status.league.season], ["Current week", status.league.current_week ?? "—"], ["Teams", status.league.total_rosters ?? "—"], ["Sleeper ID", status.league.sleeper_league_id]]) { const item=document.createElement("div"); item.className="league-summary__item"; const small=document.createElement("span"); small.textContent=String(label); const strong=document.createElement("strong"); strong.textContent=String(value); item.append(small,strong); leagueSummary.append(item); }
+        else for (const [label, value] of [["League", status.league.name], ["Active season", status.active_season_year ?? status.league.season], ["Current week", status.league.current_week ?? "—"], ["Teams", status.league.total_rosters ?? "—"], ["Sleeper ID", status.league.sleeper_league_id]]) { const item=document.createElement("div"); item.className="league-summary__item"; const small=document.createElement("span"); small.textContent=String(label); const strong=document.createElement("strong"); strong.textContent=String(value); item.append(small,strong); leagueSummary.append(item); }
         if (weekInput && status.league?.current_week) weekInput.value = String(status.league.current_week);
       }
-      if (datasetStatus) { datasetStatus.replaceChildren(); for (const dataset of status.datasets) { const row=document.createElement("div"); row.className="dataset-status__row"; const label=document.createElement("strong"); label.className="dataset-status__label"; label.textContent=dataset.label; const date=document.createElement("time"); date.className="dataset-status__date"; date.textContent=formatDate(dataset.last_synced_at); if(dataset.last_synced_at) date.dateTime=dataset.last_synced_at; row.append(label,date); datasetStatus.append(row); } }
+      if (datasetStatus) { datasetStatus.replaceChildren(); for (const dataset of status.datasets) { const row=document.createElement("div"); row.className="dataset-status__row"; const label=document.createElement("strong"); label.className="dataset-status__label"; label.textContent=dataset.label; const copy=document.createElement("div"); copy.className="dataset-status__copy"; const date=document.createElement("time"); date.className="dataset-status__date"; date.textContent=formatDate(dataset.last_synced_at); if(dataset.last_synced_at) date.dateTime=dataset.last_synced_at; const badge=document.createElement("span"); const ageMinutes=dataset.last_synced_at?Math.max(0,(Date.now()-new Date(dataset.last_synced_at).getTime())/60000):Number.POSITIVE_INFINITY; const state=!dataset.last_synced_at?"missing":ageMinutes>(freshnessWindowsMinutes[dataset.key]??24*60)?"stale":"fresh"; badge.className=`freshness-badge freshness-badge--${state}`; badge.textContent=state==="fresh"?"Fresh":state==="stale"?"Stale":"Not synced"; copy.append(date,badge); row.append(label,copy); datasetStatus.append(row); } }
       if (syncHistory && syncHistoryEmpty) { syncHistory.replaceChildren(); for (const run of status.recent_runs) { const row=document.createElement("article"); row.className="sync-run"; const copy=document.createElement("div"); copy.className="sync-run__copy"; const title=document.createElement("strong"); title.className="sync-run__title"; title.textContent=run.sync_type.replaceAll("_"," ").replace(/\b\w/g,(letter)=>letter.toUpperCase()); const detail=document.createElement("small"); detail.className="sync-run__detail"; detail.textContent=run.error_message || `${run.records_processed} records · ${formatDate(run.started_at)}`; copy.append(title,detail); const badge=document.createElement("span"); badge.className=`sync-badge sync-badge--${run.status}`; badge.textContent=run.status; row.append(copy,badge); syncHistory.append(row); } syncHistory.hidden=status.recent_runs.length===0; syncHistoryEmpty.hidden=status.recent_runs.length>0; }
     }
     async function loadStatus(): Promise<void> {
@@ -102,7 +103,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
     }
     document.querySelectorAll<HTMLButtonElement>("[data-sync-function]").forEach((button) => button.addEventListener("click", () => { const fn=button.dataset.syncFunction; const league=selectedLeagueId(); if(fn&&league) void runSync(button,fn,{sleeper_league_id:league}); }));
     document.querySelectorAll<HTMLButtonElement>("[data-week-sync]").forEach((button) => button.addEventListener("click", () => { const fn=button.dataset.weekSync; const week=Number(weekInput?.value); const league=selectedLeagueId(); if(!fn||!league||!Number.isInteger(week)||week<1||week>18){setMessage("Choose a valid week and Sleeper league ID.",true);return;} const body=fn==="sync-sleeper-transactions"?{sleeper_league_id:league,start_week:week,end_week:week}:{sleeper_league_id:league,week,status:"complete",overwrite:true}; void runSync(button,fn,body); }));
-    document.querySelector<HTMLButtonElement>("#use-2024-league")?.addEventListener("click",()=>{if(leagueIdInput)leagueIdInput.value="1133549626524626944";setMessage("2024 league selected. Run the foundation imports in order.")});
+    document.querySelector<HTMLButtonElement>("#use-2025-league")?.addEventListener("click",()=>{if(leagueIdInput)leagueIdInput.value="1257085409687506944";setMessage("2025 league selected for a controlled historical import.")});
     document.querySelector<HTMLButtonElement>("#backfill-season")?.addEventListener("click",(event)=>{const button=event.currentTarget as HTMLButtonElement;const league=selectedLeagueId();if(league)void runSync(button,"backfill-sleeper-matchups",{sleeper_league_id:league,startWeek:1,endWeek:17,status:"complete"})});
     document.querySelector<HTMLButtonElement>("#refresh-status")?.addEventListener("click",()=>void loadStatus());
     void initialize();
@@ -125,6 +126,11 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
   :global(.dataset-status__row:last-child), :global(.sync-run:last-child) { border-bottom:0; }
   :global(.dataset-status__label), :global(.sync-run__title) { color:var(--color-ink); font-family:var(--font-display); font-size:1rem; }
   :global(.dataset-status__date), :global(.sync-run__detail) { color:var(--color-ink-soft); font-family:var(--font-data); font-size:.67rem; }
+  :global(.dataset-status__copy) { display:flex; align-items:center; justify-content:flex-end; gap:.7rem; }
+  :global(.freshness-badge) { flex:0 0 auto; padding:.3rem .55rem; border-radius:999px; font-family:var(--font-data); font-size:.57rem; font-weight:850; letter-spacing:.05em; text-transform:uppercase; }
+  :global(.freshness-badge--fresh) { background:#e4f0e8; color:var(--color-green); }
+  :global(.freshness-badge--stale) { background:#f7eedb; color:#8a5a16; }
+  :global(.freshness-badge--missing) { background:#f6e5e3; color:#a32320; }
   :global(.sync-run__copy) { display:grid; gap:.3rem; min-width:0; }
   :global(.sync-run__title) { text-transform:none; }
   :global(.sync-run__detail) { overflow-wrap:anywhere; }
@@ -135,5 +141,5 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
   .sync-result { overflow:hidden; padding:0; border-radius:var(--radius-lg); box-shadow:var(--shadow-card); }
   .sync-result summary { padding:1rem 1.25rem; color:var(--color-green); font-family:var(--font-data); font-size:.65rem; font-weight:750; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; }
   .sync-result pre { margin:0; padding:1rem 1.25rem; line-height:1.5; }
-  @media(max-width:600px){:global(.dataset-status__row),:global(.sync-run){align-items:flex-start;flex-direction:column}:global(.sync-badge){align-self:flex-start}}
+  @media(max-width:600px){:global(.dataset-status__row),:global(.sync-run){align-items:flex-start;flex-direction:column}:global(.dataset-status__copy){align-items:flex-start;justify-content:flex-start;flex-wrap:wrap}:global(.sync-badge){align-self:flex-start}}
 </style>

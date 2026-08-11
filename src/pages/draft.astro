@@ -2,10 +2,11 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import HistoryNav from "../components/history/HistoryNav.astro";
 import { getDraftArchive, type DraftPick } from "../lib/queries/drafts";
+import { ACTIVE_SLEEPER_LEAGUE_ID } from "../lib/currentLeague";
 
 export const prerender = false;
 
-const sleeperLeagueId = import.meta.env.PUBLIC_SLEEPER_LEAGUE_ID;
+const sleeperLeagueId = ACTIVE_SLEEPER_LEAGUE_ID;
 const drafts = sleeperLeagueId ? await getDraftArchive(sleeperLeagueId) : [];
 const requestedSeason = Number(Astro.url.searchParams.get("season"));
 const draft = drafts.find((item) => item.seasonYear === requestedSeason) ?? drafts[0] ?? null;
