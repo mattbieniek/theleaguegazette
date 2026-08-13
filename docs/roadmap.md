@@ -26,7 +26,7 @@ This page separates implemented foundations, active verification work, and expli
 
 - Review and commit the reconstructed foundation, nine recovered migrations, two recovered Edge Functions, regenerated types, schema snapshot, and handbook. A clean local replay now matches the production `public` schema exactly.
 - Before the next database deployment, approve a migration-history-only repair marking baseline version `20260727000000` applied on the linked project; never execute the guarded baseline against the existing schema.
-- Harden and test `send-weekly-digest` before scheduling it: add duplicate-send protection, checked database operations, validated administrator-only test delivery, explicit partial-failure semantics, and privacy-conscious logging.
+- Deploy and test the hardened `send-weekly-digest`, then establish its scheduler: duplicate-send protection, checked database operations, administrator-only test delivery, explicit partial-failure semantics, and privacy-conscious logging are implemented.
 - Complete an owner-session administrator/Op-Ed-contributor production presentation walkthrough without creating production test data. PR #26 is merged; its production deployment, corrected anonymous admin layout, public routes, anonymous redirects, and isolated local API authorization matrix are verified.
 - Verify scheduled publication timing, public visibility, review notifications, and image permissions.
 

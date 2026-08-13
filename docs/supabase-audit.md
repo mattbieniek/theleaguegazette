@@ -118,14 +118,7 @@ The deployed JWT settings for all eleven functions are now recorded explicitly i
 
 `sync-sleeper-player-scores` validates an administrator through the shared helper, validates league/week inputs, requires stored scoring settings, paginates eligible players, calculates weekly scores, and upserts in 500-row batches on the season/week/player key. Its retry behavior updates returned rows but does not remove formerly stored players omitted from a later upstream response. Authentication and validation failures are currently returned as generic HTTP 500 responses after handler-level exceptions.
 
-`send-weekly-digest` accepts either the configured cron-secret header or a verified administrator bearer token, loads opted-in confirmed users, escapes editorial/user content in HTML, sends through Resend, and records a run. Source review identified deployment blockers before treating it as an unattended scheduler target:
-
-- no edition-level idempotency or duplicate-send guard;
-- Supabase read and final-update errors are not consistently checked;
-- `test_email` is not format-validated and is also accepted on the cron-secret path;
-- partial delivery failures are recorded with status `completed` because the schema has no partial status;
-- recipient addresses and provider response text can enter error logs;
-- recipients are resolved sequentially through the Auth admin API and are limited by the unpaginated profile query.
+`send-weekly-digest` accepts either the configured cron-secret header or a verified administrator bearer token, loads opted-in confirmed users, escapes editorial/user content in HTML, sends through Resend, and records a run. The hardening migration adds a unique season/week edition key, restricts test deliveries to administrator sessions, validates test addresses, checks database operations, records explicit `completed`, `partial`, and `failed` outcomes, and keeps recipient/provider response details out of logs. Failed or partial production editions require an administrator-reviewed retry rather than silently sending a duplicate edition.
 
 No production function was changed or redeployed during this review. Fixes should be implemented and tested locally with a mock email provider or an explicitly authorized test address before deployment.
 
@@ -134,5 +127,5 @@ No production function was changed or redeployed during this review. Fixes shoul
 1. Review and commit the recovered migrations, Edge Functions, explicit JWT configuration, generated types, and handbook together.
 2. Review the reconstructed foundation, then separately approve marking version `20260727000000` as applied in linked migration history before any future database push. This must be a history-only repair; the baseline must not execute against the existing production schema.
 3. Preserve and rerun the local Op-Ed authorization matrix after policy changes; retire the legacy database constraint value only after checking for dependent production users.
-4. Harden and locally test the weekly digest, then identify or establish its scheduler.
+4. Identify or establish the weekly-digest scheduler after the hardened function has been deployed and an administrator test delivery has been approved.
 5. Run role-based smoke tests, preferably against a non-production project.
