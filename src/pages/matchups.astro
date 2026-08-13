@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import MatchupCard from "../components/matchups/MatchupCard.astro";
+import SeasonContext from "../components/SeasonContext.astro";
 import { getSeasonMatchups, hydrateMatchupLineups } from "../lib/queries/matchups";
 import { supabase } from "../lib/supabase";
 
@@ -191,6 +192,14 @@ function formatPoints(value: number): string {
         </p>
       </div>
     </header>
+
+    <SeasonContext
+      season={selectedSeason}
+      activeSeason={activeLeague?.season ?? null}
+      activeWeek={activeLeague?.current_week ?? null}
+      selectedWeek={selectedWeek}
+      subject="Weekly matchup archive"
+    />
 
     {
       selectedMatchupWeek ? (

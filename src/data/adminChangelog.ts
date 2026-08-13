@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "public-season-context",
+    date: "2026-08-13",
+    title: "Made the league data archive easier to understand",
+    summary:
+      "Matchups and Standings now explain whether you are viewing the active season or a preserved historical season.",
+    changes: [
+      "Added a shared season-context panel to the public Matchups and Standings pages.",
+      "Highlighted the active season and current league week when that information is available.",
+      "Clarified that older seasons are archive views whose recorded results remain unchanged.",
+    ],
+  },
+  {
     id: "readers-poll-active-season",
     date: "2026-08-13",
     title: "Aligned the Readers Poll with the active season",
