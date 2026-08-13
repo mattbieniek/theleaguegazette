@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "public-data-freshness",
+    date: "2026-08-13",
+    title: "Added freshness context to public league pages",
+    summary:
+      "Matchups and Standings now show when active-season league data was last synchronized, alongside the current week context.",
+    changes: [
+      "Added the active league's last synchronization time to the public season-context panel.",
+      "Kept historical seasons clearly labeled as preserved archive views without implying a current refresh.",
+      "Used the same freshness treatment across Matchups and Standings for a more consistent public experience.",
+    ],
+  },
+  {
     id: "gazette-archive-browse-bar",
     date: "2026-08-13",
     title: "Made Gazette story browsing easier",

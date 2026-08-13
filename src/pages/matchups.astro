@@ -10,7 +10,7 @@ export const prerender = false;
 const allMatchupWeeks = await getSeasonMatchups();
 const { data: activeLeague } = await supabase
   .from("leagues")
-  .select("season,current_week")
+  .select("season,current_week,last_synced_at")
   .order("season", { ascending: false })
   .limit(1)
   .maybeSingle();
@@ -198,6 +198,7 @@ function formatPoints(value: number): string {
       activeSeason={activeLeague?.season ?? null}
       activeWeek={activeLeague?.current_week ?? null}
       selectedWeek={selectedWeek}
+      lastSyncedAt={activeLeague?.last_synced_at ?? null}
       subject="Weekly matchup archive"
     />
 
