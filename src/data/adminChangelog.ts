@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "sleeper-sync-health",
+    date: "2026-08-12",
+    title: "Added a clearer Sleeper sync health check",
+    summary:
+      "Administrators can now see whether the active-season refreshes are healthy, still running, or need attention.",
+    changes: [
+      "Prevented scheduled Sleeper refreshes from overlapping each other while one run is still in progress.",
+      "Added a health summary showing the latest successful run, active runs, and runs that appear stuck.",
+      "Added clearer automated mode names, durations, and failure details to the sync history.",
+      "Added a short summary to each GitHub Actions run so scheduled refreshes are easier to review.",
+    ],
+  },
+  {
     id: "sleeper-automation",
     date: "2026-08-11",
     title: "Automated active-season Sleeper updates",

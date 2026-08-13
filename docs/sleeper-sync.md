@@ -71,6 +71,13 @@ and one retry for transient failures. It records an overall
 `sleeper_automation` run in addition to each child function's run. Supported
 modes are `hourly`, `operations`, `daily`, and `weekly-finalize`.
 
+GitHub Actions serializes these scheduled jobs with a shared concurrency group,
+so a slow daily or weekly run waits for an earlier refresh rather than writing
+the same active-season records concurrently. Each workflow run also publishes
+a short summary in its Actions job summary. The administrator Sleeper page
+shows the last successful automated run, active and stale-running counts, the
+latest failure, and the duration of recent automated modes.
+
 ## Retry and recovery guidance
 
 - Repeating league, player, user, roster, draft, matchup, and transaction syncs is designed to update existing provider-keyed rows rather than duplicate them.
@@ -80,10 +87,9 @@ modes are `hourly`, `operations`, `daily`, and `weekly-finalize`.
 - Do not use snapshot overwrite casually: it deletes the existing weekly snapshot before rebuilding it.
 - If a foundational sync fails, repair it before running dependent roster, draft, or weekly imports.
 
-## Verification gaps
+## Remaining verification
 
-- TODO: Add `ACTIVE_SLEEPER_LEAGUE_ID`, `ACTIVE_SEASON_YEAR`, and `SYNC_CRON_SECRET` to the hosted Edge Function environment.
-- TODO: Add the repository's `SUPABASE_URL` and `SYNC_CRON_SECRET` as GitHub Actions secrets.
-- TODO: Confirm the canonical production league ID and season response from Sleeper before the first scheduled run.
-- TODO: Reconcile `sync_runs` status constraints and hosted function versions with this checkout.
-- TODO: Record monitoring, alerting, rate-limit behavior, and the approved production recovery runbook after the first scheduled run.
+- Monitor the first full in-season week and confirm that scheduled retries and
+  stale-run warnings behave as expected during a real Sleeper game window.
+- Document the owner-approved response time for a stale or failed run and who
+  should be contacted when the scheduler needs intervention.
