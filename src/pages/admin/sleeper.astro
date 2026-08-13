@@ -11,6 +11,10 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
     <p id="sleeper-message" class="sleeper-message" role="status" aria-live="polite"></p>
 
     <section id="league-summary" class="league-summary"></section>
+    <section class="sleeper-panel sleeper-health" aria-labelledby="sleeper-health-title">
+      <div class="panel-heading"><p class="eyebrow">Automation monitor</p><h2 id="sleeper-health-title">Sync health</h2><p>Use this summary to tell whether the scheduled active-season refreshes are moving normally.</p></div>
+      <div id="sync-health" class="sync-health"></div>
+    </section>
 
     <section class="league-selector" aria-labelledby="league-selector-title">
       <div><p class="eyebrow">Import target</p><h2 id="league-selector-title">Sleeper league ID</h2><p>Automation is locked to the active season. Historical IDs remain available only for deliberate administrator imports.</p></div>
@@ -53,11 +57,13 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
     import { supabaseBrowser } from "../../lib/supabase-browser";
     type League = { name: string; sleeper_league_id: string; season: number; status: string | null; current_week: number | null; total_rosters: number | null; last_synced_at: string; updated_at: string };
     type Dataset = { key: string; label: string; last_synced_at: string | null };
-    type SyncRun = { id: string; sync_type: string; status: string; started_at: string; completed_at: string | null; records_processed: number; error_message: string | null };
-    type Status = { active_season_year?: number | null; active_league_id?: string | null; league: League | null; datasets: Dataset[]; recent_runs: SyncRun[] };
+    type SyncRun = { id: string; sync_type: string; status: string; started_at: string; completed_at: string | null; records_processed: number; error_message: string | null; mode?: string | null; duration_seconds?: number | null };
+    type SyncHealth = { last_success_at: string | null; last_failure_at: string | null; last_error: string; running_count: number; stale_running_count: number };
+    type Status = { active_season_year?: number | null; active_league_id?: string | null; league: League | null; datasets: Dataset[]; recent_runs: SyncRun[]; health?: SyncHealth };
     const page = document.querySelector<HTMLElement>("#sleeper-page");
     const message = document.querySelector<HTMLElement>("#sleeper-message");
     const leagueSummary = document.querySelector<HTMLElement>("#league-summary");
+    const syncHealth = document.querySelector<HTMLElement>("#sync-health");
     const datasetStatus = document.querySelector<HTMLElement>("#dataset-status");
     const syncHistory = document.querySelector<HTMLElement>("#sync-history");
     const syncHistoryEmpty = document.querySelector<HTMLElement>("#sync-history-empty");
@@ -68,6 +74,14 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
     const freshnessWindowsMinutes: Record<string, number> = { players: 24 * 60, managers: 24 * 60, rosters: 6 * 60, matchups: 6 * 60, drafts: 7 * 24 * 60, transactions: 6 * 60, snapshots: 8 * 24 * 60 };
     function formatDate(value: string | null): string { return value ? new Intl.DateTimeFormat("en-US", { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit" }).format(new Date(value)) : "Never"; }
     function setMessage(text: string, error = false): void { if (message) { message.textContent = text; message.dataset.error = String(error); } }
+    function healthState(): { key: string; label: string; description: string } {
+      const health = status.health;
+      if (!health?.last_success_at) return { key: "waiting", label: "Waiting for first run", description: "No completed automated run has been recorded for the active season yet." };
+      if ((health.stale_running_count ?? 0) > 0) return { key: "attention", label: "Needs attention", description: "A scheduled run has been running for more than 20 minutes. Check the run history and GitHub Actions." };
+      if (health.last_failure_at && new Date(health.last_failure_at).getTime() > new Date(health.last_success_at).getTime()) return { key: "attention", label: "Needs attention", description: health.last_error || "The most recent automated run failed." };
+      if ((health.running_count ?? 0) > 0) return { key: "running", label: "Sync in progress", description: "An automated refresh is currently writing active-season data." };
+      return { key: "healthy", label: "Healthy", description: "The most recent automated refresh completed successfully." };
+    }
     function render(): void {
       if (leagueSummary) {
         leagueSummary.replaceChildren();
@@ -75,8 +89,18 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
         else for (const [label, value] of [["League", status.league.name], ["Active season", status.active_season_year ?? status.league.season], ["Current week", status.league.current_week ?? "—"], ["Teams", status.league.total_rosters ?? "—"], ["Sleeper ID", status.league.sleeper_league_id]]) { const item=document.createElement("div"); item.className="league-summary__item"; const small=document.createElement("span"); small.textContent=String(label); const strong=document.createElement("strong"); strong.textContent=String(value); item.append(small,strong); leagueSummary.append(item); }
         if (weekInput && status.league?.current_week) weekInput.value = String(status.league.current_week);
       }
+      if (syncHealth) {
+        syncHealth.replaceChildren();
+        const health = status.health ?? { last_success_at: null, last_failure_at: null, last_error: "", running_count: 0, stale_running_count: 0 };
+        const state = healthState();
+        const badge = document.createElement("span"); badge.className = `health-badge health-badge--${state.key}`; badge.textContent = state.label;
+        const description = document.createElement("p"); description.className = "sync-health__description"; description.textContent = state.description;
+        const facts = document.createElement("div"); facts.className = "sync-health__facts";
+        for (const [label, value] of [["Last successful run", formatDate(health.last_success_at)], ["Active runs", String(health.running_count ?? 0)], ["Stuck runs", String(health.stale_running_count ?? 0)]]) { const fact = document.createElement("div"); fact.className = "sync-health__fact"; const small = document.createElement("span"); small.textContent = label; const strong = document.createElement("strong"); strong.textContent = value; fact.append(small, strong); facts.append(fact); }
+        syncHealth.append(badge, description, facts);
+      }
       if (datasetStatus) { datasetStatus.replaceChildren(); for (const dataset of status.datasets) { const row=document.createElement("div"); row.className="dataset-status__row"; const label=document.createElement("strong"); label.className="dataset-status__label"; label.textContent=dataset.label; const copy=document.createElement("div"); copy.className="dataset-status__copy"; const date=document.createElement("time"); date.className="dataset-status__date"; date.textContent=formatDate(dataset.last_synced_at); if(dataset.last_synced_at) date.dateTime=dataset.last_synced_at; const badge=document.createElement("span"); const ageMinutes=dataset.last_synced_at?Math.max(0,(Date.now()-new Date(dataset.last_synced_at).getTime())/60000):Number.POSITIVE_INFINITY; const state=!dataset.last_synced_at?"missing":ageMinutes>(freshnessWindowsMinutes[dataset.key]??24*60)?"stale":"fresh"; badge.className=`freshness-badge freshness-badge--${state}`; badge.textContent=state==="fresh"?"Fresh":state==="stale"?"Stale":"Not synced"; copy.append(date,badge); row.append(label,copy); datasetStatus.append(row); } }
-      if (syncHistory && syncHistoryEmpty) { syncHistory.replaceChildren(); for (const run of status.recent_runs) { const row=document.createElement("article"); row.className="sync-run"; const copy=document.createElement("div"); copy.className="sync-run__copy"; const title=document.createElement("strong"); title.className="sync-run__title"; title.textContent=run.sync_type.replaceAll("_"," ").replace(/\b\w/g,(letter)=>letter.toUpperCase()); const detail=document.createElement("small"); detail.className="sync-run__detail"; detail.textContent=run.error_message || `${run.records_processed} records · ${formatDate(run.started_at)}`; copy.append(title,detail); const badge=document.createElement("span"); badge.className=`sync-badge sync-badge--${run.status}`; badge.textContent=run.status; row.append(copy,badge); syncHistory.append(row); } syncHistory.hidden=status.recent_runs.length===0; syncHistoryEmpty.hidden=status.recent_runs.length>0; }
+      if (syncHistory && syncHistoryEmpty) { syncHistory.replaceChildren(); for (const run of status.recent_runs) { const row=document.createElement("article"); row.className="sync-run"; const copy=document.createElement("div"); copy.className="sync-run__copy"; const title=document.createElement("strong"); title.className="sync-run__title"; title.textContent=run.mode ? `Automated ${run.mode} refresh` : run.sync_type.replaceAll("_"," ").replace(/\b\w/g,(letter)=>letter.toUpperCase()); const duration = run.duration_seconds ? ` · ${run.duration_seconds}s` : ""; const detail=document.createElement("small"); detail.className="sync-run__detail"; detail.textContent=run.error_message || `${run.records_processed} records · ${formatDate(run.started_at)}${duration}`; copy.append(title,detail); const badge=document.createElement("span"); badge.className=`sync-badge sync-badge--${run.status}`; badge.textContent=run.status; row.append(copy,badge); syncHistory.append(row); } syncHistory.hidden=status.recent_runs.length===0; syncHistoryEmpty.hidden=status.recent_runs.length>0; }
     }
     async function loadStatus(): Promise<void> {
       setMessage("Loading Sleeper status…");
@@ -141,5 +165,17 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
   .sync-result { overflow:hidden; padding:0; border-radius:var(--radius-lg); box-shadow:var(--shadow-card); }
   .sync-result summary { padding:1rem 1.25rem; color:var(--color-green); font-family:var(--font-data); font-size:.65rem; font-weight:750; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; }
   .sync-result pre { margin:0; padding:1rem 1.25rem; line-height:1.5; }
+  .sync-health { display:grid; gap:1rem; padding:1.25rem 1.5rem; }
+  .health-badge { width:fit-content; padding:.4rem .7rem; border-radius:999px; font-family:var(--font-data); font-size:.62rem; font-weight:850; letter-spacing:.06em; text-transform:uppercase; }
+  .health-badge--healthy { background:#e4f0e8; color:var(--color-green); }
+  .health-badge--running { background:#eee7f6; color:#67468a; }
+  .health-badge--attention { background:#f6e5e3; color:#a32320; }
+  .health-badge--waiting { background:#f7eedb; color:#8a5a16; }
+  .sync-health__description { margin:0; color:var(--color-ink-soft); line-height:1.5; }
+  .sync-health__facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; border:1px solid var(--color-rule); background:var(--color-rule); }
+  .sync-health__fact { display:grid; gap:.35rem; padding:.85rem 1rem; background:var(--color-paper); }
+  .sync-health__fact span { color:var(--color-ink-muted); font-family:var(--font-data); font-size:.58rem; font-weight:750; letter-spacing:.06em; text-transform:uppercase; }
+  .sync-health__fact strong { font-family:var(--font-display); font-size:1rem; }
   @media(max-width:600px){:global(.dataset-status__row),:global(.sync-run){align-items:flex-start;flex-direction:column}:global(.dataset-status__copy){align-items:flex-start;justify-content:flex-start;flex-wrap:wrap}:global(.sync-badge){align-self:flex-start}}
+  @media(max-width:600px){.sync-health__facts{grid-template-columns:1fr}.sync-health__fact{padding:.75rem 1rem}}
 </style>

@@ -1,6 +1,6 @@
 # Roadmap
 
-> Repository-backed status record. Last reviewed August 9, 2026 at `b12aff34`.
+> Repository-backed status record. Last reviewed August 12, 2026.
 
 This page separates implemented foundations, active verification work, and explicitly approved future work. Repository evidence proves that an implementation exists; it does not by itself prove production readiness.
 
@@ -35,7 +35,7 @@ This page separates implemented foundations, active verification work, and expli
 - Confirm the Vercel production branch, deployment-protection behavior, DNS ownership, and a tested rollback procedure; the project, Git integration, environment-variable names, domains, framework, build command, and Node version are verified.
 - Confirm Supabase linkage, migration/function deployment commands, backups, Auth redirects, and Storage configuration.
 - Locate or establish the weekly-digest scheduler; neither Supabase PostgreSQL cron nor a configured Vercel Cron Job was found. Inventory external Sleeper triggers and verify data-freshness expectations.
-- Configure and verify the 2026 active-season Sleeper automation workflow, including its GitHub Actions secrets, Edge Function secret, first run in each mode, and recovery behavior.
+- Monitor the 2026 active-season Sleeper automation through the first complete in-season week, including scheduled retries, stale-run warnings, and recovery behavior during a real game window.
 
 ### Priority 3 — public experience
 

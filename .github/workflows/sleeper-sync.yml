@@ -21,6 +21,13 @@ on:
     - cron: "30 8 * * *"
     - cron: "30 14 * * 2"
 
+# A daily foundation refresh can occasionally overlap an hourly run when
+# Sleeper or Supabase is slow. Keep one scheduler run in flight at a time so
+# the same active-season records are not written concurrently.
+concurrency:
+  group: sleeper-sync-active-season
+  cancel-in-progress: false
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -63,3 +70,12 @@ jobs:
             -H "Content-Type: application/json" \
             -H "X-Sync-Cron-Secret: $SYNC_CRON_SECRET" \
             --data '{}'
+
+      - name: Publish sync summary
+        if: always()
+        run: |
+          {
+            echo "### Sleeper sync"
+            echo "- Mode: `$MODE`"
+            echo "- Active-season scheduler run completed; see the function response above for dataset results."
+          } >> "$GITHUB_STEP_SUMMARY"
