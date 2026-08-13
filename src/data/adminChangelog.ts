@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "readers-poll-active-season",
+    date: "2026-08-13",
+    title: "Aligned the Readers Poll with the active season",
+    summary:
+      "The admin Readers Poll workspace now opens on the same season and week currently being used by the active Sleeper league.",
+    changes: [
+      "Stopped the ballot controls from defaulting to the most recent historical results row.",
+      "Used the active Sleeper season and current week when setting up a new ballot window.",
+      "Kept historical ballot windows available when an administrator intentionally selects an older season or week.",
+    ],
+  },
+  {
     id: "weekly-digest-safety",
     date: "2026-08-13",
     title: "Made weekly Gazette emails safer to operate",
