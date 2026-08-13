@@ -1,11 +1,19 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import StandingsTable from "../components/StandingsTable.astro";
+import SeasonContext from "../components/SeasonContext.astro";
 import { buildStandingsThroughWeek } from "../lib/queries/standings";
 import { getHistoricalResults } from "../lib/queries/records";
+import { supabase } from "../lib/supabase";
 
 export const prerender = false;
 const results = await getHistoricalResults();
+const { data: activeLeague } = await supabase
+  .from("leagues")
+  .select("season,current_week")
+  .order("season", { ascending: false })
+  .limit(1)
+  .maybeSingle();
 const seasons = [...new Set(results.map((row) => row.season_year))].sort((a, b) => b - a);
 const requestedSeason = Number(Astro.url.searchParams.get("season"));
 const seasonYear = Number.isInteger(requestedSeason) && seasons.includes(requestedSeason) ? requestedSeason : seasons[0] ?? null;
@@ -56,6 +64,14 @@ function formatPoints(value: number | null): string {
         </p>
       </div>
     </header>
+
+    <SeasonContext
+      season={seasonYear}
+      activeSeason={activeLeague?.season ?? null}
+      activeWeek={activeLeague?.current_week ?? null}
+      selectedWeek={selectedWeek}
+      subject="Cumulative league table"
+    />
 
     <form class="standings-filter" method="get" action="/standings">
       <div><p class="eyebrow">Historical table</p><strong>Standings through any week</strong></div>
