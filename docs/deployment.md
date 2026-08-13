@@ -133,5 +133,5 @@ whose returned season does not match the configured 2026 season.
 - TODO: Confirm the production branch, DNS ownership/provider, deployment-protection behavior, and an exact rollback runbook.
 - TODO: Review the reconstructed foundation and recovered Edge Functions, then approve a history-only linked migration repair for version `20260727000000` before the next database push. The full local chain now reproduces the production `public` schema exactly.
 - TODO: Record migration/function deployment commands, Auth redirect URLs, and backup policy. The linked Supabase project and Storage bucket are now verified.
-- TODO: Harden the weekly digest against duplicate sends, unchecked database errors, invalid test recipients, partial-delivery ambiguity, and sensitive logging before establishing its scheduler. Neither PostgreSQL cron nor a configured Vercel Cron Job was found.
+- TODO: Establish and verify the weekly-digest scheduler. The function now protects editions from duplicate sends, validates administrator test deliveries, checks database writes, records partial delivery explicitly, and avoids recipient/provider details in logs. Neither PostgreSQL cron nor a configured Vercel Cron Job was found.
 - TODO: Define logs, monitoring, alerts, incident contacts, and recovery time expectations.

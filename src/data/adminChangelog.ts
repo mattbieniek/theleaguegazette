@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "weekly-digest-safety",
+    date: "2026-08-13",
+    title: "Made weekly Gazette emails safer to operate",
+    summary:
+      "The weekly digest now protects each edition from duplicate sends and gives administrators clearer information when delivery is incomplete.",
+    changes: [
+      "Added a unique season-and-week key so a completed digest cannot be sent twice by an overlapping or repeated trigger.",
+      "Limited test deliveries to signed-in administrators and validated the test address before sending.",
+      "Added explicit completed, partial, and failed delivery outcomes with checked database updates.",
+      "Removed recipient addresses and provider response bodies from error logs while keeping useful delivery counts.",
+    ],
+  },
+  {
     id: "sleeper-sync-health",
     date: "2026-08-12",
     title: "Added a clearer Sleeper sync health check",
