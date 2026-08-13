@@ -19,6 +19,12 @@ const articleCategories = new Set(
     .map((article) => article.category?.trim())
     .filter((category): category is string => Boolean(category) && category !== "Power Rankings")
 );
+const categoryCounts = new Map(
+  [...articleCategories].map((category) => [
+    category,
+    articles.filter((article) => article.category?.trim() === category).length,
+  ])
+);
 const availableCategories = [
   ...STORY_CATEGORIES.filter((category) => articleCategories.has(category)),
   ...[...articleCategories]
@@ -78,15 +84,26 @@ function getArticleImage(
     <ReadersPoll poll={latestReaderPoll} />
 
     <nav class="category-filter" aria-label="Filter stories by category">
-      <a href="/gazette" aria-current={!selectedCategory ? "page" : undefined}>All stories</a>
-      {availableCategories.map((category) => (
-        <a
-          href={`/gazette?category=${encodeURIComponent(category)}`}
-          aria-current={selectedCategory === category ? "page" : undefined}
-        >
-          {category}
+      <div class="category-filter__intro">
+        <p class="eyebrow">Browse the desk</p>
+        <span>{selectedCategory ? `Showing ${categoryCounts.get(selectedCategory) ?? 0} stories in this category.` : `${articles.length} stories from the Gazette archive.`}</span>
+      </div>
+
+      <div class="category-filter__links">
+        <a href="/gazette" aria-current={!selectedCategory ? "page" : undefined}>
+          <span>All stories</span>
+          <small>{articles.length}</small>
         </a>
-      ))}
+        {availableCategories.map((category) => (
+          <a
+            href={`/gazette?category=${encodeURIComponent(category)}`}
+            aria-current={selectedCategory === category ? "page" : undefined}
+          >
+            <span>{category}</span>
+            <small>{categoryCounts.get(category) ?? 0}</small>
+          </a>
+        ))}
+      </div>
     </nav>
 
     {
@@ -178,7 +195,7 @@ function getArticleImage(
                 </p>
 
                 <h2 id="archive-title">
-                  Latest Dispatches
+                  {selectedCategory ? `${selectedCategory} Dispatches` : "Latest Dispatches"}
                 </h2>
               </div>
 
@@ -644,15 +661,22 @@ function getArticleImage(
   }
 
   .category-filter {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
+    display: grid;
+    gap: var(--space-4);
     padding-block: var(--space-5);
     border-bottom: 1px solid var(--color-rule);
   }
 
+  .category-filter__intro { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+  .category-filter__intro p { margin: 0; }
+  .category-filter__intro > span { color: var(--color-ink-muted); font-family: var(--font-editorial); font-size: var(--text-sm); }
+  .category-filter__links { display: flex; flex-wrap: wrap; gap: .55rem; }
+
   .category-filter a {
-    padding: 0.55rem 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    padding: 0.5rem 0.7rem 0.5rem 0.8rem;
     border: 1px solid var(--color-rule-dark);
     border-radius: 999px;
     color: var(--color-ink);
@@ -662,11 +686,15 @@ function getArticleImage(
     text-transform: uppercase;
   }
 
+  .category-filter a small { display: grid; min-width: 1.25rem; height: 1.25rem; place-items: center; border-radius: 999px; background: var(--color-paper-dark); color: var(--color-ink-muted); font-size: .58rem; line-height: 1; }
+
   .category-filter a[aria-current="page"] {
     border-color: var(--color-green);
     background: var(--color-green);
     color: var(--color-paper-light);
   }
+
+  .category-filter a[aria-current="page"] small { background: rgb(255 255 255 / 18%); color: inherit; }
 
   @media (max-width: 900px) {
     .lead-story {
@@ -702,6 +730,8 @@ function getArticleImage(
     .archive-summary {
       justify-content: flex-start;
     }
+
+    .category-filter__intro { align-items: flex-start; flex-direction: column; gap: .25rem; }
 
     .story-grid {
       grid-template-columns: 1fr;

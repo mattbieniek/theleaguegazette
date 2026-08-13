@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "gazette-archive-browse-bar",
+    date: "2026-08-13",
+    title: "Made Gazette story browsing easier",
+    summary:
+      "The public Gazette archive now makes its category filters and story counts easier to understand at a glance.",
+    changes: [
+      "Added a browse bar that shows how many published stories belong to each available category.",
+      "Added a short archive summary that updates when a reader filters to one category.",
+      "Updated the archive heading to name the selected category instead of always saying Latest Dispatches.",
+    ],
+  },
+  {
     id: "public-season-context",
     date: "2026-08-13",
     title: "Made the league data archive easier to understand",
