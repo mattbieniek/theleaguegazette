@@ -4,6 +4,7 @@ interface Props {
   activeSeason?: number | null;
   activeWeek?: number | null;
   selectedWeek?: number | null;
+  lastSyncedAt?: string | null;
   subject: string;
 }
 
@@ -12,6 +13,7 @@ const {
   activeSeason = null,
   activeWeek = null,
   selectedWeek = null,
+  lastSyncedAt = null,
   subject,
 } = Astro.props;
 
@@ -23,6 +25,9 @@ const detail = isCurrentWeek
   : isActiveSeason && activeWeek !== null
     ? `The active league is currently on Week ${activeWeek}.`
     : "Historical results are preserved as they were recorded.";
+const syncLabel = isActiveSeason && lastSyncedAt
+  ? `Data synced ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(lastSyncedAt))}.`
+  : null;
 ---
 
 <aside class:list={["season-context", isActiveSeason && "season-context--active", isCurrentWeek && "season-context--current"]}>
@@ -30,7 +35,7 @@ const detail = isCurrentWeek
   <div class="season-context__copy">
     <p>{label} <span>·</span> {season ?? "League"}</p>
     <strong>{subject}</strong>
-    <span>{detail}</span>
+    <span>{detail}{syncLabel ? ` ${syncLabel}` : ""}</span>
   </div>
 </aside>
 
