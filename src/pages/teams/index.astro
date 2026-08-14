@@ -1,6 +1,11 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getSeasonStandings } from "../../lib/queries/standings";
+import { getHistoricalResults } from "../../lib/queries/records";
+import {
+  buildFranchiseHistory,
+  formatFranchiseRecord,
+} from "../../lib/gazette/franchises";
 import { getFormerTeamNames, teams } from "../../data/teams";
 import { ACTIVE_SLEEPER_LEAGUE_ID } from "../../lib/currentLeague";
 
@@ -9,36 +14,41 @@ const sleeperLeagueId = ACTIVE_SLEEPER_LEAGUE_ID;
 const standings = sleeperLeagueId
   ? await getSeasonStandings(sleeperLeagueId)
   : [];
+const historicalResults = await getHistoricalResults();
+
+const franchiseData = teams.map((team) => ({
+  team,
+  history: buildFranchiseHistory(historicalResults, team),
+}));
+
+const franchiseRanking = [...franchiseData]
+  .sort((first, second) => {
+    const firstHistory = first.history;
+    const secondHistory = second.history;
+    const firstWinRate = firstHistory?.games
+      ? firstHistory.wins / firstHistory.games
+      : -1;
+    const secondWinRate = secondHistory?.games
+      ? secondHistory.wins / secondHistory.games
+      : -1;
+
+    return (
+      secondWinRate - firstWinRate ||
+      (secondHistory?.wins ?? -1) - (firstHistory?.wins ?? -1) ||
+      (secondHistory?.pointsFor ?? -1) - (firstHistory?.pointsFor ?? -1) ||
+      first.team.name.localeCompare(second.team.name)
+    );
+  });
+
+const franchiseRanks = new Map(
+  franchiseRanking.map(({ team }, index) => [team.slug, index + 1])
+);
 
 const seasonYear =
   standings.find(
     (standing) =>
       typeof standing.season_year === "number"
   )?.season_year ?? null;
-
-function normalizeTeamName(value: string | null): string {
-  return value?.trim().toLowerCase() ?? "";
-}
-
-function getTeamStanding(teamName: string) {
-  return standings.find(
-    (standing) =>
-      normalizeTeamName(standing.team_name) ===
-      normalizeTeamName(teamName)
-  );
-}
-
-function formatRecord(
-  wins: number | null,
-  losses: number | null,
-  ties: number | null
-): string {
-  const record = `${wins ?? 0}-${losses ?? 0}`;
-
-  return (ties ?? 0) > 0
-    ? `${record}-${ties}`
-    : record;
-}
 
 function formatPoints(value: number | null): string {
   return Number(value ?? 0).toLocaleString("en-US", {
@@ -66,7 +76,7 @@ function formatPoints(value: number | null): string {
 
       <div class="page-header__intro">
         <p>
-          Ten franchises, ten owners and an unreasonable
+          {teams.length} franchises, {teams.length} owners and an unreasonable
           amount of emotional investment in imaginary
           football.
         </p>
@@ -89,36 +99,31 @@ function formatPoints(value: number | null): string {
         </div>
 
         <p>
-          Current identities are shown with temporary legacy
-          artwork. Final team branding can be substituted
-          without changing the page structure.
+          Franchise records and rankings combine every completed matchup in
+          the league archive. Rankings sort by win percentage, then total
+          wins and points scored.
         </p>
       </div>
 
       <div class="team-grid">
         {
-          teams.map((team) => {
-            const standing = getTeamStanding(team.name);
+          franchiseRanking.map(({ team, history }) => {
             const formerNames = getFormerTeamNames(team);
 
-            const record = standing
-              ? formatRecord(
-                  standing.wins,
-                  standing.losses,
-                  standing.ties
+            const record = history
+              ? formatFranchiseRecord(
+                  history.wins,
+                  history.losses,
+                  history.ties
                 )
               : "—";
 
-            const rank =
-              standing?.standings_rank !== null &&
-              standing?.standings_rank !== undefined
-                ? `No. ${standing.standings_rank}`
-                : "Unranked";
+            const rank = history
+              ? `No. ${franchiseRanks.get(team.slug)} overall`
+              : "Unranked";
 
-            const points =
-              standing?.points_for !== null &&
-              standing?.points_for !== undefined
-                ? formatPoints(standing.points_for)
+            const points = history
+              ? formatPoints(history.pointsFor)
                 : "—";
 
             return (
@@ -169,12 +174,12 @@ function formatPoints(value: number | null): string {
 
                   <dl class="team-card__stats">
                     <div>
-                      <dt>Record</dt>
+                      <dt>Franchise Record</dt>
                       <dd>{record}</dd>
                     </div>
 
                     <div>
-                      <dt>Points For</dt>
+                      <dt>Franchise Points</dt>
                       <dd>{points}</dd>
                     </div>
                   </dl>

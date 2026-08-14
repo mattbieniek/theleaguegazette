@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "franchise-directory-rankings",
+    date: "2026-08-14",
+    title: "Added all-time franchise context to the Teams page",
+    summary:
+      "The Teams directory now shows each franchise’s complete league-history record and sorts the cards by overall performance.",
+    changes: [
+      "Replaced the latest-season-only record and points with totals from every completed season in the league archive.",
+      "Added an overall franchise ranking based on win percentage, total wins, and points scored.",
+      "Sorted the team cards by that ranking and explained the method on the page.",
+    ],
+  },
+  {
     id: "public-data-page-empty-states",
     date: "2026-08-14",
     title: "Made more league pages helpful when data is missing",
