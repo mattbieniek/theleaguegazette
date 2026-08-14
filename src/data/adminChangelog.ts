@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "public-data-empty-states",
+    date: "2026-08-14",
+    title: "Made empty league pages more helpful",
+    summary:
+      "Public standings, records, and perfect-lineup pages now explain when data is unavailable and point readers toward a useful next step.",
+    changes: [
+      "Replaced blank standings tables with a clear explanation and a link to Matchups.",
+      "Kept empty season controls off the page when no historical seasons are available.",
+      "Clarified when a Perfect Lineup is waiting for weekly player scores to be synchronized.",
+    ],
+  },
+  {
     id: "accessibility-foundation",
     date: "2026-08-14",
     title: "Strengthened the site's accessibility foundation",

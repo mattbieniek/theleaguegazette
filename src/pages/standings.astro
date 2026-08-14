@@ -74,12 +74,16 @@ function formatPoints(value: number | null): string {
       subject="Cumulative league table"
     />
 
-    <form class="standings-filter" method="get" action="/standings">
-      <div><p class="eyebrow">Historical table</p><strong>Standings through any week</strong></div>
-      <label>Season<select name="season" aria-label="Select standings season">{seasons.map((season) => <option value={season} selected={season === seasonYear}>{season}</option>)}</select></label>
-      <label>Through week<select name="week" aria-label="Select standings week">{weeks.map((week) => <option value={week} selected={week === selectedWeek}>Week {week}</option>)}</select></label>
-      <button type="submit">View standings</button>
-    </form>
+    {
+      seasons.length > 0 && (
+        <form class="standings-filter" method="get" action="/standings">
+          <div><p class="eyebrow">Historical table</p><strong>Standings through any week</strong></div>
+          <label>Season<select name="season" aria-label="Select standings season">{seasons.map((season) => <option value={season} selected={season === seasonYear}>{season}</option>)}</select></label>
+          <label>Through week<select name="week" aria-label="Select standings week">{weeks.map((week) => <option value={week} selected={week === selectedWeek}>Week {week}</option>)}</select></label>
+          <button type="submit">View standings</button>
+        </form>
+      )
+    }
 
     {
       standings.length > 0 && (
@@ -160,10 +164,21 @@ function formatPoints(value: number | null): string {
       </div>
 
       <div class="standings-card">
-        <StandingsTable
-          standings={standings}
-          caption={`${seasonYear ?? "League"} standings through Week ${selectedWeek ?? "—"}`}
-        />
+        {
+          standings.length > 0 ? (
+            <StandingsTable
+              standings={standings}
+              caption={`${seasonYear ?? "League"} standings through Week ${selectedWeek ?? "—"}`}
+            />
+          ) : (
+            <div class="standings-empty">
+              <p class="eyebrow">Nothing to rank yet</p>
+              <h3>{seasonYear ? `No standings are available for ${seasonYear}.` : "No league standings are available yet."}</h3>
+              <p>Standings will appear after completed matchup results are synchronized.</p>
+              <a href="/matchups">Browse Matchups <span aria-hidden="true">→</span></a>
+            </div>
+          )
+        }
       </div>
     </section>
   </div>
@@ -290,6 +305,11 @@ function formatPoints(value: number | null): string {
     border-radius: var(--radius-lg);
     background: var(--color-surface);
   }
+
+  .standings-empty { padding: clamp(2rem, 6vw, 4rem); text-align: center; }
+  .standings-empty h3 { margin: .25rem auto .75rem; max-width: 28rem; font-size: clamp(1.8rem, 4vw, 3rem); }
+  .standings-empty p:not(.eyebrow) { max-width: 34rem; margin: 0 auto 1.25rem; color: var(--color-ink-soft); }
+  .standings-empty a { color: var(--color-green); font-weight: 800; }
 
   @media (max-width: 780px) {
     .standings-filter { grid-template-columns:1fr 1fr; }.standings-filter>div,.standings-filter button{grid-column:1/-1}

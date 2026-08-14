@@ -161,7 +161,7 @@ const remainingRecords = records.slice(1);
 
     <section class="player-records" aria-labelledby="player-records-title">
       <div class="section-heading"><div><p class="eyebrow">Individual Performances</p><h2 id="player-records-title">Positional Record Lineup</h2></div><p>The season’s greatest single-week player performances arranged in the league’s actual starting slots.</p></div>
-      <form class="player-records__filter" method="get" action="/records"><label>Season<select name="season">{seasons.map((season)=><option value={season} selected={season===playerSeason}>{season}</option>)}</select></label><button>View records</button><a href={`/perfect-lineup?season=${playerSeason}`}>Explore weekly perfect lineups →</a></form>
+      {seasons.length > 0 && <form class="player-records__filter" method="get" action="/records"><label>Season<select name="season">{seasons.map((season)=><option value={season} selected={season===playerSeason}>{season}</option>)}</select></label><button>View records</button><a href={`/perfect-lineup?season=${playerSeason}`}>Explore weekly perfect lineups →</a></form>}
       {slotRecords.length ? <LineupTable entries={slotRecords} caption={`${playerSeason} positional performance records`} showWeek /> : <div class="player-records__empty"><h3>Player scoring records are awaiting import.</h3><p>Once all-player Sleeper scores are synchronized, the record lineup will appear here.</p></div>}
     </section>
   </div>
