@@ -332,17 +332,17 @@ const canonicalUrl = new URL(
         <label for="comment-body">Your comment</label>
         <div class="comment-editor-shell">
           <div class="comment-toolbar" role="toolbar" aria-label="Comment formatting">
-            <button type="button" data-comment-command="bold" aria-label="Bold" title="Bold"><strong>B</strong></button>
-            <button type="button" data-comment-command="italic" aria-label="Italic" title="Italic"><em>I</em></button>
-            <button type="button" data-comment-command="underline" aria-label="Underline" title="Underline"><u>U</u></button>
-            <button type="button" data-comment-command="link" aria-label="Add or edit link" title="Add or edit link">Link</button>
+            <button type="button" data-comment-command="bold" aria-label="Bold" aria-pressed="false" title="Bold"><strong>B</strong></button>
+            <button type="button" data-comment-command="italic" aria-label="Italic" aria-pressed="false" title="Italic"><em>I</em></button>
+            <button type="button" data-comment-command="underline" aria-label="Underline" aria-pressed="false" title="Underline"><u>U</u></button>
+            <button type="button" data-comment-command="link" aria-label="Add or edit link" aria-pressed="false" title="Add or edit link">Link</button>
             <button type="button" data-comment-command="inline-image" aria-label="Insert image" title="Insert image by URL">Image</button>
             <span class="comment-toolbar__divider" aria-hidden="true"></span>
-            <button type="button" data-comment-command="heading-2" aria-label="Heading level 2" title="Heading level 2">H2</button>
-            <button type="button" data-comment-command="heading-3" aria-label="Heading level 3" title="Heading level 3">H3</button>
-            <button type="button" data-comment-command="bullet-list" aria-label="Bulleted list" title="Bulleted list">• List</button>
-            <button type="button" data-comment-command="ordered-list" aria-label="Numbered list" title="Numbered list">1. List</button>
-            <button type="button" data-comment-command="blockquote" aria-label="Blockquote" title="Blockquote">Quote</button>
+            <button type="button" data-comment-command="heading-2" aria-label="Heading level 2" aria-pressed="false" title="Heading level 2">H2</button>
+            <button type="button" data-comment-command="heading-3" aria-label="Heading level 3" aria-pressed="false" title="Heading level 3">H3</button>
+            <button type="button" data-comment-command="bullet-list" aria-label="Bulleted list" aria-pressed="false" title="Bulleted list">• List</button>
+            <button type="button" data-comment-command="ordered-list" aria-label="Numbered list" aria-pressed="false" title="Numbered list">1. List</button>
+            <button type="button" data-comment-command="blockquote" aria-label="Blockquote" aria-pressed="false" title="Blockquote">Quote</button>
             <button type="button" data-comment-command="horizontal-rule" aria-label="Horizontal divider" title="Horizontal divider">Divider</button>
             <span class="comment-toolbar__divider" aria-hidden="true"></span>
             <button type="button" data-comment-command="undo" aria-label="Undo" title="Undo">↶</button>
@@ -356,11 +356,12 @@ const canonicalUrl = new URL(
             role="textbox"
             aria-multiline="true"
             aria-label="Your comment"
+            aria-describedby="comment-count"
             data-placeholder="What do you think?"
           ></div>
         </div>
         <div class="comment-form__footer">
-          <span data-comment-count>0 / 2,000 characters</span>
+          <span id="comment-count" data-comment-count>0 / 2,000 characters</span>
           <button type="submit">Post comment</button>
         </div>
       </form>
@@ -408,17 +409,17 @@ const canonicalUrl = new URL(
                     Edit your comment
                   </label>
                   <div class="comment-toolbar" role="toolbar" aria-label="Comment formatting">
-                    <button type="button" data-comment-command="bold" aria-label="Bold" title="Bold"><strong>B</strong></button>
-                    <button type="button" data-comment-command="italic" aria-label="Italic" title="Italic"><em>I</em></button>
-                    <button type="button" data-comment-command="underline" aria-label="Underline" title="Underline"><u>U</u></button>
-                    <button type="button" data-comment-command="link" aria-label="Add or edit link" title="Add or edit link">Link</button>
+                    <button type="button" data-comment-command="bold" aria-label="Bold" aria-pressed="false" title="Bold"><strong>B</strong></button>
+                    <button type="button" data-comment-command="italic" aria-label="Italic" aria-pressed="false" title="Italic"><em>I</em></button>
+                    <button type="button" data-comment-command="underline" aria-label="Underline" aria-pressed="false" title="Underline"><u>U</u></button>
+                    <button type="button" data-comment-command="link" aria-label="Add or edit link" aria-pressed="false" title="Add or edit link">Link</button>
                     <button type="button" data-comment-command="inline-image" aria-label="Insert image" title="Insert image by URL">Image</button>
                     <span class="comment-toolbar__divider" aria-hidden="true"></span>
-                    <button type="button" data-comment-command="heading-2" aria-label="Heading level 2" title="Heading level 2">H2</button>
-                    <button type="button" data-comment-command="heading-3" aria-label="Heading level 3" title="Heading level 3">H3</button>
-                    <button type="button" data-comment-command="bullet-list" aria-label="Bulleted list" title="Bulleted list">• List</button>
-                    <button type="button" data-comment-command="ordered-list" aria-label="Numbered list" title="Numbered list">1. List</button>
-                    <button type="button" data-comment-command="blockquote" aria-label="Blockquote" title="Blockquote">Quote</button>
+                    <button type="button" data-comment-command="heading-2" aria-label="Heading level 2" aria-pressed="false" title="Heading level 2">H2</button>
+                    <button type="button" data-comment-command="heading-3" aria-label="Heading level 3" aria-pressed="false" title="Heading level 3">H3</button>
+                    <button type="button" data-comment-command="bullet-list" aria-label="Bulleted list" aria-pressed="false" title="Bulleted list">• List</button>
+                    <button type="button" data-comment-command="ordered-list" aria-label="Numbered list" aria-pressed="false" title="Numbered list">1. List</button>
+                    <button type="button" data-comment-command="blockquote" aria-label="Blockquote" aria-pressed="false" title="Blockquote">Quote</button>
                     <button type="button" data-comment-command="horizontal-rule" aria-label="Horizontal divider" title="Horizontal divider">Divider</button>
                     <span class="comment-toolbar__divider" aria-hidden="true"></span>
                     <button type="button" data-comment-command="undo" aria-label="Undo" title="Undo">↶</button>
@@ -433,10 +434,11 @@ const canonicalUrl = new URL(
                     role="textbox"
                     aria-multiline="true"
                     aria-label="Edit your comment"
+                    aria-describedby={`edit-comment-count-${comment.id}`}
                     data-placeholder="What do you think?"
                   ></div>
                   <div class="comment-form__footer">
-                    <span data-comment-count>0 / 2,000 characters</span>
+                    <span id={`edit-comment-count-${comment.id}`} data-comment-count>0 / 2,000 characters</span>
                     <div class="comment-edit-form__actions">
                       <button type="button" data-cancel-edit>Cancel</button>
                       <button type="submit">Save changes</button>
@@ -822,7 +824,7 @@ const canonicalUrl = new URL(
         const editor = new Editor({
           element,
           extensions: [
-            StarterKit.configure({ heading: { levels: [2, 3] } }),
+            StarterKit.configure({ heading: { levels: [2, 3] }, link: false, underline: false }),
             Link.configure({
               openOnClick: false,
               autolink: true,
