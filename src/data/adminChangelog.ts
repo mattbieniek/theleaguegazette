@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "accessibility-foundation",
+    date: "2026-08-14",
+    title: "Strengthened the site's accessibility foundation",
+    summary:
+      "Public reading and commenting controls now communicate their state more clearly to keyboard and assistive-technology users, with calmer behavior for reduced-motion preferences.",
+    changes: [
+      "Improved reduced-motion handling so animations and transitions are also suppressed for readers who request less movement.",
+      "Added initial pressed-state information to rich-text formatting controls before the editor finishes loading.",
+      "Connected comment editors to their character counters and removed duplicate editor extensions that could create confusing behavior.",
+      "Added spacing for anchored sections so sticky navigation does not cover the destination heading.",
+    ],
+  },
+  {
     id: "public-data-freshness",
     date: "2026-08-13",
     title: "Added freshness context to public league pages",

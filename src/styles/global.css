@@ -195,6 +195,12 @@ p {
   outline-offset: 4px;
 }
 
+/* Keep anchored headings visible beneath the sticky site navigation. */
+
+:where([id]) {
+  scroll-margin-top: 5rem;
+}
+
 /* Shared layout primitives */
 
 .site-shell {
@@ -263,6 +269,8 @@ p {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 
   button:not(:disabled):active {
