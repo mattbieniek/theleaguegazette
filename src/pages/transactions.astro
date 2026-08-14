@@ -144,6 +144,7 @@ const playerMoves = seasonTransactions.reduce(
             <div class="filtered-empty">
               <h3>No transactions match these filters.</h3>
               <p>Choose another week or activity type to continue browsing the ledger.</p>
+              <a class="filtered-empty__link" href={`/transactions?season=${selectedSeason}`}>Reset filters <span aria-hidden="true">→</span></a>
             </div>
           )}
         </section>
@@ -188,6 +189,7 @@ const playerMoves = seasonTransactions.reduce(
   .filtered-empty,.empty-state { max-width:52rem; padding:clamp(2rem,5vw,4rem); margin-top:var(--space-7); border:1px solid var(--color-rule); border-radius:var(--radius-lg); background:var(--color-surface); }
   .filtered-empty h3,.empty-state h2 { margin-bottom:var(--space-4); font-size:clamp(2rem,4vw,3.6rem); letter-spacing:-.045em; line-height:.95; }
   .filtered-empty p,.empty-state p { margin:0; color:var(--color-ink-soft); line-height:1.6; }
+  .filtered-empty__link { display:inline-flex; gap:.45rem; margin-top:var(--space-5); color:var(--color-green); font-weight:750; }
   @media (max-width:950px) { .transactions-header { grid-template-columns:1fr; } .transactions-summary { max-width:42rem; } .week-group { grid-template-columns:1fr; } .week-group>header { display:flex; align-items:center; justify-content:space-between; gap:var(--space-5); border-right:0; border-bottom:1px solid var(--color-rule); } .week-group>header>span { margin:0; } }
   @media (max-width:700px) { .section-heading { align-items:flex-start; flex-direction:column; } .section-heading>p { text-align:left; } }
   @media (max-width:520px) { .transactions-header h1 { max-width:100%; font-size:clamp(3rem,15vw,4.7rem); } .transactions-summary { grid-template-columns:1fr; } .transactions-summary div+div { border-top:1px solid var(--color-rule); border-left:0; } .transaction-controls form,.transaction-controls label,.transaction-controls select,.transaction-controls button { width:100%; } .week-group>header { align-items:flex-start; flex-direction:column; } .transaction-list { padding:var(--space-3); } }

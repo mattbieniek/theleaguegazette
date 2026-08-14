@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "public-data-page-empty-states",
+    date: "2026-08-14",
+    title: "Made more league pages helpful when data is missing",
+    summary:
+      "Statistics, Draft Archive, and Transactions now explain when there is nothing to show and offer a clear way to keep browsing.",
+    changes: [
+      "Added a Matchups link to the Statistics and Draft Archive empty states so readers can continue exploring available league data.",
+      "Clarified when Statistics are waiting for completed matchup results instead of showing a generic blank page.",
+      "Added a one-click Reset filters link when a Transactions search returns no matching activity.",
+    ],
+  },
+  {
     id: "public-data-empty-states",
     date: "2026-08-14",
     title: "Made empty league pages more helpful",

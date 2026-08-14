@@ -267,8 +267,9 @@ const benchLeader = highestBy(
     ) : (
       <section class="empty-state">
         <p class="eyebrow">League Intelligence</p>
-        <h2>No completed season data is available yet.</h2>
+        <h2>{seasons.length > 0 ? `Statistics are not available for ${selectedSeason} yet.` : "No completed season data is available yet."}</h2>
         <p>Statistics will appear after matchup results have been synchronized.</p>
+        <a class="empty-state__link" href="/matchups">Browse Matchups <span aria-hidden="true">→</span></a>
       </section>
     )}
   </div>
@@ -562,6 +563,14 @@ const benchLeader = highestBy(
     border: 1px solid var(--color-rule);
     border-radius: var(--radius-lg);
     background: var(--color-surface);
+  }
+
+  .empty-state__link {
+    display: inline-flex;
+    gap: .45rem;
+    margin-top: var(--space-6);
+    color: var(--color-green);
+    font-weight: 750;
   }
 
   @media (max-width: 900px) {

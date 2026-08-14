@@ -194,6 +194,7 @@ function positionClass(position: string | null): string {
         <p class="eyebrow">Draft Archive</p>
         <h2>No draft results are available yet.</h2>
         <p>Completed Sleeper and imported ESPN drafts will appear here once their picks are synchronized.</p>
+        <a class="empty-state__link" href="/matchups">Browse Matchups <span aria-hidden="true">→</span></a>
       </section>
     )}
   </div>
@@ -257,6 +258,7 @@ function positionClass(position: string | null): string {
   .empty-state { max-width:48rem; padding-block:var(--space-9); }
   .empty-state h2 { margin-bottom:var(--space-4); font-size:clamp(2.5rem,6vw,5rem); letter-spacing:-.05em; line-height:.95; }
   .empty-state>p:last-child { color:var(--color-ink-soft); font-family:var(--font-editorial); font-size:var(--text-xl); }
+  .empty-state__link { display:inline-flex; gap:.45rem; margin-top:var(--space-6); color:var(--color-green); font-weight:750; }
   @media(max-width:900px){.draft-header{grid-template-columns:1fr}.draft-summary{max-width:36rem}.draft-lede{grid-template-columns:1fr}.draft-lede article+article{border-top:1px solid var(--color-rule);border-left:0}.draft-round{grid-template-columns:1fr}.draft-round>header{display:flex;align-items:center;gap:var(--space-5);padding:var(--space-4) var(--space-5);border-right:0;border-bottom:1px solid var(--color-rule)}.draft-round>header>span{margin:0}.team-class-grid{grid-template-columns:1fr}}
   @media(max-width:700px){.draft-controls,.draft-controls>div,.section-heading{align-items:flex-start;flex-direction:column}.draft-controls>p,.section-heading>p{text-align:left}.draft-round li{grid-template-columns:3.2rem 2.7rem minmax(0,1fr)}.pick-team{grid-column:3}.pick-team img{display:none}}
   @media(max-width:480px){.draft-summary{grid-template-columns:1fr}.draft-summary div+div{border-top:1px solid var(--color-rule);border-left:0}.draft-round li{grid-template-columns:2.6rem minmax(0,1fr);gap:var(--space-3);padding:var(--space-4)}.position-mark{grid-column:1;grid-row:2}.pick-player{grid-column:2;grid-row:1}.pick-team{grid-column:2;grid-row:2}.team-class-grid li{grid-template-columns:3rem minmax(0,1fr)}.team-class-grid li small{display:none}}
