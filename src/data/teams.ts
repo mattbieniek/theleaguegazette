@@ -17,6 +17,7 @@ export function getFormerTeamNames(team: Team): string[] {
     .filter(
       (name, index, names) =>
         name.length > 0 &&
+        !name.endsWith("...") &&
         name.toLowerCase() !== currentName &&
         names.findIndex(
           (candidate) =>

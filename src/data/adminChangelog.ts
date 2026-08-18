@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "teams-complete-former-names",
+    date: "2026-08-18",
+    title: "Cleaned up former team names",
+    summary:
+      "The Teams directory no longer displays incomplete historical names that end with an ellipsis.",
+    changes: [
+      "Removed truncated former names from team cards and profiles.",
+      "Kept the complete historical identities and matching data available for league records and archive views.",
+    ],
+  },
+  {
     id: "franchise-directory-rankings",
     date: "2026-08-14",
     title: "Added all-time franchise context to the Teams page",
