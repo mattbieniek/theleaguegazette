@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "public-page-performance-pass",
+    date: "2026-08-19",
+    title: "Made public pages load faster",
+    summary:
+      "Public league pages now reuse safe short-lived responses and send less data before the page becomes interactive.",
+    changes: [
+      "Added short CDN caching for public league and archive pages while keeping account, admin, poll, and comment-sensitive pages private.",
+      "Loaded the homepage's independent league sections in parallel instead of waiting for each data source one at a time.",
+      "Stopped Gazette list and search pages from downloading full rich-text story bodies they never display.",
+      "Deferred the reader sign-in check until the browser is idle so public pages can become interactive sooner.",
+    ],
+  },
+  {
     id: "account-management",
     date: "2026-08-19",
     title: "Added administrator account management",

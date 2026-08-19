@@ -1,9 +1,9 @@
 ---
-import type { GazetteArticle } from "../../lib/queries/gazette";
+import type { GazetteArticleSummary } from "../../lib/queries/gazette";
 import { formatPublicationDate } from "../../lib/formatDate";
 
 interface Props {
-  story: GazetteArticle;
+  story: GazetteArticleSummary;
   position?: number;
 }
 

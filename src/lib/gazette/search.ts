@@ -1,4 +1,4 @@
-import type { GazetteArticle } from "../queries/gazette";
+import type { GazetteArticleSummary } from "../queries/gazette";
 import type { Team } from "../../data/teams";
 
 export type SearchDestination = {
@@ -10,7 +10,7 @@ export type SearchDestination = {
 };
 
 export type SearchResults = {
-  stories: GazetteArticle[];
+  stories: GazetteArticleSummary[];
   teams: Team[];
   destinations: SearchDestination[];
   total: number;
@@ -55,7 +55,7 @@ function relevance(title: string, query: string): number {
 }
 
 export function searchPublicSite(
-  articles: GazetteArticle[],
+  articles: GazetteArticleSummary[],
   teams: Team[],
   query: string
 ): SearchResults {

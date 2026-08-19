@@ -4,8 +4,10 @@ import MatchupCard from "../components/matchups/MatchupCard.astro";
 import SeasonContext from "../components/SeasonContext.astro";
 import { getSeasonMatchups, hydrateMatchupLineups } from "../lib/queries/matchups";
 import { supabase } from "../lib/supabase";
+import { setPublicCache } from "../lib/public-cache";
 
 export const prerender = false;
+setPublicCache(Astro.response, 30, 300);
 
 const allMatchupWeeks = await getSeasonMatchups();
 const { data: activeLeague } = await supabase

@@ -4,8 +4,10 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { getAwardsPageData } from "../lib/queries/awards";
 
 import { buildWeeklyAwards } from "../lib/gazette/awards";
+import { setPublicCache } from "../lib/public-cache";
 
 export const prerender = false;
+setPublicCache(Astro.response, 30, 300);
 
 const { seasons, selectedOption, selectedSeasonOptions, results } =
     await getAwardsPageData({

@@ -3,8 +3,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import HistoryNav from "../../components/history/HistoryNav.astro";
 import { getHistoricalResults } from "../../lib/queries/records";
 import { buildLeagueHistory } from "../../lib/gazette/history";
+import { setPublicCache } from "../../lib/public-cache";
 
 export const prerender = false;
+setPublicCache(Astro.response, 60, 600);
 
 const results = await getHistoricalResults();
 const seasons = buildLeagueHistory(results);

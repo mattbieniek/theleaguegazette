@@ -5,8 +5,10 @@ import { getHistoricalResults } from "../lib/queries/records";
 import { buildLeagueRecords } from "../lib/gazette/records";
 import LineupTable from "../components/LineupTable.astro";
 import { buildSeasonSlotRecords, getPlayerWeeklyScores } from "../lib/queries/playerScores";
+import { setPublicCache } from "../lib/public-cache";
 
 export const prerender = false;
+setPublicCache(Astro.response, 60, 600);
 
 const results = await getHistoricalResults();
 const records = buildLeagueRecords(results);

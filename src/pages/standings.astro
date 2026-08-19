@@ -5,8 +5,10 @@ import SeasonContext from "../components/SeasonContext.astro";
 import { buildStandingsThroughWeek } from "../lib/queries/standings";
 import { getHistoricalResults } from "../lib/queries/records";
 import { supabase } from "../lib/supabase";
+import { setPublicCache } from "../lib/public-cache";
 
 export const prerender = false;
+setPublicCache(Astro.response, 30, 300);
 const results = await getHistoricalResults();
 const { data: activeLeague } = await supabase
   .from("leagues")

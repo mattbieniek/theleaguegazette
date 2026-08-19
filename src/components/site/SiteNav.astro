@@ -73,11 +73,11 @@ function isCurrentPage(href: string) {
 </nav>
 
 <script>
-  import { supabaseBrowser } from "../../lib/supabase-browser";
-
   const accountLink = document.querySelector<HTMLAnchorElement>("[data-account-link]");
   const editorialLink = document.querySelector<HTMLAnchorElement>("[data-editorial-link]");
-  void supabaseBrowser.auth.getSession().then(async ({ data }) => {
+  async function personalizeNavigation() {
+    const { supabaseBrowser } = await import("../../lib/supabase-browser");
+    const { data } = await supabaseBrowser.auth.getSession();
     const user = data.session?.user;
     if (!user) return;
     if (accountLink) {
@@ -89,7 +89,16 @@ function isCurrentPage(href: string) {
       supabaseBrowser.from("publication_contributors").select("user_id").eq("user_id", user.id).maybeSingle(),
     ]);
     if (editorialLink && (admin || contributor)) editorialLink.hidden = false;
-  });
+  }
+
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+  };
+  if (idleWindow.requestIdleCallback) {
+    idleWindow.requestIdleCallback(() => void personalizeNavigation(), { timeout: 2000 });
+  } else {
+    window.setTimeout(() => void personalizeNavigation(), 250);
+  }
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;

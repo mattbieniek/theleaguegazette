@@ -7,8 +7,10 @@ import { getLatestPublishedPowerRanking } from "../../lib/queries/powerRankings"
 import ReadersPoll from "../../components/gazette/ReadersPoll.astro";
 import { getLatestReaderPollPreview } from "../../lib/queries/readerPoll";
 import { STORY_CATEGORIES, formatStoryCategory } from "../../lib/gazette/categories";
+import { setPublicCache } from "../../lib/public-cache";
 
 export const prerender = false;
+setPublicCache(Astro.response, 30, 300);
 
 const articles = await getPublishedArticles();
 const latestGazetteRanking = await getLatestPublishedPowerRanking();

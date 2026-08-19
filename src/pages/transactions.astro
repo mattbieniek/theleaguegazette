@@ -5,8 +5,10 @@ import TransactionCard from "../components/transactions/TransactionCard.astro";
 import { getTransactionArchive } from "../lib/queries/transactions";
 import { teams } from "../data/teams";
 import { transactionInvolvesTeam } from "../lib/gazette/transactionHighlights";
+import { setPublicCache } from "../lib/public-cache";
 
 export const prerender = false;
+setPublicCache(Astro.response, 60, 600);
 
 const archive = await getTransactionArchive();
 const seasons = [...new Set(archive.map((transaction) => transaction.seasonYear))].sort((a, b) => b - a);

@@ -7,8 +7,10 @@ import { getHistoricalResults } from "../../lib/queries/records";
 import { buildLeagueSeasonHistory } from "../../lib/gazette/history";
 import { formatTeamRecord } from "../../lib/gazette/statistics";
 import { supabase } from "../../lib/supabase";
+import { setPublicCache } from "../../lib/public-cache";
 
 export const prerender = false;
+setPublicCache(Astro.response, 3600, 86400);
 
 const requestedYear = Number(Astro.params.season);
 const results = await getHistoricalResults();

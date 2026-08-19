@@ -14,6 +14,26 @@ export interface GazetteArticle
   body: RichTextDocument;
 }
 
+export type GazetteArticleSummary = Pick<
+  GazetteArticleRow,
+  | "id"
+  | "slug"
+  | "category"
+  | "subcategory"
+  | "headline"
+  | "author_name"
+  | "summary"
+  | "image_url"
+  | "image_alt"
+  | "is_featured"
+  | "homepage_order"
+  | "published_at"
+  | "created_at"
+  | "updated_at"
+  | "status"
+  | "created_by"
+>;
+
 export const COMMISSIONERS_CORNER_CATEGORY = "Commissioner's Corner";
 
 function normalizeArticle(
@@ -25,12 +45,31 @@ function normalizeArticle(
   };
 }
 
+const articleSummarySelect = `
+  id,
+  slug,
+  category,
+  subcategory,
+  headline,
+  author_name,
+  summary,
+  image_url,
+  image_alt,
+  is_featured,
+  homepage_order,
+  published_at,
+  created_at,
+  updated_at,
+  status,
+  created_by
+`;
+
 export async function getPublishedArticles(): Promise<
-  GazetteArticle[]
+  GazetteArticleSummary[]
 > {
   const { data, error } = await supabase
     .from("gazette_articles")
-    .select("*")
+    .select(articleSummarySelect)
     .in("status", ["published", "scheduled"])
     .lte("published_at", new Date().toISOString())
     .order("published_at", {
@@ -44,15 +83,15 @@ export async function getPublishedArticles(): Promise<
     );
   }
 
-  return (data ?? []).map(normalizeArticle);
+  return (data ?? []) as GazetteArticleSummary[];
 }
 
 export async function getHomepageArticles(): Promise<
-  GazetteArticle[]
+  GazetteArticleSummary[]
 > {
   const { data, error } = await supabase
     .from("gazette_articles")
-    .select("*")
+    .select(articleSummarySelect)
     .in("status", ["published", "scheduled"])
     .lte("published_at", new Date().toISOString())
     .order("homepage_order", {
@@ -71,15 +110,15 @@ export async function getHomepageArticles(): Promise<
     );
   }
 
-  return (data ?? []).map(normalizeArticle);
+  return (data ?? []) as GazetteArticleSummary[];
 }
 
 export async function getCommissionersCornerArticles(
   limit = 3,
-): Promise<GazetteArticle[]> {
+): Promise<GazetteArticleSummary[]> {
   const { data, error } = await supabase
     .from("gazette_articles")
-    .select("*")
+    .select(articleSummarySelect)
     .eq("category", COMMISSIONERS_CORNER_CATEGORY)
     .in("status", ["published", "scheduled"])
     .lte("published_at", new Date().toISOString())
@@ -92,7 +131,7 @@ export async function getCommissionersCornerArticles(
     );
   }
 
-  return (data ?? []).map(normalizeArticle);
+  return (data ?? []) as GazetteArticleSummary[];
 }
 
 export async function getPublishedArticleBySlug(

@@ -19,11 +19,35 @@ import { getTransactionArchive } from "../lib/queries/transactions";
 import { getHomepageTransactionHighlights } from "../lib/gazette/transactionHighlights";
 import { getSeasonMatchups } from "../lib/queries/matchups";
 import { ACTIVE_SLEEPER_LEAGUE_ID } from "../lib/currentLeague";
+import { setPublicCache } from "../lib/public-cache";
 
 export const prerender = false;
+setPublicCache(Astro.response, 30, 300);
 
-const stories = await getHomepageArticles();
-const latestGazetteRanking = await getLatestPublishedPowerRanking();
+const currentYear = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  timeZone: "America/Chicago",
+}).format(new Date());
+
+const sleeperLeagueId = ACTIVE_SLEEPER_LEAGUE_ID;
+
+const [
+  stories,
+  latestGazetteRanking,
+  standings,
+  matchupWeeks,
+  awardsData,
+  historicalResults,
+  transactionArchive,
+] = await Promise.all([
+  getHomepageArticles(),
+  getLatestPublishedPowerRanking(),
+  sleeperLeagueId ? getSeasonStandings(sleeperLeagueId) : Promise.resolve([]),
+  sleeperLeagueId ? getSeasonMatchups(sleeperLeagueId) : Promise.resolve([]),
+  getAwardsPageData(),
+  getHistoricalResults(),
+  getTransactionArchive(),
+]);
 
 const leadStory =
   stories.find((story) => story.is_featured) ??
@@ -34,20 +58,6 @@ const secondaryStories = stories
   .filter((story) => story.id !== leadStory?.id)
   .slice(0, 2);
 
-const currentYear = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  timeZone: "America/Chicago",
-}).format(new Date());
-
-const sleeperLeagueId = ACTIVE_SLEEPER_LEAGUE_ID;
-
-const standings = sleeperLeagueId
-  ? await getSeasonStandings(sleeperLeagueId)
-  : [];
-
-const matchupWeeks = sleeperLeagueId
-  ? await getSeasonMatchups(sleeperLeagueId)
-  : [];
 const fullSlateSize = matchupWeeks.reduce(
   (largest, matchupWeek) => Math.max(largest, matchupWeek.matchups.length),
   0
@@ -58,7 +68,6 @@ const homepageMatchupWeek = [...matchupWeeks]
   matchupWeeks.at(-1) ??
   null;
 
-const awardsData = await getAwardsPageData();
 const weeklyAwards = awardsData.selectedOption
   ? buildWeeklyAwards(
       awardsData.results,
@@ -66,13 +75,12 @@ const weeklyAwards = awardsData.selectedOption
     )
   : [];
 
-const historicalResults = await getHistoricalResults();
 const leagueRecords = buildLeagueRecords(historicalResults);
 const reigningSeason = [...seasonHistoryMetadata]
   .filter((season) => season.champion)
   .sort((first, second) => second.year - first.year)[0] ?? null;
 const transactionHighlights = getHomepageTransactionHighlights(
-  await getTransactionArchive()
+  transactionArchive
 );
 ---
 

@@ -2,6 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { teams as leagueTeams } from "../data/teams";
 import { getHistoricalResults } from "../lib/queries/records";
+import { setPublicCache } from "../lib/public-cache";
 import {
   buildSeasonStatistics,
   formatTeamRecord,
@@ -9,6 +10,7 @@ import {
 } from "../lib/gazette/statistics";
 
 export const prerender = false;
+setPublicCache(Astro.response, 60, 600);
 
 const historicalResults = await getHistoricalResults();
 const seasons = [...new Set(
