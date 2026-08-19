@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "account-management",
+    date: "2026-08-19",
+    title: "Added administrator account management",
+    summary:
+      "Administrators can now review registered accounts in one place and remove an account when necessary.",
+    changes: [
+      "Added an Accounts area to the Editorial Desk with search, role badges, join dates, and contributor-access controls.",
+      "Added a confirmed administrator-only account deletion action while protecting the signed-in administrator from deleting their own account.",
+      "Kept published Gazette stories in place when an author's account is removed, while clearing the account's reader activity and comments.",
+      "Added a small featured-image reminder to the story editor and a safe self-service deletion path for reader-only accounts.",
+    ],
+  },
+  {
     id: "editorial-story-list-actions",
     date: "2026-08-19",
     title: "Made story-list management faster",

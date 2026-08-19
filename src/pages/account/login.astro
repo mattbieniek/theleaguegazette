@@ -15,6 +15,8 @@ import AccountCard from "../../components/account/AccountCard.astro";
   <script>
     import { supabaseBrowser } from "../../lib/supabase-browser";
     const form=document.querySelector<HTMLFormElement>("#login-form"),message=document.querySelector<HTMLElement>("#message"),button=form?.querySelector<HTMLButtonElement>("button");
+    const deletedMessage = new URLSearchParams(window.location.search).get("deleted");
+    if (deletedMessage === "1" && message) message.textContent = "Your reader account has been deleted.";
     void supabaseBrowser.auth.getSession().then(({data})=>{if(data.session)window.location.replace("/account")});
     form?.addEventListener("submit",async(event)=>{event.preventDefault();if(!message||!button)return;button.disabled=true;button.textContent="Signing in…";const email=document.querySelector<HTMLInputElement>("#email")?.value.trim()??"",password=document.querySelector<HTMLInputElement>("#password")?.value??"";const{error}=await supabaseBrowser.auth.signInWithPassword({email,password});if(error){message.dataset.error="true";message.textContent="Unable to sign in. Check your email and password.";button.disabled=false;button.textContent="Sign in";return}window.location.assign("/account")});
   </script>
