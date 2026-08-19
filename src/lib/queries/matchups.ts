@@ -90,11 +90,14 @@ async function loadMatchupLineups(matchupTeamIds: string[]) {
 }
 
 export async function getSeasonMatchups(
-  sleeperLeagueId?: string
+  sleeperLeagueId?: string,
+  seasonYear?: number | null
 ): Promise<MatchupWeek[]> {
   let query = supabase
     .from("team_weekly_results")
-    .select("*")
+    .select(
+      "matchup_id,week,sleeper_matchup_id,season_year,matchup_team_id,fantasy_team_id,team_name,points_for,starters_points,bench_points,result,is_winner,is_tie,sleeper_league_id"
+    )
     .not("week", "is", null)
     .not("matchup_id", "is", null)
     .order("week", {
@@ -109,6 +112,10 @@ export async function getSeasonMatchups(
     query = query.eq("sleeper_league_id", sleeperLeagueId);
   }
 
+  if (seasonYear !== null && seasonYear !== undefined) {
+    query = query.eq("season_year", seasonYear);
+  }
+
   const { data, error } = await query;
 
   if (error) {
@@ -117,7 +124,7 @@ export async function getSeasonMatchups(
     );
   }
 
-  const rows = data ?? [];
+  const rows = (data ?? []) as unknown as TeamWeeklyResult[];
 
   const matchupGroups = new Map<
     string,
@@ -228,6 +235,29 @@ export async function getSeasonMatchups(
         )
       ),
     }));
+}
+
+export async function getAvailableMatchupSeasons(): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("team_weekly_results")
+    .select("season_year")
+    .not("week", "is", null)
+    .not("matchup_id", "is", null);
+
+  if (error) {
+    throw new Error(`Unable to load matchup seasons: ${error.message}`);
+  }
+
+  return [
+    ...new Set([
+      ...(data ?? [])
+        .map((row) => row.season_year)
+        .filter((year): year is number => year !== null),
+      ...getLegacyMatchups()
+        .map((matchup) => matchup.seasonYear)
+        .filter((year): year is number => year !== null),
+    ]),
+  ].sort((a, b) => b - a);
 }
 
 export async function hydrateMatchupLineups(matchups: WeeklyMatchup[]) {

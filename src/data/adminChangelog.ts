@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "matchups-season-selector-empty-state",
+    date: "2026-08-19",
+    title: "Made the Matchups season picker easier to use",
+    summary:
+      "The Matchups page now opens on the newest season with recorded games and keeps the season controls visible when a season has not started yet.",
+    changes: [
+      "Stopped an upcoming season with no matchup results from replacing the useful historical view on the landing page.",
+      "Kept the current season in the season picker so readers can switch to it as soon as games are available.",
+      "Added a clear no-weeks message while keeping the season and week controls available for browsing.",
+    ],
+  },
+  {
     id: "public-page-performance-pass",
     date: "2026-08-19",
     title: "Made public pages load faster",

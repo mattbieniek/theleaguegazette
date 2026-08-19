@@ -2,27 +2,32 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import MatchupCard from "../components/matchups/MatchupCard.astro";
 import SeasonContext from "../components/SeasonContext.astro";
-import { getSeasonMatchups, hydrateMatchupLineups } from "../lib/queries/matchups";
+import {
+  getAvailableMatchupSeasons,
+  getSeasonMatchups,
+  hydrateMatchupLineups,
+} from "../lib/queries/matchups";
 import { supabase } from "../lib/supabase";
 import { setPublicCache } from "../lib/public-cache";
 
 export const prerender = false;
 setPublicCache(Astro.response, 30, 300);
 
-const allMatchupWeeks = await getSeasonMatchups();
-const { data: activeLeague } = await supabase
-  .from("leagues")
-  .select("season,current_week,last_synced_at")
-  .order("season", { ascending: false })
-  .limit(1)
-  .maybeSingle();
+const [{ data: activeLeague }, matchupSeasons] = await Promise.all([
+  supabase
+    .from("leagues")
+    .select("season,current_week,last_synced_at")
+    .order("season", { ascending: false })
+    .limit(1)
+    .maybeSingle(),
+  getAvailableMatchupSeasons(),
+]);
 
 const availableSeasons = [
-  ...new Set(
-    allMatchupWeeks
-      .map((matchupWeek) => matchupWeek.seasonYear)
-      .filter((year): year is number => year !== null)
-  ),
+  ...new Set([
+    ...matchupSeasons,
+    activeLeague?.season ?? null,
+  ].filter((year): year is number => year !== null)),
 ].sort((a, b) => b - a);
 
 const requestedSeason = Number(
@@ -33,7 +38,11 @@ const selectedSeason =
   Number.isInteger(requestedSeason) &&
   availableSeasons.includes(requestedSeason)
     ? requestedSeason
-    : availableSeasons[0] ?? null;
+    : matchupSeasons[0] ?? activeLeague?.season ?? null;
+
+const allMatchupWeeks = selectedSeason === null
+  ? []
+  : await getSeasonMatchups(undefined, selectedSeason);
 
 const matchupWeeks = allMatchupWeeks.filter(
   (matchupWeek) => matchupWeek.seasonYear === selectedSeason
@@ -205,8 +214,7 @@ function formatPoints(value: number): string {
     />
 
     {
-      selectedMatchupWeek ? (
-        <>
+      <>
           <section
             class="week-navigation"
             aria-label="Select matchup week"
@@ -215,7 +223,11 @@ function formatPoints(value: number): string {
               <p>Viewing</p>
 
               <h2>
-                Week {selectedMatchupWeek.week}
+                {
+                  selectedMatchupWeek
+                    ? `Week ${selectedMatchupWeek.week}`
+                    : "Select a season"
+                }
               </h2>
             </div>
 
@@ -255,20 +267,25 @@ function formatPoints(value: number): string {
                   id="matchup-week-select"
                   name="week"
                   aria-label="Select matchup week"
+                  disabled={availableWeeks.length === 0}
                 >
                   {
-                    [...availableWeeks]
-                      .reverse()
-                      .map((week) => (
-                        <option
-                          value={week}
-                          selected={
-                            week === selectedWeek
-                          }
-                        >
-                          Week {week}
-                        </option>
-                      ))
+                    availableWeeks.length > 0 ? (
+                      [...availableWeeks]
+                        .reverse()
+                        .map((week) => (
+                          <option
+                            value={week}
+                            selected={
+                              week === selectedWeek
+                            }
+                          >
+                            Week {week}
+                          </option>
+                        ))
+                    ) : (
+                      <option value="">No weeks available</option>
+                    )
                   }
                 </select>
               </label>
@@ -293,6 +310,8 @@ function formatPoints(value: number): string {
             </form>
           </section>
 
+          {selectedMatchupWeek ? (
+            <>
           <section
             class="week-summary"
             aria-label={`Week ${selectedMatchupWeek.week} summary`}
@@ -389,8 +408,8 @@ function formatPoints(value: number): string {
               }
             </div>
           </section>
-        </>
-      ) : (
+            </>
+          ) : (
         <section class="empty-state">
           <p class="eyebrow">
             Matchup Archive
@@ -403,7 +422,8 @@ function formatPoints(value: number): string {
             matchup data has been synchronized.
           </p>
         </section>
-      )
+          )}
+      </>
     }
   </div>
 
