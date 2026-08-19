@@ -180,6 +180,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       status: ArticleStatus;
       status_label: string;
       is_featured: boolean;
+      image_url: string | null;
       published_at: string | null;
       created_at: string;
       updated_at: string;
@@ -246,6 +247,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
     let searchUrlTimer: number | undefined;
     let isOpEdContributor = false;
     let currentUserId = "";
+    const IMAGE_BUCKET = "gazette-images";
 
     function normalizeText(value: string | null | undefined): string {
       return value?.trim() ?? "";
@@ -291,6 +293,107 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       }
 
       return `Updated ${formatDate(article.updated_at)}`;
+    }
+
+    function getStoragePathFromPublicUrl(imageUrl: string): string | null {
+      try {
+        const url = new URL(imageUrl);
+        const marker = `/storage/v1/object/public/${IMAGE_BUCKET}/`;
+        const markerIndex = url.pathname.indexOf(marker);
+
+        if (markerIndex === -1) {
+          return null;
+        }
+
+        return decodeURIComponent(url.pathname.slice(markerIndex + marker.length));
+      } catch {
+        return null;
+      }
+    }
+
+    async function removeStoryImage(
+      imageUrl: string | null,
+      articleId: string,
+    ): Promise<void> {
+      if (!imageUrl) {
+        return;
+      }
+
+      const storagePath = getStoragePathFromPublicUrl(imageUrl);
+
+      if (!storagePath) {
+        return;
+      }
+
+      const { count } = await supabaseBrowser
+        .from("gazette_articles")
+        .select("id", { count: "exact", head: true })
+        .eq("image_url", imageUrl)
+        .neq("id", articleId);
+
+      if ((count ?? 0) > 0) {
+        return;
+      }
+
+      const { error } = await supabaseBrowser.storage
+        .from(IMAGE_BUCKET)
+        .remove([storagePath]);
+
+      if (error) {
+        console.warn("Unable to remove the story's featured image.", error);
+      }
+    }
+
+    async function deleteStoryFromList(article: ArticleSummary): Promise<void> {
+      const headline = normalizeText(article.headline) || "Untitled story";
+      const confirmed = window.confirm(
+        `Permanently delete “${headline}”? This cannot be undone${
+          article.is_publicly_available
+            ? " and will remove the story from the public website"
+            : ""
+        }.`,
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      const deleteButton = document.querySelector<HTMLButtonElement>(
+        `[data-delete-story="${article.id}"]`,
+      );
+
+      if (deleteButton) {
+        deleteButton.disabled = true;
+        deleteButton.textContent = "Deleting…";
+      }
+
+      const { error } = await supabaseBrowser
+        .from("gazette_articles")
+        .delete()
+        .eq("id", article.id);
+
+      if (error) {
+        if (message) {
+          message.textContent = `Unable to delete the story: ${error.message}`;
+        }
+
+        if (deleteButton) {
+          deleteButton.disabled = false;
+          deleteButton.textContent = "Delete";
+        }
+
+        return;
+      }
+
+      await removeStoryImage(article.image_url, article.id);
+      articles = articles.filter((candidate) => candidate.id !== article.id);
+      updateSummaryCounts();
+      populateCategoryFilter();
+      renderStories();
+
+      if (message) {
+        message.textContent = `Deleted “${headline}”.`;
+      }
     }
 
     function createStoryRow(article: ArticleSummary): HTMLElement {
@@ -370,6 +473,20 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       }
 
       if (!isOpEdContributor || contributorCanEdit) actions.append(editAction);
+
+      if (!isOpEdContributor) {
+        const deleteAction = document.createElement("button");
+        deleteAction.type = "button";
+        deleteAction.className = "story-row__delete";
+        deleteAction.dataset.deleteStory = article.id;
+        deleteAction.textContent = "Delete";
+        deleteAction.setAttribute("aria-label", `Delete ${headlineText}`);
+        deleteAction.addEventListener("click", () => {
+          void deleteStoryFromList(article);
+        });
+        actions.append(deleteAction);
+      }
+
       row.append(main, status, actions);
 
       return row;
@@ -486,6 +603,18 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         getSelectedSort() !== "updated-desc";
 
       clearFiltersButton.hidden = !hasActiveControls;
+    }
+
+    function updateSummaryCounts(): void {
+      const countByStatus = (status: ArticleStatus): number =>
+        articles.filter((article) => article.status === status).length;
+
+      if (allCount) allCount.textContent = String(articles.length);
+      if (draftCount) draftCount.textContent = String(countByStatus("draft"));
+      if (reviewCount) reviewCount.textContent = String(countByStatus("ready_for_review"));
+      if (scheduledCount) scheduledCount.textContent = String(countByStatus("scheduled"));
+      if (publishedCount) publishedCount.textContent = String(countByStatus("published"));
+      if (archivedCount) archivedCount.textContent = String(countByStatus("archived"));
     }
 
     function renderStories(): void {
@@ -747,6 +876,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
             status,
             status_label,
             is_featured,
+            image_url,
             published_at,
             created_at,
             updated_at,
@@ -810,32 +940,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
           })) as ArticleSummary[])
         : ((data ?? []) as ArticleSummary[]);
 
-      if (allCount) {
-        allCount.textContent = String(articles.length);
-      }
-
-      const countByStatus = (status: ArticleStatus): number =>
-        articles.filter((article) => article.status === status).length;
-
-      if (draftCount) {
-        draftCount.textContent = String(countByStatus("draft"));
-      }
-
-      if (reviewCount) {
-        reviewCount.textContent = String(countByStatus("ready_for_review"));
-      }
-
-      if (scheduledCount) {
-        scheduledCount.textContent = String(countByStatus("scheduled"));
-      }
-
-      if (publishedCount) {
-        publishedCount.textContent = String(countByStatus("published"));
-      }
-
-      if (archivedCount) {
-        archivedCount.textContent = String(countByStatus("archived"));
-      }
+      updateSummaryCounts();
 
       populateCategoryFilter();
       applyStateFromUrl();
@@ -1243,16 +1348,61 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 
   :global(.story-row__actions) {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: var(--space-3);
   }
 
-  :global(.story-row__actions) a {
+  :global(.story-row__actions) a,
+  :global(.story-row__actions) button {
+    display: inline-flex;
+    min-height: 2.35rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: var(--color-paper-light);
     color: var(--color-green);
-    font-size: var(--text-sm);
+    font: inherit;
+    font-size: 0.78rem;
     font-weight: 750;
     text-decoration: none;
     white-space: nowrap;
+    transition:
+      border-color 150ms ease,
+      background 150ms ease,
+      color 150ms ease,
+      transform 150ms ease;
+  }
+
+  :global(.story-row__actions) a:hover {
+    border-color: var(--color-green);
+    background: var(--color-green-faint);
+    color: var(--color-green);
+    text-decoration: none;
+    transform: translateY(-1px);
+  }
+
+  :global(.story-row__actions) button {
+    border-color: #d7b0aa;
+    background: #fff8f5;
+    color: #9a3d34;
+    cursor: pointer;
+  }
+
+  :global(.story-row__actions) button:hover {
+    border-color: #b9685e;
+    background: #f9ece9;
+    color: #71251f;
+    transform: translateY(-1px);
+  }
+
+  :global(.story-row__actions) button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+    transform: none;
   }
 
   :global(.story-row__actions) a:hover {

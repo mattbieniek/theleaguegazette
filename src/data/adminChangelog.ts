@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "editorial-story-list-actions",
+    date: "2026-08-19",
+    title: "Made story-list management faster",
+    summary:
+      "Administrators can now permanently delete stories directly from the editorial story list without opening each story first.",
+    changes: [
+      "Added a confirmed Delete action to administrator story rows, including cleanup for an unused featured image.",
+      "Kept deletion controls hidden from Op-Ed contributors, who can still manage stories within their existing permissions.",
+      "Restyled Edit, View live, and Delete actions as clearer pill-shaped controls with distinct danger styling.",
+    ],
+  },
+  {
     id: "teams-complete-former-names",
     date: "2026-08-18",
     title: "Cleaned up former team names",
