@@ -84,7 +84,7 @@ const featuredTeams = featuredMatchup
           {matchupWeek.matchups.length} completed {matchupWeek.matchups.length === 1 ? "matchup" : "matchups"}
           {" "}from the latest full league slate.
         </p>
-        <a href={`/matchups?week=${matchupWeek.week}`}>
+        <a href={`/matchups?season=${matchupWeek.seasonYear}&week=${matchupWeek.week}`}>
           Full week coverage <span aria-hidden="true">→</span>
         </a>
       </div>
@@ -125,7 +125,7 @@ const featuredTeams = featuredMatchup
           })}
         </div>
 
-        <a class="featured-matchup__link" href={`/matchups?week=${matchupWeek.week}`}>
+        <a class="featured-matchup__link" href={`/matchups?season=${matchupWeek.seasonYear}&week=${matchupWeek.week}`}>
           Read the complete scoreboard <span aria-hidden="true">→</span>
         </a>
       </article>

@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "homepage-completed-season-fallback",
+    date: "2026-08-20",
+    title: "Kept the homepage useful before the new season begins",
+    summary:
+      "The homepage now shows the latest completed season’s scoreboard and standings until the active season has recorded results.",
+    changes: [
+      "Added a shared check for active-season matchup and standings data before choosing the homepage league snapshot.",
+      "Falls back to the most recent completed season instead of mixing older legacy matchups into the upcoming season view.",
+      "Kept scoreboard links pointed at the season they are actually showing.",
+    ],
+  },
+  {
     id: "article-editor-rich-text-upgrades",
     date: "2026-08-19",
     title: "Added more ways to shape a story",

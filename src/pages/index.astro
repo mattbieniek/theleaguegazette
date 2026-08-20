@@ -9,7 +9,6 @@ import LeagueOverview from "../components/home/LeagueOverview.astro";
 import LeagueNotebook from "../components/home/LeagueNotebook.astro";
 import LeagueWire from "../components/home/LeagueWire.astro";
 import WeeklyScoreboard from "../components/home/WeeklyScoreboard.astro";
-import { getSeasonStandings } from "../lib/queries/standings";
 import { getAwardsPageData } from "../lib/queries/awards";
 import { buildWeeklyAwards } from "../lib/gazette/awards";
 import { getHistoricalResults } from "../lib/queries/records";
@@ -17,7 +16,7 @@ import { buildLeagueRecords } from "../lib/gazette/records";
 import { seasonHistoryMetadata } from "../data/seasonHistory";
 import { getTransactionArchive } from "../lib/queries/transactions";
 import { getHomepageTransactionHighlights } from "../lib/gazette/transactionHighlights";
-import { getSeasonMatchups } from "../lib/queries/matchups";
+import { getHomepageLeagueData } from "../lib/queries/homepage";
 import { ACTIVE_SLEEPER_LEAGUE_ID } from "../lib/currentLeague";
 import { setPublicCache } from "../lib/public-cache";
 
@@ -34,20 +33,28 @@ const sleeperLeagueId = ACTIVE_SLEEPER_LEAGUE_ID;
 const [
   stories,
   latestGazetteRanking,
-  standings,
-  matchupWeeks,
+  homepageLeagueData,
   awardsData,
   historicalResults,
   transactionArchive,
 ] = await Promise.all([
   getHomepageArticles(),
   getLatestPublishedPowerRanking(),
-  sleeperLeagueId ? getSeasonStandings(sleeperLeagueId) : Promise.resolve([]),
-  sleeperLeagueId ? getSeasonMatchups(sleeperLeagueId) : Promise.resolve([]),
+  sleeperLeagueId
+    ? getHomepageLeagueData(sleeperLeagueId)
+    : Promise.resolve({
+        standings: [],
+        matchupWeeks: [],
+        seasonYear: null,
+        usedFallback: false,
+      }),
   getAwardsPageData(),
   getHistoricalResults(),
   getTransactionArchive(),
 ]);
+
+const standings = homepageLeagueData.standings;
+const matchupWeeks = homepageLeagueData.matchupWeeks;
 
 const leadStory =
   stories.find((story) => story.is_featured) ??
