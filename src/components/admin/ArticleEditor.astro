@@ -173,6 +173,17 @@ const editorMode = articleId ? "edit" : "create";
                 <button
                   type="button"
                   class="editor-toolbar__button"
+                  data-editor-command="strike"
+                  aria-label="Strikethrough"
+                  aria-pressed="false"
+                  title="Strikethrough"
+                >
+                  <s>S</s>
+                </button>
+
+                <button
+                  type="button"
+                  class="editor-toolbar__button"
                   data-editor-command="link"
                   aria-label="Add or edit link"
                   aria-pressed="false"
@@ -189,6 +200,17 @@ const editorMode = articleId ? "edit" : "create";
                   title="Insert image from the Photo Desk"
                 >
                   Image
+                </button>
+
+                <button
+                  type="button"
+                  class="editor-toolbar__button"
+                  data-editor-command="image-caption"
+                  aria-label="Edit image caption"
+                  title="Edit selected image caption"
+                  disabled
+                >
+                  Caption
                 </button>
               </div>
 
@@ -215,6 +237,40 @@ const editorMode = articleId ? "edit" : "create";
                   title="Heading level 3"
                 >
                   H3
+                </button>
+              </div>
+
+              <div class="editor-toolbar__divider" aria-hidden="true"></div>
+
+              <div class="editor-toolbar__group" aria-label="Text alignment">
+                <button
+                  type="button"
+                  class="editor-toolbar__button"
+                  data-editor-command="align-left"
+                  aria-label="Align text left"
+                  title="Align left"
+                >
+                  L
+                </button>
+
+                <button
+                  type="button"
+                  class="editor-toolbar__button"
+                  data-editor-command="align-center"
+                  aria-label="Center text"
+                  title="Align center"
+                >
+                  C
+                </button>
+
+                <button
+                  type="button"
+                  class="editor-toolbar__button"
+                  data-editor-command="align-right"
+                  aria-label="Align text right"
+                  title="Align right"
+                >
+                  R
                 </button>
               </div>
 
@@ -252,6 +308,16 @@ const editorMode = articleId ? "edit" : "create";
                   title="Blockquote"
                 >
                   Quote
+                </button>
+
+                <button
+                  type="button"
+                  class="editor-toolbar__button"
+                  data-editor-command="pull-quote"
+                  aria-label="Pull quote"
+                  title="Insert pull quote"
+                >
+                  Pull quote
                 </button>
 
                 <button
@@ -295,8 +361,9 @@ const editorMode = articleId ? "edit" : "create";
           </div>
 
           <p class="editor-field-help">
-            Use the toolbar to add headings, emphasis, links, lists, quotes, and
-            section dividers. Changes autosave after the story has been created.
+            Use the toolbar to add headings, emphasis, alignment, links, image
+            captions, lists, pull quotes, and section dividers. Changes autosave
+            after the story has been created.
           </p>
         </section>
       </main>
@@ -727,6 +794,7 @@ const editorMode = articleId ? "edit" : "create";
   import { Editor, Mark, Node, mergeAttributes } from "@tiptap/core";
   import StarterKit from "@tiptap/starter-kit";
   import Link from "@tiptap/extension-link";
+  import TextAlign from "@tiptap/extension-text-align";
   import { supabaseBrowser } from "../../lib/supabase-browser";
   import {
     bodyHasContent,
@@ -1062,9 +1130,66 @@ const editorMode = articleId ? "edit" : "create";
       src: { default: null },
       alt: { default: "" },
       title: { default: null },
+      caption: { default: "" },
     }),
-    parseHTML: () => [{ tag: "img[src]" }],
-    renderHTML: ({ HTMLAttributes }) => ["img", mergeAttributes(HTMLAttributes, { loading: "lazy" })],
+    parseHTML: () => [
+      {
+        tag: "figure[data-inline-image]",
+        getAttrs: (dom) => {
+          const figure = dom as HTMLElement;
+          const image = figure.querySelector("img");
+          return {
+            src: image?.getAttribute("src"),
+            alt: image?.getAttribute("alt") ?? "",
+            title: image?.getAttribute("title"),
+            caption: figure.querySelector("figcaption")?.textContent?.trim() ?? "",
+          };
+        },
+      },
+      {
+        tag: "img[src]",
+        getAttrs: (dom) => {
+          const image = dom as HTMLImageElement;
+          return {
+            src: image.getAttribute("src"),
+            alt: image.getAttribute("alt") ?? "",
+            title: image.getAttribute("title"),
+            caption: "",
+          };
+        },
+      },
+    ],
+    renderHTML: ({ HTMLAttributes }) => {
+      const { src, alt, title, caption } = HTMLAttributes;
+      const imageAttributes = {
+        src,
+        alt: alt ?? "",
+        ...(title ? { title } : {}),
+        loading: "lazy",
+      };
+      const children = [
+        ["img", imageAttributes],
+        ...(caption ? [["figcaption", {}, caption]] : []),
+      ];
+      return [
+        "figure",
+        { "data-inline-image": "true" },
+        ...children,
+      ];
+    },
+  });
+
+  const PullQuote = Node.create({
+    name: "pullQuote",
+    group: "block",
+    content: "inline*",
+    defining: true,
+    parseHTML: () => [{ tag: "aside[data-pull-quote]" }],
+    renderHTML: ({ HTMLAttributes }) => [
+      "aside",
+      mergeAttributes(HTMLAttributes, { "data-pull-quote": "true" }),
+      0,
+    ],
   });
 
   function slugify(value: string): string {
@@ -1641,8 +1766,20 @@ const editorMode = articleId ? "edit" : "create";
           isActive = richTextEditor.isActive("italic");
           break;
 
+        case "underline":
+          isActive = richTextEditor.isActive("underline");
+          break;
+
+        case "strike":
+          isActive = richTextEditor.isActive("strike");
+          break;
+
         case "link":
           isActive = richTextEditor.isActive("link");
+          break;
+
+        case "image-caption":
+          isDisabled = !richTextEditor.isActive("image");
           break;
 
         case "heading-2":
@@ -1651,6 +1788,18 @@ const editorMode = articleId ? "edit" : "create";
 
         case "heading-3":
           isActive = richTextEditor.isActive("heading", { level: 3 });
+          break;
+
+        case "align-left":
+          isActive = richTextEditor.isActive({ textAlign: "left" });
+          break;
+
+        case "align-center":
+          isActive = richTextEditor.isActive({ textAlign: "center" });
+          break;
+
+        case "align-right":
+          isActive = richTextEditor.isActive({ textAlign: "right" });
           break;
 
         case "bullet-list":
@@ -1663,6 +1812,10 @@ const editorMode = articleId ? "edit" : "create";
 
         case "blockquote":
           isActive = richTextEditor.isActive("blockquote");
+          break;
+
+        case "pull-quote":
+          isActive = richTextEditor.isActive("pullQuote");
           break;
 
         case "undo":
@@ -1724,6 +1877,28 @@ const editorMode = articleId ? "edit" : "create";
       .run();
   }
 
+  function editSelectedImageCaption(): void {
+    if (!richTextEditor || !richTextEditor.isActive("image")) {
+      return;
+    }
+
+    const currentCaption = richTextEditor.getAttributes("image").caption ?? "";
+    const enteredCaption = window.prompt(
+      "Add an optional caption for this image:",
+      typeof currentCaption === "string" ? currentCaption : "",
+    );
+
+    if (enteredCaption === null) {
+      return;
+    }
+
+    richTextEditor
+      .chain()
+      .focus()
+      .updateAttributes("image", { caption: enteredCaption.trim() })
+      .run();
+  }
+
   function runEditorCommand(command: string): void {
     if (!richTextEditor) {
       return;
@@ -1736,6 +1911,10 @@ const editorMode = articleId ? "edit" : "create";
 
       case "italic":
         richTextEditor.chain().focus().toggleItalic().run();
+        break;
+
+      case "strike":
+        richTextEditor.chain().focus().toggleStrike().run();
         break;
 
       case "underline":
@@ -1751,12 +1930,28 @@ const editorMode = articleId ? "edit" : "create";
         void openImageLibrary();
         break;
 
+      case "image-caption":
+        editSelectedImageCaption();
+        break;
+
       case "heading-2":
         richTextEditor.chain().focus().toggleHeading({ level: 2 }).run();
         break;
 
       case "heading-3":
         richTextEditor.chain().focus().toggleHeading({ level: 3 }).run();
+        break;
+
+      case "align-left":
+        richTextEditor.chain().focus().setTextAlign("left").run();
+        break;
+
+      case "align-center":
+        richTextEditor.chain().focus().setTextAlign("center").run();
+        break;
+
+      case "align-right":
+        richTextEditor.chain().focus().setTextAlign("right").run();
         break;
 
       case "bullet-list":
@@ -1769,6 +1964,17 @@ const editorMode = articleId ? "edit" : "create";
 
       case "blockquote":
         richTextEditor.chain().focus().toggleBlockquote().run();
+        break;
+
+      case "pull-quote":
+        richTextEditor
+          .chain()
+          .focus()
+          .insertContent({
+            type: "pullQuote",
+            content: [{ type: "text", text: "Write a standout quote…" }],
+          })
+          .run();
         break;
 
       case "horizontal-rule":
@@ -1813,8 +2019,12 @@ const editorMode = articleId ? "edit" : "create";
             target: "_blank",
           },
         }),
+        TextAlign.configure({
+          types: ["heading", "paragraph", "blockquote", "pullQuote"],
+        }),
         UnderlineMark,
         InlineImage,
+        PullQuote,
       ],
 
       content: normalizeArticleBody(null),
@@ -1994,9 +2204,18 @@ const editorMode = articleId ? "edit" : "create";
       button.append(preview, copy);
       button.addEventListener("click", () => {
         if (imageLibraryMode === "inline") {
+          const caption = window.prompt(
+            "Add an optional caption for this image:",
+            image.headline,
+          ) ?? "";
           richTextEditor?.chain().focus().insertContent({
             type: "image",
-            attrs: { src: image.image_url, alt: image.image_alt ?? "", title: image.headline },
+            attrs: {
+              src: image.image_url,
+              alt: image.image_alt ?? "",
+              title: image.headline,
+              caption: caption.trim(),
+            },
           }).run();
           scheduleAutosave();
         } else {
@@ -3027,7 +3246,11 @@ const editorMode = articleId ? "edit" : "create";
     if (error) { setImageUploadStatus(`Unable to upload image: ${error.message}`, "error"); return; }
     const { data } = supabaseBrowser.storage.from(IMAGE_BUCKET).getPublicUrl(storagePath);
     const alt = window.prompt("Describe this image for readers using screen readers:", "") ?? "";
-    richTextEditor?.chain().focus().insertContent({ type: "image", attrs: { src: data.publicUrl, alt } }).run();
+    const caption = window.prompt("Add an optional caption for this image:", "") ?? "";
+    richTextEditor?.chain().focus().insertContent({
+      type: "image",
+      attrs: { src: data.publicUrl, alt, caption: caption.trim() },
+    }).run();
     scheduleAutosave();
     imageLibraryDialog?.close();
     setImageUploadStatus("Image uploaded and added to the story.", "success");
@@ -3833,6 +4056,50 @@ const editorMode = articleId ? "edit" : "create";
     font-style: italic;
   }
 
+  .body-editor :global(.ProseMirror aside[data-pull-quote]) {
+    margin: 2em 0;
+    padding: 1.25rem 1.5rem;
+    border-block: 3px double var(--color-green);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: 1.45em;
+    font-weight: 750;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .body-editor :global(.ProseMirror aside[data-pull-quote] p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .body-editor :global(.ProseMirror figure[data-inline-image]) {
+    width: min(100%, 56rem);
+    margin: 2rem auto;
+  }
+
+  .body-editor :global(.ProseMirror figure[data-inline-image] img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+  }
+
+  .body-editor :global(.ProseMirror figcaption) {
+    margin-top: 0.5rem;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.65em;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    text-align: center;
+  }
+
+  .body-editor :global(.ProseMirror s) {
+    text-decoration-thickness: 0.08em;
+    text-decoration-color: var(--color-green);
+  }
+
   .body-editor :global(.ProseMirror a) {
     color: var(--color-green);
     font-weight: 700;
@@ -4330,6 +4597,38 @@ const editorMode = articleId ? "edit" : "create";
     color: var(--color-ink-soft);
     font-size: 1.15em;
     font-style: italic;
+  }
+
+  .story-preview__body :global(aside[data-pull-quote]) {
+    margin: 2.5em 0;
+    padding: 1.25rem 1.5rem;
+    border-block: 3px double var(--color-green);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: 1.35em;
+    font-weight: 750;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .story-preview__body :global(figure[data-inline-image]) {
+    margin: 2rem 0;
+  }
+
+  .story-preview__body :global(figure[data-inline-image] img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+  }
+
+  .story-preview__body :global(figcaption) {
+    margin-top: 0.5rem;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.65em;
+    text-align: center;
   }
 
   .story-preview__body :global(a) {

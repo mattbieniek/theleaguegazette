@@ -115,6 +115,7 @@ export function getPlainTextFromNode(
         node.type === "paragraph" ||
         node.type === "heading" ||
         node.type === "blockquote" ||
+        node.type === "pullQuote" ||
         node.type === "listItem"
         ? "\n"
         : ""

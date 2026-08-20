@@ -3,6 +3,7 @@ import { generateHTML } from "@tiptap/html/server";
 import { Mark, Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
 import type {
   RichTextDocument,
 } from "../../lib/gazette/articleBody";
@@ -23,9 +24,58 @@ const InlineImage = Node.create({
   name: "image",
   group: "block",
   atom: true,
-  addAttributes: () => ({ src: { default: null }, alt: { default: "" }, title: { default: null } }),
-  parseHTML: () => [{ tag: "img[src]" }],
-  renderHTML: ({ HTMLAttributes }) => ["img", mergeAttributes(HTMLAttributes, { loading: "lazy" })],
+  addAttributes: () => ({
+    src: { default: null },
+    alt: { default: "" },
+    title: { default: null },
+    caption: { default: "" },
+  }),
+  parseHTML: () => [
+    {
+      tag: "figure[data-inline-image]",
+      getAttrs: (dom) => {
+        const figure = dom as HTMLElement;
+        const image = figure.querySelector("img");
+        return {
+          src: image?.getAttribute("src"),
+          alt: image?.getAttribute("alt") ?? "",
+          title: image?.getAttribute("title"),
+          caption: figure.querySelector("figcaption")?.textContent?.trim() ?? "",
+        };
+      },
+    },
+    { tag: "img[src]" },
+  ],
+  renderHTML: ({ HTMLAttributes }) => {
+    const { src, alt, title, caption } = HTMLAttributes;
+    return [
+      "figure",
+      { "data-inline-image": "true" },
+      [
+        "img",
+        {
+          src,
+          alt: alt ?? "",
+          ...(title ? { title } : {}),
+          loading: "lazy",
+        },
+      ],
+      ...(caption ? [["figcaption", {}, caption]] : []),
+    ];
+  },
+});
+
+const PullQuote = Node.create({
+  name: "pullQuote",
+  group: "block",
+  content: "inline*",
+  defining: true,
+  parseHTML: () => [{ tag: "aside[data-pull-quote]" }],
+  renderHTML: ({ HTMLAttributes }) => [
+    "aside",
+    mergeAttributes(HTMLAttributes, { "data-pull-quote": "true" }),
+    0,
+  ],
 });
 
 const html = generateHTML(body, [
@@ -41,8 +91,12 @@ const html = generateHTML(body, [
       rel: "noopener noreferrer",
     },
   }),
+  TextAlign.configure({
+    types: ["heading", "paragraph", "blockquote", "pullQuote"],
+  }),
   UnderlineMark,
   InlineImage,
+  PullQuote,
 ]);
 ---
 
@@ -66,6 +120,26 @@ const html = generateHTML(body, [
     height: auto;
     margin: 2rem auto;
     border-radius: var(--radius-md);
+  }
+
+  .article-rich-text :global(figure[data-inline-image]) {
+    width: min(100%, 56rem);
+    margin: 2rem auto;
+  }
+
+  .article-rich-text :global(figure[data-inline-image] img) {
+    width: 100%;
+    margin: 0;
+  }
+
+  .article-rich-text :global(figcaption) {
+    margin-top: 0.55rem;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    letter-spacing: 0.025em;
+    line-height: 1.45;
+    text-align: center;
   }
 
   .article-rich-text :global(h2),
@@ -116,6 +190,23 @@ const html = generateHTML(body, [
     margin-bottom: 0;
   }
 
+  .article-rich-text :global(aside[data-pull-quote]) {
+    margin: 2.5em 0;
+    padding: 1.35rem 1.5rem 1.45rem;
+    border-block: 3px double var(--color-green);
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: clamp(1.5rem, 3vw, 2.35rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .article-rich-text :global(aside[data-pull-quote] p:last-child) {
+    margin-bottom: 0;
+  }
+
   .article-rich-text :global(a) {
     color: var(--color-green);
     font-weight: 650;
@@ -126,6 +217,11 @@ const html = generateHTML(body, [
   .article-rich-text :global(strong) {
     color: var(--color-ink);
     font-weight: 750;
+  }
+
+  .article-rich-text :global(s) {
+    text-decoration-thickness: 0.08em;
+    text-decoration-color: var(--color-green);
   }
 
   .article-rich-text :global(code) {

@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "article-editor-rich-text-upgrades",
+    date: "2026-08-19",
+    title: "Added more ways to shape a story",
+    summary:
+      "The Article Editor now gives writers more control over emphasis, layout, image context, and standout quotes.",
+    changes: [
+      "Added left, center, and right text alignment plus strikethrough formatting.",
+      "Added optional captions to inline images, with an edit action for selected artwork.",
+      "Added a styled pull-quote block for important lines or memorable remarks.",
+      "Updated public stories and the editor preview so the new formats look consistent for readers.",
+    ],
+  },
+  {
     id: "matchups-season-selector-empty-state",
     date: "2026-08-19",
     title: "Made the Matchups season picker easier to use",
