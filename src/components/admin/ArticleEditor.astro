@@ -212,6 +212,18 @@ const editorMode = articleId ? "edit" : "create";
                 >
                   Caption
                 </button>
+
+                <label class="editor-toolbar__image-size">
+                  <span class="sr-only">Image size</span>
+                  <select id="image-size-control" aria-label="Image size" disabled>
+                    <option value="auto">Image size</option>
+                    <option value="40%">Small · 40%</option>
+                    <option value="60%">Medium · 60%</option>
+                    <option value="80%">Large · 80%</option>
+                    <option value="100%">Full width</option>
+                    <option value="custom">Custom…</option>
+                  </select>
+                </label>
               </div>
 
               <div class="editor-toolbar__divider" aria-hidden="true"></div>
@@ -362,8 +374,8 @@ const editorMode = articleId ? "edit" : "create";
 
           <p class="editor-field-help">
             Use the toolbar to add headings, emphasis, alignment, links, image
-            captions, lists, pull quotes, and section dividers. Changes autosave
-            after the story has been created.
+            captions, image sizes, lists, pull quotes, and section dividers.
+            Changes autosave after the story has been created.
           </p>
         </section>
       </main>
@@ -937,6 +949,7 @@ const editorMode = articleId ? "edit" : "create";
   const imageLibraryMessage = document.querySelector<HTMLElement>("#image-library-message");
   const uploadLibraryImageButton = document.querySelector<HTMLButtonElement>("#upload-library-image");
   const inlineImageFileInput = document.querySelector<HTMLInputElement>("#inline-image-file");
+  const imageSizeControl = document.querySelector<HTMLSelectElement>("#image-size-control");
 
   const removeImageButton = document.querySelector<HTMLButtonElement>(
     "#remove-image-button",
@@ -1102,6 +1115,21 @@ const editorMode = articleId ? "edit" : "create";
     "image/webp",
   ]);
 
+  function normalizeInlineImageWidth(value: unknown): string | null {
+    const raw = String(value ?? "").trim().toLowerCase();
+
+    if (!raw || raw === "auto") {
+      return null;
+    }
+
+    const match = raw.match(/^(\d+(?:\.\d+)?)%?$/);
+    const numeric = match ? Number(match[1]) : Number.NaN;
+
+    return Number.isFinite(numeric) && numeric >= 25 && numeric <= 100
+      ? `${numeric}%`
+      : null;
+  }
+
   let isUploadingImage = false;
   let currentUserId = "";
   let currentUserEmail = "";
@@ -1136,6 +1164,7 @@ const editorMode = articleId ? "edit" : "create";
       alt: { default: "" },
       title: { default: null },
       caption: { default: "" },
+      width: { default: null },
     }),
     parseHTML: () => [
       {
@@ -1148,6 +1177,7 @@ const editorMode = articleId ? "edit" : "create";
             alt: image?.getAttribute("alt") ?? "",
             title: image?.getAttribute("title"),
             caption: figure.querySelector("figcaption")?.textContent?.trim() ?? "",
+            width: figure.getAttribute("data-image-width"),
           };
         },
       },
@@ -1160,12 +1190,14 @@ const editorMode = articleId ? "edit" : "create";
             alt: image.getAttribute("alt") ?? "",
             title: image.getAttribute("title"),
             caption: "",
+            width: image.getAttribute("data-image-width"),
           };
         },
       },
     ],
     renderHTML: ({ HTMLAttributes }) => {
-      const { src, alt, title, caption } = HTMLAttributes;
+      const { src, alt, title, caption, width: rawWidth } = HTMLAttributes;
+      const width = normalizeInlineImageWidth(rawWidth);
       const imageAttributes = {
         src,
         alt: alt ?? "",
@@ -1178,7 +1210,12 @@ const editorMode = articleId ? "edit" : "create";
       ];
       return [
         "figure",
-        { "data-inline-image": "true" },
+        {
+          "data-inline-image": "true",
+          ...(width
+            ? { "data-image-width": width, style: `width: ${width}` }
+            : {}),
+        },
         ...children,
       ];
     },
@@ -1756,6 +1793,37 @@ const editorMode = articleId ? "edit" : "create";
       return;
     }
 
+    const imageIsActive = richTextEditor.isActive("image");
+
+    if (imageSizeControl) {
+      imageSizeControl.disabled = !imageIsActive;
+
+      if (imageIsActive) {
+        const width = normalizeInlineImageWidth(
+          richTextEditor.getAttributes("image").width,
+        );
+        const matchingOption = width
+          ? Array.from(imageSizeControl.options).find(
+              (option) => option.value === width,
+            )
+          : null;
+
+        if (width && !matchingOption) {
+          const customOption = imageSizeControl.querySelector(
+            'option[value="custom"]',
+          );
+          const option = document.createElement("option");
+          option.value = width;
+          option.textContent = `Custom · ${width}`;
+          imageSizeControl.insertBefore(option, customOption ?? null);
+        }
+
+        imageSizeControl.value = width ?? "auto";
+      } else {
+        imageSizeControl.value = "auto";
+      }
+    }
+
     for (const button of editorToolbarButtons) {
       const command = button.dataset.editorCommand;
 
@@ -1901,6 +1969,64 @@ const editorMode = articleId ? "edit" : "create";
       .chain()
       .focus()
       .updateAttributes("image", { caption: enteredCaption.trim() })
+      .run();
+  }
+
+  function editSelectedImageSize(): void {
+    if (!richTextEditor || !richTextEditor.isActive("image") || !imageSizeControl) {
+      return;
+    }
+
+    if (imageSizeControl.value === "custom") {
+      const currentWidth = normalizeInlineImageWidth(
+        richTextEditor.getAttributes("image").width,
+      );
+      const enteredWidth = window.prompt(
+        "Choose an image width from 25% to 100%:",
+        currentWidth?.replace("%", "") ?? "70",
+      );
+      const width = normalizeInlineImageWidth(enteredWidth);
+
+      if (enteredWidth === null) {
+        updateToolbarState();
+        return;
+      }
+
+      if (!width) {
+        setMessage("Enter a width between 25% and 100%.", "error");
+        updateToolbarState();
+        return;
+      }
+
+      const customOption = imageSizeControl.querySelector(
+        `option[value="${width}"]`,
+      );
+
+      if (!customOption) {
+        const option = document.createElement("option");
+        option.value = width;
+        option.textContent = `Custom · ${width}`;
+        imageSizeControl.insertBefore(
+          option,
+          imageSizeControl.querySelector('option[value="custom"]'),
+        );
+      }
+
+      imageSizeControl.value = width;
+      richTextEditor
+        .chain()
+        .focus()
+        .updateAttributes("image", { width })
+        .run();
+      return;
+    }
+
+    const width = normalizeInlineImageWidth(imageSizeControl.value);
+
+    richTextEditor
+      .chain()
+      .focus()
+      .updateAttributes("image", { width })
       .run();
   }
 
@@ -3505,6 +3631,7 @@ const editorMode = articleId ? "edit" : "create";
   });
   closeImageLibraryButton?.addEventListener("click", () => imageLibraryDialog?.close());
   imageLibrarySearch?.addEventListener("input", renderImageLibrary);
+  imageSizeControl?.addEventListener("change", editSelectedImageSize);
 
   imageFileInput?.addEventListener("change", () => {
     const file = imageFileInput.files?.[0];
@@ -4032,6 +4159,35 @@ const editorMode = articleId ? "edit" : "create";
     opacity: 0.35;
   }
 
+  .editor-toolbar__image-size {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .editor-toolbar__image-size select {
+    min-height: 2.25rem;
+    padding: 0.35rem 1.8rem 0.35rem 0.55rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-ink-soft);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 750;
+  }
+
+  .editor-toolbar__image-size select:not(:disabled):hover,
+  .editor-toolbar__image-size select:focus-visible {
+    border-color: var(--color-rule-dark);
+    background: var(--color-paper-light);
+    color: var(--color-ink);
+  }
+
+  .editor-toolbar__image-size select:disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+  }
+
   .body-editor {
     min-height: 38rem;
   }
@@ -4106,6 +4262,7 @@ const editorMode = articleId ? "edit" : "create";
   }
 
   .body-editor :global(.ProseMirror figure[data-inline-image]) {
+    max-width: 100%;
     width: min(100%, 56rem);
     margin: 2rem auto;
   }
@@ -4645,6 +4802,7 @@ const editorMode = articleId ? "edit" : "create";
   }
 
   .story-preview__body :global(figure[data-inline-image]) {
+    max-width: 100%;
     margin: 2rem 0;
   }
 

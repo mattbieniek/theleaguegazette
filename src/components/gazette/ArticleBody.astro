@@ -20,6 +20,21 @@ const UnderlineMark = Mark.create({
   renderHTML: ({ HTMLAttributes }) => ["u", mergeAttributes(HTMLAttributes), 0],
 });
 
+function normalizeInlineImageWidth(value: unknown): string | null {
+  const raw = String(value ?? "").trim().toLowerCase();
+
+  if (!raw || raw === "auto") {
+    return null;
+  }
+
+  const match = raw.match(/^(\d+(?:\.\d+)?)%?$/);
+  const numeric = match ? Number(match[1]) : Number.NaN;
+
+  return Number.isFinite(numeric) && numeric >= 25 && numeric <= 100
+    ? `${numeric}%`
+    : null;
+}
+
 const InlineImage = Node.create({
   name: "image",
   group: "block",
@@ -29,6 +44,7 @@ const InlineImage = Node.create({
     alt: { default: "" },
     title: { default: null },
     caption: { default: "" },
+    width: { default: null },
   }),
   parseHTML: () => [
     {
@@ -41,16 +57,35 @@ const InlineImage = Node.create({
           alt: image?.getAttribute("alt") ?? "",
           title: image?.getAttribute("title"),
           caption: figure.querySelector("figcaption")?.textContent?.trim() ?? "",
+          width: figure.getAttribute("data-image-width"),
         };
       },
     },
-    { tag: "img[src]" },
+    {
+      tag: "img[src]",
+      getAttrs: (dom) => {
+        const image = dom as HTMLImageElement;
+        return {
+          src: image.getAttribute("src"),
+          alt: image.getAttribute("alt") ?? "",
+          title: image.getAttribute("title"),
+          caption: "",
+          width: image.getAttribute("data-image-width"),
+        };
+      },
+    },
   ],
   renderHTML: ({ HTMLAttributes }) => {
-    const { src, alt, title, caption } = HTMLAttributes;
+    const { src, alt, title, caption, width: rawWidth } = HTMLAttributes;
+    const width = normalizeInlineImageWidth(rawWidth);
     return [
       "figure",
-      { "data-inline-image": "true" },
+      {
+        "data-inline-image": "true",
+        ...(width
+          ? { "data-image-width": width, style: `width: ${width}` }
+          : {}),
+      },
       [
         "img",
         {
@@ -123,6 +158,7 @@ const html = generateHTML(body, [
   }
 
   .article-rich-text :global(figure[data-inline-image]) {
+    max-width: 100%;
     width: min(100%, 56rem);
     margin: 2rem auto;
   }
