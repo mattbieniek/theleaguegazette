@@ -374,6 +374,42 @@ export type Database = {
         }
         Relationships: []
       }
+      gazette_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          image_alt: string
+          image_url: string
+          storage_path: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_alt: string
+          image_url: string
+          storage_path: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_alt?: string
+          image_url?: string
+          storage_path?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gazette_comments: {
         Row: {
           article_id: string

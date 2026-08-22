@@ -1107,7 +1107,12 @@ const editorMode = articleId ? "edit" : "create";
   let currentUserEmail = "";
   let isOpEdContributor = false;
   let contributorDisplayName = "";
-  let libraryImages: Array<{ image_url: string; image_alt: string | null; headline: string }> = [];
+  let libraryImages: Array<{
+    image_url: string;
+    image_alt: string | null;
+    title: string;
+    caption: string | null;
+  }> = [];
   let imageLibraryMode: "featured" | "inline" = "featured";
 
   let richTextEditor: Editor | null = null;
@@ -2183,8 +2188,9 @@ const editorMode = articleId ? "edit" : "create";
     if (!imageLibraryGrid) return;
     const query = imageLibrarySearch?.value.trim().toLowerCase() ?? "";
     const visible = libraryImages.filter((image) =>
-      !query || image.headline.toLowerCase().includes(query) ||
-      image.image_alt?.toLowerCase().includes(query)
+      !query || image.title.toLowerCase().includes(query) ||
+      image.image_alt?.toLowerCase().includes(query) ||
+      image.caption?.toLowerCase().includes(query)
     );
     imageLibraryGrid.replaceChildren();
     for (const image of visible) {
@@ -2197,23 +2203,23 @@ const editorMode = articleId ? "edit" : "create";
       preview.loading = "lazy";
       const copy = document.createElement("span");
       const title = document.createElement("strong");
-      title.textContent = image.headline;
+      title.textContent = image.title;
       const description = document.createElement("small");
-      description.textContent = image.image_alt || "No alternative text saved";
+      description.textContent = image.caption || image.image_alt || "No description saved";
       copy.append(title, description);
       button.append(preview, copy);
       button.addEventListener("click", () => {
         if (imageLibraryMode === "inline") {
           const caption = window.prompt(
             "Add an optional caption for this image:",
-            image.headline,
+            image.caption ?? image.title,
           ) ?? "";
           richTextEditor?.chain().focus().insertContent({
             type: "image",
             attrs: {
               src: image.image_url,
               alt: image.image_alt ?? "",
-              title: image.headline,
+              title: image.title,
               caption: caption.trim(),
             },
           }).run();
@@ -2237,21 +2243,41 @@ const editorMode = articleId ? "edit" : "create";
     if (!imageLibraryDialog) return;
     imageLibraryDialog.showModal();
     if (imageLibraryMessage) imageLibraryMessage.textContent = "Loading artwork…";
-    const { data, error } = await supabaseBrowser
-      .from("gazette_articles")
-      .select("image_url,image_alt,headline")
-      .not("image_url", "is", null)
-      .neq("status", "archived")
-      .order("updated_at", { ascending: false });
-    if (error) {
-      if (imageLibraryMessage) imageLibraryMessage.textContent = `Unable to load artwork: ${error.message}`;
+    const [articleResult, photoResult] = await Promise.all([
+      supabaseBrowser
+        .from("gazette_articles")
+        .select("image_url,image_alt,headline")
+        .not("image_url", "is", null)
+        .neq("status", "archived")
+        .order("updated_at", { ascending: false }),
+      supabaseBrowser
+        .from("gazette_photos")
+        .select("image_url,image_alt,title,caption")
+        .order("updated_at", { ascending: false }),
+    ]);
+    if (articleResult.error || photoResult.error) {
+      const error = articleResult.error ?? photoResult.error;
+      if (imageLibraryMessage) imageLibraryMessage.textContent = `Unable to load artwork: ${error?.message ?? "Unknown error"}`;
       return;
     }
     const seen = new Set<string>();
-    libraryImages = (data ?? []).flatMap((image) => {
+    libraryImages = [
+      ...(articleResult.data ?? []).flatMap((image) => image.image_url ? [{
+        image_url: image.image_url,
+        image_alt: image.image_alt,
+        title: image.headline,
+        caption: null,
+      }] : []),
+      ...(photoResult.data ?? []).map((image) => ({
+        image_url: image.image_url,
+        image_alt: image.image_alt,
+        title: image.title,
+        caption: image.caption,
+      })),
+    ].flatMap((image) => {
       if (!image.image_url || seen.has(image.image_url)) return [];
       seen.add(image.image_url);
-      return [{ image_url: image.image_url, image_alt: image.image_alt, headline: image.headline }];
+      return [image];
     });
     renderImageLibrary();
   }
@@ -2309,13 +2335,19 @@ const editorMode = articleId ? "edit" : "create";
       return;
     }
 
-    const { count } = await supabaseBrowser
-      .from("gazette_articles")
-      .select("id", { count: "exact", head: true })
-      .eq("image_url", imageUrl)
-      .neq("id", articleId || "00000000-0000-0000-0000-000000000000");
+    const [articleReference, photoAsset] = await Promise.all([
+      supabaseBrowser
+        .from("gazette_articles")
+        .select("id", { count: "exact", head: true })
+        .eq("image_url", imageUrl)
+        .neq("id", articleId || "00000000-0000-0000-0000-000000000000"),
+      supabaseBrowser
+        .from("gazette_photos")
+        .select("id", { count: "exact", head: true })
+        .eq("image_url", imageUrl),
+    ]);
 
-    if ((count ?? 0) > 0) {
+    if ((articleReference.count ?? 0) > 0 || (photoAsset.count ?? 0) > 0) {
       return;
     }
 

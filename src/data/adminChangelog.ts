@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "standalone-photo-desk-assets",
+    date: "2026-08-22",
+    title: "Added a standalone Photo Desk library",
+    summary:
+      "Administrators can now upload and organize artwork before it is attached to a published story.",
+    changes: [
+      "Added a dedicated Photo Desk upload form with a title, alternative text, and optional caption.",
+      "Stored standalone photos separately from stories while keeping them available in the Article Editor's artwork picker.",
+      "Added filters, search, image URL copying, and safe deletion for unused Photo Desk photos.",
+      "Protected the new photo records and storage folder with administrator-only permissions.",
+    ],
+  },
+  {
     id: "homepage-completed-season-fallback",
     date: "2026-08-20",
     title: "Kept the homepage useful before the new season begins",

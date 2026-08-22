@@ -36,7 +36,7 @@ The live database repeats these restrictions through ownership, category, status
 
 1. Create a story at `/admin/articles/new` or open an existing story from `/admin/articles`.
 2. Enter a headline. A valid slug is generated automatically until the slug is manually edited. The first save requires a headline.
-3. Write the summary and TipTap body, choose a category, set the author, and optionally select/upload artwork.
+3. Write the summary and TipTap body, choose a category, set the author, and optionally select/upload artwork. Administrators can also prepare standalone artwork in the Photo Desk and select it later from the editor.
 4. Changes to the headline, slug, summary, category, author, publication date, image fields, homepage order, and featured flag schedule an autosave after approximately 1.4 seconds. Autosave applies the current status and does not apply status-transition timestamp rules.
 5. Use Preview to inspect the unsaved story without publishing it.
 6. Before `ready_for_review`, `scheduled`, or `published`, the readiness checklist requires a headline, valid slug, category, summary, body, and alternative text whenever an image is present. Scheduling also requires a future publication date.
