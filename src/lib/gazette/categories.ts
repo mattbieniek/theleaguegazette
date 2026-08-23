@@ -2,6 +2,7 @@ export const STORY_CATEGORIES = [
   "Gazette Exclusive",
   "By the Numbers",
   "Op-Ed",
+  "Random Bullshit",
   "Predictions",
   "Playoff Picture",
 ] as const;
