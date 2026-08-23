@@ -224,6 +224,15 @@ const editorMode = articleId ? "edit" : "create";
                     <option value="custom">Custom…</option>
                   </select>
                 </label>
+
+                <label class="editor-toolbar__image-align">
+                  <span class="sr-only">Image alignment</span>
+                  <select id="image-align-control" aria-label="Image alignment" disabled>
+                    <option value="center">Center image</option>
+                    <option value="left">Align left</option>
+                    <option value="right">Align right</option>
+                  </select>
+                </label>
               </div>
 
               <div class="editor-toolbar__divider" aria-hidden="true"></div>
@@ -729,6 +738,35 @@ const editorMode = articleId ? "edit" : "create";
       <label class="image-library-search">Find artwork<input id="image-library-search" type="search" placeholder="Search by story or image description" /></label>
       <p id="image-library-message" role="status" aria-live="polite"></p>
       <section id="image-library-grid" class="image-library-grid" aria-label="Available artwork"></section>
+      <section id="image-library-options" class="image-library-options" aria-labelledby="image-library-options-title" hidden>
+        <div>
+          <p class="eyebrow">Placement</p>
+          <h3 id="image-library-options-title">Set image size and alignment</h3>
+          <p id="image-library-options-name" class="image-library-options__name"></p>
+        </div>
+        <div class="image-library-options__fields">
+          <label>Image size
+            <select id="library-image-size">
+              <option value="auto">Automatic</option>
+              <option value="40%">Small · 40%</option>
+              <option value="60%">Medium · 60%</option>
+              <option value="80%">Large · 80%</option>
+              <option value="100%">Full width</option>
+              <option value="custom">Custom…</option>
+            </select>
+          </label>
+          <label>Image alignment
+            <select id="library-image-align">
+              <option value="center">Center</option>
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+            </select>
+          </label>
+        </div>
+        <div class="image-library-options__actions">
+          <button id="insert-library-image" class="editor-button editor-button--primary" type="button">Insert image</button>
+        </div>
+      </section>
     </div>
   </dialog>
   <dialog id="return-changes-dialog" class="status-confirmation" aria-labelledby="return-changes-title">
@@ -950,6 +988,12 @@ const editorMode = articleId ? "edit" : "create";
   const uploadLibraryImageButton = document.querySelector<HTMLButtonElement>("#upload-library-image");
   const inlineImageFileInput = document.querySelector<HTMLInputElement>("#inline-image-file");
   const imageSizeControl = document.querySelector<HTMLSelectElement>("#image-size-control");
+  const imageAlignControl = document.querySelector<HTMLSelectElement>("#image-align-control");
+  const imageLibraryOptions = document.querySelector<HTMLElement>("#image-library-options");
+  const imageLibraryOptionsName = document.querySelector<HTMLElement>("#image-library-options-name");
+  const libraryImageSize = document.querySelector<HTMLSelectElement>("#library-image-size");
+  const libraryImageAlign = document.querySelector<HTMLSelectElement>("#library-image-align");
+  const insertLibraryImageButton = document.querySelector<HTMLButtonElement>("#insert-library-image");
 
   const removeImageButton = document.querySelector<HTMLButtonElement>(
     "#remove-image-button",
@@ -1130,6 +1174,10 @@ const editorMode = articleId ? "edit" : "create";
       : null;
   }
 
+  function normalizeInlineImageAlignment(value: unknown): "left" | "center" | "right" {
+    return value === "left" || value === "right" ? value : "center";
+  }
+
   let isUploadingImage = false;
   let currentUserId = "";
   let currentUserEmail = "";
@@ -1142,6 +1190,7 @@ const editorMode = articleId ? "edit" : "create";
     caption: string | null;
   }> = [];
   let imageLibraryMode: "featured" | "inline" = "featured";
+  let pendingInlineImage: (typeof libraryImages)[number] | null = null;
 
   let richTextEditor: Editor | null = null;
 
@@ -1165,6 +1214,7 @@ const editorMode = articleId ? "edit" : "create";
       title: { default: null },
       caption: { default: "" },
       width: { default: null },
+      align: { default: "center" },
     }),
     parseHTML: () => [
       {
@@ -1178,6 +1228,7 @@ const editorMode = articleId ? "edit" : "create";
             title: image?.getAttribute("title"),
             caption: figure.querySelector("figcaption")?.textContent?.trim() ?? "",
             width: figure.getAttribute("data-image-width"),
+            align: figure.getAttribute("data-image-align") ?? "center",
           };
         },
       },
@@ -1191,13 +1242,15 @@ const editorMode = articleId ? "edit" : "create";
             title: image.getAttribute("title"),
             caption: "",
             width: image.getAttribute("data-image-width"),
+            align: image.getAttribute("data-image-align") ?? "center",
           };
         },
       },
     ],
     renderHTML: ({ HTMLAttributes }) => {
-      const { src, alt, title, caption, width: rawWidth } = HTMLAttributes;
+      const { src, alt, title, caption, width: rawWidth, align: rawAlign } = HTMLAttributes;
       const width = normalizeInlineImageWidth(rawWidth);
+      const align = normalizeInlineImageAlignment(rawAlign);
       const imageAttributes = {
         src,
         alt: alt ?? "",
@@ -1212,6 +1265,7 @@ const editorMode = articleId ? "edit" : "create";
         "figure",
         {
           "data-inline-image": "true",
+          "data-image-align": align,
           ...(width
             ? { "data-image-width": width, style: `width: ${width}` }
             : {}),
@@ -1824,6 +1878,13 @@ const editorMode = articleId ? "edit" : "create";
       }
     }
 
+    if (imageAlignControl) {
+      imageAlignControl.disabled = !imageIsActive;
+      imageAlignControl.value = imageIsActive
+        ? normalizeInlineImageAlignment(richTextEditor.getAttributes("image").align)
+        : "center";
+    }
+
     for (const button of editorToolbarButtons) {
       const command = button.dataset.editorCommand;
 
@@ -2027,6 +2088,20 @@ const editorMode = articleId ? "edit" : "create";
       .chain()
       .focus()
       .updateAttributes("image", { width })
+      .run();
+  }
+
+  function editSelectedImageAlignment(): void {
+    if (!richTextEditor || !richTextEditor.isActive("image") || !imageAlignControl) {
+      return;
+    }
+
+    richTextEditor
+      .chain()
+      .focus()
+      .updateAttributes("image", {
+        align: normalizeInlineImageAlignment(imageAlignControl.value),
+      })
       .run();
   }
 
@@ -2310,6 +2385,91 @@ const editorMode = articleId ? "edit" : "create";
     renderPublishingReadiness();
   }
 
+  function updateInlineImageLibraryOptions(): void {
+    const isInlineSelection = imageLibraryMode === "inline" && Boolean(pendingInlineImage);
+
+    if (imageLibraryOptions) {
+      imageLibraryOptions.hidden = !isInlineSelection;
+    }
+
+    if (!isInlineSelection || !pendingInlineImage) {
+      return;
+    }
+
+    if (imageLibraryOptionsName) {
+      imageLibraryOptionsName.textContent = pendingInlineImage.title;
+    }
+  }
+
+  function getLibraryImageWidth(): string | null {
+    if (!libraryImageSize || libraryImageSize.value === "custom") {
+      return null;
+    }
+
+    return normalizeInlineImageWidth(libraryImageSize.value);
+  }
+
+  function insertSelectedLibraryImage(): void {
+    if (!richTextEditor || !pendingInlineImage) {
+      return;
+    }
+
+    if (libraryImageSize?.value === "custom") {
+      const enteredWidth = window.prompt(
+        "Choose an image width from 25% to 100%:",
+        "70",
+      );
+      const width = normalizeInlineImageWidth(enteredWidth);
+
+      if (enteredWidth === null) {
+        return;
+      }
+
+      if (!width) {
+        setImageUploadStatus("Enter a width between 25% and 100%.", "error");
+        return;
+      }
+
+      if (libraryImageSize) {
+        const customOption = libraryImageSize.querySelector(`option[value="${width}"]`);
+        if (!customOption) {
+          const option = document.createElement("option");
+          option.value = width;
+          option.textContent = `Custom · ${width}`;
+          libraryImageSize.insertBefore(option, libraryImageSize.querySelector('option[value="custom"]'));
+        }
+        libraryImageSize.value = width;
+      }
+    }
+
+    const caption = window.prompt(
+      "Add an optional caption for this image:",
+      pendingInlineImage.caption ?? pendingInlineImage.title,
+    );
+
+    if (caption === null) {
+      return;
+    }
+
+    richTextEditor.chain().focus().insertContent({
+      type: "image",
+      attrs: {
+        src: pendingInlineImage.image_url,
+        alt: pendingInlineImage.image_alt ?? "",
+        title: pendingInlineImage.title,
+        caption: caption.trim(),
+        width: getLibraryImageWidth(),
+        align: normalizeInlineImageAlignment(libraryImageAlign?.value),
+      },
+    }).run();
+
+    scheduleAutosave();
+    pendingInlineImage = null;
+    updateInlineImageLibraryOptions();
+    imageLibraryDialog?.close();
+    setImageUploadStatus("Image added to the story.", "success");
+  }
+
   function renderImageLibrary(): void {
     if (!imageLibraryGrid) return;
     const query = imageLibrarySearch?.value.trim().toLowerCase() ?? "";
@@ -2323,6 +2483,10 @@ const editorMode = articleId ? "edit" : "create";
       const button = document.createElement("button");
       button.type = "button";
       button.className = "image-library-item";
+      button.setAttribute("aria-pressed", String(imageLibraryMode === "inline" && pendingInlineImage?.image_url === image.image_url));
+      if (imageLibraryMode === "inline" && pendingInlineImage?.image_url === image.image_url) {
+        button.classList.add("is-selected");
+      }
       const preview = document.createElement("img");
       preview.src = image.image_url;
       preview.alt = image.image_alt ?? "";
@@ -2336,20 +2500,11 @@ const editorMode = articleId ? "edit" : "create";
       button.append(preview, copy);
       button.addEventListener("click", () => {
         if (imageLibraryMode === "inline") {
-          const caption = window.prompt(
-            "Add an optional caption for this image:",
-            image.caption ?? image.title,
-          ) ?? "";
-          richTextEditor?.chain().focus().insertContent({
-            type: "image",
-            attrs: {
-              src: image.image_url,
-              alt: image.image_alt ?? "",
-              title: image.title,
-              caption: caption.trim(),
-            },
-          }).run();
-          scheduleAutosave();
+          pendingInlineImage = image;
+          if (libraryImageSize) libraryImageSize.value = "auto";
+          if (libraryImageAlign) libraryImageAlign.value = "center";
+          updateInlineImageLibraryOptions();
+          renderImageLibrary();
         } else {
           if (imageUrlInput) imageUrlInput.value = image.image_url;
           if (imageAltInput && !imageAltInput.value.trim() && image.image_alt) imageAltInput.value = image.image_alt;
@@ -2362,11 +2517,14 @@ const editorMode = articleId ? "edit" : "create";
       });
       imageLibraryGrid.append(button);
     }
+    updateInlineImageLibraryOptions();
     if (imageLibraryMessage) imageLibraryMessage.textContent = visible.length ? "" : "No artwork matches this search.";
   }
 
   async function openImageLibrary(): Promise<void> {
     if (!imageLibraryDialog) return;
+    pendingInlineImage = null;
+    updateInlineImageLibraryOptions();
     imageLibraryDialog.showModal();
     if (imageLibraryMessage) imageLibraryMessage.textContent = "Loading artwork…";
     const [articleResult, photoResult] = await Promise.all([
@@ -3407,7 +3565,7 @@ const editorMode = articleId ? "edit" : "create";
     const caption = window.prompt("Add an optional caption for this image:", "") ?? "";
     richTextEditor?.chain().focus().insertContent({
       type: "image",
-      attrs: { src: data.publicUrl, alt, caption: caption.trim() },
+      attrs: { src: data.publicUrl, alt, caption: caption.trim(), width: null, align: "center" },
     }).run();
     scheduleAutosave();
     imageLibraryDialog?.close();
@@ -3632,6 +3790,8 @@ const editorMode = articleId ? "edit" : "create";
   closeImageLibraryButton?.addEventListener("click", () => imageLibraryDialog?.close());
   imageLibrarySearch?.addEventListener("input", renderImageLibrary);
   imageSizeControl?.addEventListener("change", editSelectedImageSize);
+  imageAlignControl?.addEventListener("change", editSelectedImageAlignment);
+  insertLibraryImageButton?.addEventListener("click", insertSelectedLibraryImage);
 
   imageFileInput?.addEventListener("change", () => {
     const file = imageFileInput.files?.[0];
@@ -4188,6 +4348,35 @@ const editorMode = articleId ? "edit" : "create";
     opacity: 0.35;
   }
 
+  .editor-toolbar__image-align {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .editor-toolbar__image-align select {
+    min-height: 2.25rem;
+    padding: 0.35rem 1.8rem 0.35rem 0.55rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-ink-soft);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 750;
+  }
+
+  .editor-toolbar__image-align select:not(:disabled):hover,
+  .editor-toolbar__image-align select:focus-visible {
+    border-color: var(--color-rule-dark);
+    background: var(--color-paper-light);
+    color: var(--color-ink);
+  }
+
+  .editor-toolbar__image-align select:disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+  }
+
   .body-editor {
     min-height: 38rem;
   }
@@ -4265,6 +4454,16 @@ const editorMode = articleId ? "edit" : "create";
     max-width: 100%;
     width: min(100%, 56rem);
     margin: 2rem auto;
+  }
+
+  .body-editor :global(.ProseMirror figure[data-inline-image][data-image-align="left"]) {
+    margin-left: 0;
+    margin-right: auto;
+  }
+
+  .body-editor :global(.ProseMirror figure[data-inline-image][data-image-align="right"]) {
+    margin-left: auto;
+    margin-right: 0;
   }
 
   .body-editor :global(.ProseMirror figure[data-inline-image] img) {
@@ -4806,6 +5005,19 @@ const editorMode = articleId ? "edit" : "create";
     margin: 2rem 0;
   }
 
+  .story-preview__body :global(figure[data-inline-image][data-image-align="left"]) {
+    margin-right: auto;
+  }
+
+  .story-preview__body :global(figure[data-inline-image][data-image-align="center"]) {
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .story-preview__body :global(figure[data-inline-image][data-image-align="right"]) {
+    margin-left: auto;
+  }
+
   .story-preview__body :global(figure[data-inline-image] img) {
     display: block;
     width: 100%;
@@ -4985,9 +5197,19 @@ const editorMode = articleId ? "edit" : "create";
   .image-library-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem; }
   .image-library-item { display:grid;padding:0;overflow:hidden;border:1px solid var(--color-rule);background:var(--color-surface);color:inherit;text-align:left;cursor:pointer; }
   .image-library-item:hover { border-color:var(--color-green); }
+  .image-library-item.is-selected { border:2px solid var(--color-green); box-shadow:0 0 0 3px color-mix(in srgb,var(--color-green) 16%,transparent); }
   .image-library-item img { width:100%;aspect-ratio:16/9;object-fit:cover;background:#e9e5dc; }
   .image-library-item span { display:grid;gap:.3rem;padding:.8rem; }
   .image-library-item small { color:var(--color-ink-soft);line-height:1.4; }
+  .image-library-options { display:grid;gap:1rem;padding:1rem;border:1px solid var(--color-rule-dark);background:var(--color-surface); }
+  .image-library-options h3,.image-library-options p { margin:0; }
+  .image-library-options h3 { font-size:1.25rem; }
+  .image-library-options__name { margin-top:.25rem !important;color:var(--color-ink-soft);font-size:.85rem; }
+  .image-library-options__fields { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem; }
+  .image-library-options__fields label { display:grid;gap:.35rem;font-size:.75rem;font-weight:750; }
+  .image-library-options__fields select { min-height:2.7rem;padding:.55rem;border:1px solid var(--color-rule-dark);border-radius:var(--radius-sm);background:var(--color-paper-light);font:inherit; }
+  .image-library-options__actions { display:flex;justify-content:flex-end; }
+  @media(max-width:520px){.image-library-options__fields{grid-template-columns:1fr}}
   @media(max-width:760px){.image-library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media(max-width:520px){.image-library-grid{grid-template-columns:1fr}}
 </style>
