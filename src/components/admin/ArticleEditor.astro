@@ -762,6 +762,9 @@ const editorMode = articleId ? "edit" : "create";
               <option value="right">Right</option>
             </select>
           </label>
+          <label>Caption (optional)
+            <input id="library-image-caption" type="text" maxlength="300" placeholder="Add a caption for readers" />
+          </label>
         </div>
         <div class="image-library-options__actions">
           <button id="insert-library-image" class="editor-button editor-button--primary" type="button">Insert image</button>
@@ -993,6 +996,7 @@ const editorMode = articleId ? "edit" : "create";
   const imageLibraryOptionsName = document.querySelector<HTMLElement>("#image-library-options-name");
   const libraryImageSize = document.querySelector<HTMLSelectElement>("#library-image-size");
   const libraryImageAlign = document.querySelector<HTMLSelectElement>("#library-image-align");
+  const libraryImageCaption = document.querySelector<HTMLInputElement>("#library-image-caption");
   const insertLibraryImageButton = document.querySelector<HTMLButtonElement>("#insert-library-image");
 
   const removeImageButton = document.querySelector<HTMLButtonElement>(
@@ -2410,7 +2414,13 @@ const editorMode = articleId ? "edit" : "create";
   }
 
   function insertSelectedLibraryImage(): void {
-    if (!richTextEditor || !pendingInlineImage) {
+    if (!richTextEditor) {
+      setImageUploadStatus("The article editor is still loading. Try again in a moment.", "error");
+      return;
+    }
+
+    if (!pendingInlineImage) {
+      if (imageLibraryMessage) imageLibraryMessage.textContent = "Select an image before inserting it.";
       return;
     }
 
@@ -2442,26 +2452,22 @@ const editorMode = articleId ? "edit" : "create";
       }
     }
 
-    const caption = window.prompt(
-      "Add an optional caption for this image:",
-      pendingInlineImage.caption ?? pendingInlineImage.title,
-    );
-
-    if (caption === null) {
-      return;
-    }
-
-    richTextEditor.chain().focus().insertContent({
+    const inserted = richTextEditor.chain().focus().insertContent({
       type: "image",
       attrs: {
         src: pendingInlineImage.image_url,
         alt: pendingInlineImage.image_alt ?? "",
         title: pendingInlineImage.title,
-        caption: caption.trim(),
+        caption: libraryImageCaption?.value.trim() ?? "",
         width: getLibraryImageWidth(),
         align: normalizeInlineImageAlignment(libraryImageAlign?.value),
       },
     }).run();
+
+    if (!inserted) {
+      setImageUploadStatus("The image could not be inserted. Click into the article body and try again.", "error");
+      return;
+    }
 
     scheduleAutosave();
     pendingInlineImage = null;
@@ -2503,8 +2509,11 @@ const editorMode = articleId ? "edit" : "create";
           pendingInlineImage = image;
           if (libraryImageSize) libraryImageSize.value = "auto";
           if (libraryImageAlign) libraryImageAlign.value = "center";
+          if (libraryImageCaption) libraryImageCaption.value = image.caption ?? "";
           updateInlineImageLibraryOptions();
           renderImageLibrary();
+          if (imageLibraryMessage) imageLibraryMessage.textContent = "Artwork selected. Choose its size and alignment, then insert it.";
+          return;
         } else {
           if (imageUrlInput) imageUrlInput.value = image.image_url;
           if (imageAltInput && !imageAltInput.value.trim() && image.image_alt) imageAltInput.value = image.image_alt;
@@ -2513,7 +2522,7 @@ const editorMode = articleId ? "edit" : "create";
           scheduleAutosave();
         }
         imageLibraryDialog?.close();
-        setImageUploadStatus(imageLibraryMode === "inline" ? "Image added to the story." : "Existing artwork selected.", "success");
+        setImageUploadStatus("Existing artwork selected.", "success");
       });
       imageLibraryGrid.append(button);
     }
@@ -2524,6 +2533,7 @@ const editorMode = articleId ? "edit" : "create";
   async function openImageLibrary(): Promise<void> {
     if (!imageLibraryDialog) return;
     pendingInlineImage = null;
+    if (libraryImageCaption) libraryImageCaption.value = "";
     updateInlineImageLibraryOptions();
     imageLibraryDialog.showModal();
     if (imageLibraryMessage) imageLibraryMessage.textContent = "Loading artwork…";
