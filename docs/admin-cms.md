@@ -54,7 +54,7 @@ Contributor navigation hides administrator groups, while direct-route checks and
 
 - A duplicate slug returns a specific conflict message; choose a new slug and save again.
 - Autosave failures leave the story marked unsaved; use an explicit save after correcting the error.
-- Image uploads require a saved article first. Replacing artwork on a live story requires alternative text.
+- Featured-image uploads require a saved article first. Inline artwork can be staged before a new story has a headline or draft record. Replacing artwork on a live story requires alternative text.
 - Returning a story for changes must include a non-empty review note and is performed through the protected RPC.
 - Publishing, scheduling, archiving, and moving a live story back to draft or review require confirmation because they change public visibility.
 

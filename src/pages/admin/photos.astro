@@ -6,81 +6,106 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
   <main id="photo-desk" class="admin-shell photo-desk" hidden>
     <header class="photo-header">
       <div>
-        <p class="eyebrow">Publication</p>
+        <p class="eyebrow">Editorial resources</p>
         <h1>Photo Desk</h1>
         <p>
-          Upload, organize, and review the artwork that supports Gazette
-          stories. Standalone photos can be prepared here before they are
-          attached to a story.
+          One library for every image used by The League Gazette. Find story
+          artwork, prepare new photos, and catch missing image details.
         </p>
       </div>
-      <a href="/admin/articles/new">Create story</a>
+      <div class="photo-header__actions">
+        <a class="photo-header__link" href="/admin/articles">View stories</a>
+        <a class="photo-header__link photo-header__link--primary" href="/admin/articles/new">Create story</a>
+      </div>
     </header>
-
-    <section class="photo-upload-panel" aria-labelledby="photo-upload-title">
-      <div class="photo-upload-panel__heading">
-        <div>
-          <p class="eyebrow">New artwork</p>
-          <h2 id="photo-upload-title">Add a photo to the desk</h2>
-        </div>
-        <p>
-          Save artwork independently now, then choose it from the story editor
-          whenever it is ready to publish.
-        </p>
-      </div>
-
-      <form id="photo-upload-form" class="photo-upload-form">
-        <div class="photo-upload-fields">
-          <label>
-            <span>Photo title</span>
-            <input id="photo-title" name="title" type="text" required maxlength="160" placeholder="A short, useful name" />
-          </label>
-          <label>
-            <span>Alternative text</span>
-            <textarea id="photo-alt" name="image_alt" rows="3" required maxlength="300" placeholder="Describe what readers should know about the image"></textarea>
-          </label>
-          <label>
-            <span>Caption <small>(optional)</small></span>
-            <textarea id="photo-caption" name="caption" rows="3" maxlength="300" placeholder="Add context that can accompany the image"></textarea>
-          </label>
-        </div>
-
-        <div class="photo-upload-form__footer">
-          <div class="photo-upload-file">
-            <input id="photo-file" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" required />
-            <button id="photo-file-button" class="photo-button photo-button--secondary" type="button">Choose photo</button>
-            <span id="photo-file-name">No photo selected</span>
-          </div>
-          <button id="photo-upload-button" class="photo-button photo-button--primary" type="submit">Upload to Photo Desk</button>
-        </div>
-        <small class="photo-upload-help">JPEG, PNG, or WebP up to 6 MB. Recommended: 1600 × 900 px (16:9).</small>
-      </form>
-    </section>
 
     <section id="photo-summary" class="photo-summary" aria-label="Artwork summary"></section>
 
-    <div class="photo-toolbar">
-      <label class="photo-search">
-        Find artwork or story
-        <input id="photo-search" type="search" placeholder="Title, story, category, caption, or image description" />
-      </label>
-      <label>
-        Show
-        <select id="photo-filter">
-          <option value="all">All artwork</option>
-          <option value="standalone">Standalone photos</option>
-          <option value="artwork">Story artwork</option>
-          <option value="missing-alt">Missing alt text</option>
-          <option value="missing-image">Stories without artwork</option>
-        </select>
-      </label>
-    </div>
+    <details class="photo-upload-panel">
+      <summary>
+        <span class="photo-upload-panel__summary-copy">
+          <span class="photo-upload-panel__icon" aria-hidden="true">+</span>
+          <span>
+            <strong>Upload new artwork</strong>
+            <small>Add an image now and use it in a story later.</small>
+          </span>
+        </span>
+        <span class="photo-upload-panel__toggle" aria-hidden="true">Open uploader</span>
+      </summary>
+      <div class="photo-upload-panel__body">
+        <div class="photo-upload-panel__heading">
+          <div>
+            <p class="eyebrow">New artwork</p>
+            <h2 id="photo-upload-title">Prepare a photo for the library</h2>
+          </div>
+          <p>
+            Give the image a clear internal title and reader-friendly description.
+            A caption is optional and can be changed when the image is inserted.
+          </p>
+        </div>
 
-    <p id="photo-message" class="photo-message" role="status" aria-live="polite"></p>
-    <section id="photo-grid" class="photo-grid" aria-label="Photo Desk artwork"></section>
-    <section id="photo-empty" class="photo-empty" hidden>
-      <h2>Nothing to review</h2>
-      <p>No artwork matches the current Photo Desk filter.</p>
+        <form id="photo-upload-form" class="photo-upload-form">
+          <div class="photo-upload-fields">
+            <label>
+              <span>Library title</span>
+              <input id="photo-title" name="title" type="text" required maxlength="160" placeholder="A short, recognizable name" />
+            </label>
+            <label>
+              <span>Alternative text</span>
+              <textarea id="photo-alt" name="image_alt" rows="3" required maxlength="300" placeholder="Describe the important visual information"></textarea>
+              <small>Required for readers using screen readers.</small>
+            </label>
+            <label>
+              <span>Default caption <small>(optional)</small></span>
+              <textarea id="photo-caption" name="caption" rows="3" maxlength="300" placeholder="Context that can appear below the image"></textarea>
+            </label>
+          </div>
+
+          <div class="photo-upload-form__footer">
+            <div class="photo-upload-file">
+              <input id="photo-file" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" required />
+              <button id="photo-file-button" class="photo-button photo-button--secondary" type="button">Choose image</button>
+              <span id="photo-file-name">No image selected</span>
+            </div>
+            <button id="photo-upload-button" class="photo-button photo-button--primary" type="submit">Add to library</button>
+          </div>
+          <small class="photo-upload-help">JPEG, PNG, or WebP up to 6 MB · Recommended 1600 × 900 px (16:9)</small>
+        </form>
+      </div>
+    </details>
+
+    <section class="photo-library" aria-labelledby="photo-library-title">
+      <header class="photo-library__header">
+        <div>
+          <p class="eyebrow">Image library</p>
+          <h2 id="photo-library-title">Browse artwork</h2>
+        </div>
+        <p id="photo-results-count" class="photo-results-count" aria-live="polite"></p>
+      </header>
+      <div class="photo-toolbar">
+        <label class="photo-search">
+          <span>Search the library</span>
+          <input id="photo-search" type="search" placeholder="Search titles, stories, captions, or descriptions" />
+        </label>
+        <label class="photo-filter">
+          <span>View</span>
+          <select id="photo-filter">
+            <option value="all">Everything</option>
+            <option value="standalone">Standalone photos</option>
+            <option value="artwork">Story artwork</option>
+            <option value="missing-alt">Needs alt text</option>
+            <option value="missing-image">Stories needing artwork</option>
+          </select>
+        </label>
+      </div>
+
+      <p id="photo-message" class="photo-message" role="status" aria-live="polite"></p>
+      <section id="photo-grid" class="photo-grid" aria-label="Photo Desk artwork"></section>
+      <section id="photo-empty" class="photo-empty" hidden>
+        <p class="eyebrow">No results</p>
+        <h2>Nothing matches this view</h2>
+        <p>Try a different search or switch the library filter.</p>
+      </section>
     </section>
   </main>
 
@@ -125,6 +150,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
     const search = document.querySelector<HTMLInputElement>("#photo-search");
     const filter = document.querySelector<HTMLSelectElement>("#photo-filter");
     const message = document.querySelector<HTMLElement>("#photo-message");
+    const resultsCount = document.querySelector<HTMLElement>("#photo-results-count");
     const uploadForm = document.querySelector<HTMLFormElement>("#photo-upload-form");
     const photoTitle = document.querySelector<HTMLInputElement>("#photo-title");
     const photoAlt = document.querySelector<HTMLTextAreaElement>("#photo-alt");
@@ -302,6 +328,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
         ...visiblePhotos.map(renderPhotoCard),
       );
       const visibleCount = visibleArticles.length + visiblePhotos.length;
+      if (resultsCount) resultsCount.textContent = `${visibleCount} ${visibleCount === 1 ? "item" : "items"}`;
       empty.hidden = visibleCount > 0;
       grid.hidden = visibleCount === 0;
     }
@@ -458,6 +485,412 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
   </script>
 </AdminLayout>
 
-<style>
+<style is:global>
   .photo-desk{display:grid;gap:1.5rem}.photo-desk[hidden],.photo-empty[hidden],.photo-grid[hidden]{display:none}.photo-header{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding-bottom:1.5rem;border-bottom:3px double var(--color-rule-dark)}.photo-header h1{margin:.25rem 0;font-size:clamp(3rem,7vw,6rem)}.photo-header p:last-child{max-width:48rem;color:var(--color-ink-soft)}.photo-header>a{padding:.75rem 1rem;border-radius:.45rem;background:var(--color-green);color:#fff;font-weight:750;text-decoration:none}.photo-upload-panel{display:grid;gap:1.25rem;padding:clamp(1.25rem,3vw,2rem);border:1px solid var(--color-rule-dark);border-top:5px solid var(--color-green);background:linear-gradient(145deg,color-mix(in srgb,var(--color-green) 6%,var(--color-surface)),var(--color-surface) 65%)}.photo-upload-panel__heading{display:flex;align-items:end;justify-content:space-between;gap:2rem}.photo-upload-panel__heading h2{margin:.2rem 0 0;font-size:clamp(1.8rem,4vw,3rem)}.photo-upload-panel__heading>p{max-width:34rem;margin:0;color:var(--color-ink-soft)}.photo-upload-form{display:grid;gap:1rem}.photo-upload-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}.photo-upload-fields label{display:grid;gap:.4rem;font-weight:750}.photo-upload-fields label>span{font-size:.78rem}.photo-upload-fields label small{color:var(--color-ink-soft);font-weight:500}.photo-upload-fields input,.photo-upload-fields textarea{width:100%;padding:.7rem;border:1px solid var(--color-rule-dark);background:#fff;font:inherit}.photo-upload-form__footer{display:flex;align-items:center;justify-content:space-between;gap:1rem}.photo-upload-file{display:flex;align-items:center;gap:.7rem;min-width:0;color:var(--color-ink-soft);font-size:.8rem}.photo-upload-file span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.photo-upload-help{color:var(--color-ink-soft)}.photo-button{min-height:2.7rem;padding:.65rem .9rem;border:1px solid var(--color-rule-dark);font:inherit;font-size:.78rem;font-weight:800;cursor:pointer}.photo-button:disabled,.photo-card__button:disabled{cursor:not-allowed;opacity:.55}.photo-button--secondary{background:#fff;color:var(--color-ink)}.photo-button--primary{border-color:var(--color-green);background:var(--color-green);color:#fff}.photo-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;border:1px solid var(--color-rule);background:var(--color-rule)}.photo-summary>div{display:grid;gap:.35rem;padding:1rem;background:var(--color-surface)}.photo-summary span{color:var(--color-ink-soft);font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.photo-toolbar{display:flex;align-items:end;gap:1rem;padding:1rem;border:1px solid var(--color-rule);background:var(--color-surface)}.photo-toolbar label{display:grid;gap:.35rem;font-weight:750}.photo-search{flex:1}.photo-toolbar input,.photo-toolbar select{min-height:2.65rem;padding:.6rem;border:1px solid var(--color-rule-dark);background:#fff}.photo-message{min-height:1.25rem;margin:0;color:var(--color-green)}.photo-message[data-error="true"]{color:#a32320}.photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}.photo-card{overflow:hidden;border:1px solid var(--color-rule);background:var(--color-surface);box-shadow:var(--shadow-card)}.photo-card>img,.photo-card__placeholder{width:100%;aspect-ratio:16/9;object-fit:cover;background:#e9e5dc}.photo-card__placeholder{display:grid;place-items:center;color:var(--color-ink-soft);font-family:var(--font-display);font-size:1.4rem}.photo-card__body{display:grid;gap:.6rem;padding:1rem}.photo-card p,.photo-card h2{margin:0}.photo-card__meta{color:var(--color-ink-soft);font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}.photo-card__meta--standalone{color:var(--color-green)}.photo-card h2{font-size:1.35rem}.photo-card__alt{color:var(--color-ink-soft);font-size:.8rem;line-height:1.45}.photo-card__alt[data-warning="true"]{color:#a32320;font-weight:750}.photo-card__actions{display:flex;flex-wrap:wrap;gap:.5rem;padding-top:.4rem}.photo-card__button{padding:.55rem .7rem;border:1px solid var(--color-rule-dark);background:#fff;color:inherit;font:inherit;font-size:.75rem;font-weight:750;text-decoration:none;cursor:pointer}.photo-card__button--link{display:inline-block}.photo-card__button--danger{border-color:#a32320;color:#8e2620}.photo-card__date{color:var(--color-ink-muted);font-family:var(--font-data);font-size:.62rem;text-transform:uppercase}.photo-empty{padding:3rem;border:1px dashed var(--color-rule-dark);text-align:center}@media(max-width:950px){.photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.photo-upload-fields{grid-template-columns:1fr 1fr}.photo-upload-fields label:first-child{grid-column:1/-1}}@media(max-width:650px){.photo-header,.photo-toolbar,.photo-upload-panel__heading,.photo-upload-form__footer{align-items:flex-start;flex-direction:column}.photo-summary,.photo-grid,.photo-upload-fields{grid-template-columns:1fr}.photo-upload-fields label:first-child{grid-column:auto}.photo-toolbar label{width:100%}.photo-upload-form__footer{width:100%}.photo-upload-button{width:100%}}
+</style>
+
+<style is:global>
+  .photo-desk {
+    gap: clamp(1.25rem, 3vw, 2rem);
+    padding-bottom: 4rem;
+  }
+
+  .photo-header {
+    align-items: center;
+    padding: clamp(1.25rem, 3vw, 2rem) 0 clamp(1.75rem, 4vw, 3rem);
+  }
+
+  .photo-header h1 {
+    margin: 0.2rem 0 0.65rem;
+    font-size: clamp(3.25rem, 7vw, 6rem);
+    line-height: 0.9;
+  }
+
+  .photo-header p:last-child {
+    max-width: 42rem;
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .photo-header__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex: 0 0 auto;
+  }
+
+  .photo-header__link {
+    min-height: 2.8rem;
+    padding: 0.72rem 1rem;
+    border: 1px solid var(--color-rule-dark);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .photo-header__link--primary {
+    border-color: var(--color-green);
+    background: var(--color-green);
+    color: #fff;
+  }
+
+  .photo-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-color: var(--color-rule-dark);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  .photo-summary > div {
+    grid-template-columns: auto 1fr;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+    padding: 1rem 1.15rem;
+  }
+
+  .photo-summary strong {
+    grid-row: 1;
+    font-family: var(--font-display);
+    font-size: 1.7rem;
+    line-height: 1;
+  }
+
+  .photo-summary span {
+    grid-column: 2;
+    font-size: 0.63rem;
+    line-height: 1.35;
+  }
+
+  .photo-upload-panel {
+    display: block;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-rule-dark);
+    border-top: 1px solid var(--color-rule-dark);
+    border-radius: 0.75rem;
+    background: var(--color-surface);
+  }
+
+  .photo-upload-panel > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .photo-upload-panel > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .photo-upload-panel > summary:hover {
+    background: color-mix(in srgb, var(--color-green) 5%, var(--color-surface));
+  }
+
+  .photo-upload-panel__summary-copy {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .photo-upload-panel__summary-copy > span:last-child {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .photo-upload-panel__summary-copy strong {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+  }
+
+  .photo-upload-panel__summary-copy small,
+  .photo-upload-panel__toggle {
+    color: var(--color-ink-soft);
+    font-size: 0.72rem;
+  }
+
+  .photo-upload-panel__icon {
+    display: grid;
+    width: 2.4rem;
+    height: 2.4rem;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--color-green);
+    color: #fff;
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+
+  .photo-upload-panel__toggle {
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .photo-upload-panel[open] .photo-upload-panel__toggle {
+    font-size: 0;
+  }
+
+  .photo-upload-panel[open] .photo-upload-panel__toggle::after {
+    content: "Close uploader";
+    font-size: 0.72rem;
+  }
+
+  .photo-upload-panel[open] .photo-upload-panel__icon {
+    transform: rotate(45deg);
+  }
+
+  .photo-upload-panel__body {
+    display: grid;
+    gap: 1.35rem;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border-top: 1px solid var(--color-rule);
+    background: linear-gradient(145deg, color-mix(in srgb, var(--color-green) 5%, var(--color-surface)), var(--color-surface) 72%);
+  }
+
+  .photo-upload-panel__heading {
+    align-items: start;
+  }
+
+  .photo-upload-panel__heading h2 {
+    margin: 0.15rem 0 0;
+    font-size: clamp(1.65rem, 3vw, 2.35rem);
+  }
+
+  .photo-upload-panel__heading > p {
+    max-width: 31rem;
+    font-size: 0.8rem;
+    line-height: 1.55;
+  }
+
+  .photo-upload-fields {
+    grid-template-columns: 0.9fr 1.1fr 1.1fr;
+  }
+
+  .photo-upload-fields label {
+    align-content: start;
+    padding: 0.9rem;
+    border: 1px solid var(--color-rule);
+    border-radius: 0.45rem;
+    background: color-mix(in srgb, #fff 75%, var(--color-surface));
+  }
+
+  .photo-upload-fields input,
+  .photo-upload-fields textarea,
+  .photo-toolbar input,
+  .photo-toolbar select {
+    border-radius: 0.35rem;
+  }
+
+  .photo-upload-fields label small {
+    font-size: 0.66rem;
+    line-height: 1.4;
+  }
+
+  .photo-button {
+    border-radius: 999px;
+  }
+
+  .photo-library {
+    overflow: hidden;
+    border: 1px solid var(--color-rule-dark);
+    border-radius: 0.8rem;
+    background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  }
+
+  .photo-library__header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem 1rem;
+  }
+
+  .photo-library__header h2 {
+    margin: 0.1rem 0 0;
+    font-size: clamp(1.8rem, 4vw, 2.7rem);
+  }
+
+  .photo-results-count {
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .photo-toolbar {
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border: 0;
+    border-top: 1px solid var(--color-rule);
+    border-bottom: 1px solid var(--color-rule);
+    background: color-mix(in srgb, var(--color-green) 4%, var(--color-surface));
+  }
+
+  .photo-toolbar label {
+    gap: 0.4rem;
+  }
+
+  .photo-toolbar label > span {
+    color: var(--color-ink-soft);
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .photo-filter {
+    width: min(16rem, 35%);
+  }
+
+  .photo-toolbar input,
+  .photo-toolbar select {
+    width: 100%;
+  }
+
+  .photo-message {
+    min-height: 0;
+    margin: 0;
+    padding: 0 1.5rem;
+  }
+
+  .photo-message:not(:empty) {
+    padding-top: 0.8rem;
+  }
+
+  .photo-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 1.5rem;
+  }
+
+  .photo-card {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    border-color: var(--color-rule-dark);
+    border-radius: 0.65rem;
+    box-shadow: 0 0.45rem 1.5rem rgba(35, 31, 25, 0.07);
+  }
+
+  .photo-card > img,
+  .photo-card__placeholder {
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .photo-card__body {
+    flex: 1;
+    grid-template-rows: auto auto minmax(2.3rem, auto) 1fr auto;
+    padding: 1rem 1.05rem 1.1rem;
+  }
+
+  .photo-card__meta {
+    justify-self: start;
+    padding: 0.3rem 0.5rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-rule) 55%, transparent);
+    font-size: 0.6rem;
+  }
+
+  .photo-card__meta--standalone {
+    background: color-mix(in srgb, var(--color-green) 10%, transparent);
+  }
+
+  .photo-card h2 {
+    font-size: 1.25rem;
+    line-height: 1.08;
+  }
+
+  .photo-card__alt {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .photo-card__actions {
+    align-self: end;
+  }
+
+  .photo-card__button {
+    border-radius: 999px;
+  }
+
+  .photo-empty {
+    margin: 1.5rem;
+    border-radius: 0.65rem;
+  }
+
+  .photo-empty h2,
+  .photo-empty p {
+    margin: 0.25rem 0;
+  }
+
+  @media (max-width: 950px) {
+    .photo-summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .photo-upload-fields {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .photo-upload-fields label:first-child {
+      grid-column: 1 / -1;
+    }
+
+    .photo-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 650px) {
+    .photo-header,
+    .photo-upload-panel__heading,
+    .photo-upload-form__footer,
+    .photo-toolbar {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .photo-header__actions {
+      width: 100%;
+    }
+
+    .photo-header__link {
+      flex: 1;
+      text-align: center;
+    }
+
+    .photo-summary,
+    .photo-upload-fields,
+    .photo-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .photo-upload-fields label:first-child {
+      grid-column: auto;
+    }
+
+    .photo-upload-panel__toggle {
+      display: none;
+    }
+
+    .photo-filter,
+    .photo-toolbar label {
+      width: 100%;
+    }
+
+    .photo-grid {
+      padding: 1rem;
+    }
+  }
 </style>

@@ -64,7 +64,7 @@ Migration-backed administrative functions include contributor management, return
 
 ## Storage
 
-The live `gazette-images` bucket is public, limits files to 6 MiB, and accepts JPEG, PNG, and WebP. Administrator policies constrain management to the article folder; contributor policies constrain paths to a contributor-owned article ID but currently use the live Op-Ed model.
+The live `gazette-images` bucket is public, limits files to 6 MiB, and accepts JPEG, PNG, and WebP. Administrator policies constrain management to approved editorial folders; contributor policies constrain saved-story paths to a contributor-owned article ID. Authenticated administrators and registered contributors can also upload to their own `draft-assets/{user-id}/` prefix so inline artwork can be prepared before a new story has been saved.
 
 The `gazette_photos` table backs the administrator-only Photo Desk library. Standalone uploads use the `photos/` storage prefix, retain a title, caption, and required alternative text, and can be selected later from the Article Editor without first creating a story.
 

@@ -8,6 +8,20 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "photo-desk-workflow-refresh",
+    date: "2026-08-23",
+    title: "Made the Photo Desk easier to use",
+    summary:
+      "Editors now have a cleaner artwork library and a more dependable way to choose, place, and describe story images.",
+    changes: [
+      "Reorganized the administrator Photo Desk around a focused image library, clearer search and filters, and an expandable upload area.",
+      "Redesigned the Article Editor artwork window into a simple choose, adjust, and insert workflow that scrolls without moving the page behind it.",
+      "Updated featured-image descriptions whenever different artwork is selected instead of retaining text from the previous image.",
+      "Allowed editors to add inline artwork before a new story has a headline or has been saved as a draft.",
+      "Corrected styling for dynamically loaded statistics and artwork cards so the full Photo Desk matches the rest of the Editorial Office.",
+    ],
+  },
+  {
     id: "standalone-photo-desk-assets",
     date: "2026-08-22",
     title: "Added a standalone Photo Desk library",
