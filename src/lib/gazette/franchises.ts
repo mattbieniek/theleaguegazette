@@ -1,6 +1,7 @@
 import { seasonHistoryMetadata } from "../../data/seasonHistory";
 import { findTeamByName, type Team } from "../../data/teams";
 import type { WeeklyTeamResult } from "../queries/awards";
+import { buildStandingsThroughWeek } from "../queries/standings";
 
 export type FranchiseSeason = {
   year: number;
@@ -13,6 +14,7 @@ export type FranchiseSeason = {
   averageScore: number;
   champion: boolean;
   runnerUp: boolean;
+  finishRank: number | null;
 };
 
 export type FranchisePerformance = {
@@ -89,6 +91,20 @@ export function buildFranchiseHistory(
   }
 
   const seasonGroups = new Map<number, WeeklyTeamResult[]>();
+  const finalStandingsBySeason = new Map(
+    [...new Set(allResults.map((result) => result.season_year))].map((year) => {
+      const finalWeek = Math.max(
+        ...allResults
+          .filter((result) => result.season_year === year)
+          .map((result) => result.week)
+      );
+
+      return [
+        year,
+        buildStandingsThroughWeek(allResults, year, finalWeek),
+      ] as const;
+    })
+  );
 
   for (const result of results) {
     const current = seasonGroups.get(result.season_year) ?? [];
@@ -109,6 +125,11 @@ export function buildFranchiseHistory(
       const metadata = seasonHistoryMetadata.find(
         (season) => season.year === year
       );
+      const finishRank = finalStandingsBySeason
+        .get(year)
+        ?.find((standing) =>
+          matchesFranchise(team, standing.team_name)
+        )?.standings_rank ?? null;
 
       return {
         year,
@@ -121,6 +142,7 @@ export function buildFranchiseHistory(
         averageScore: pointsFor / rows.length,
         champion: matchesFranchise(team, metadata?.champion ?? null),
         runnerUp: matchesFranchise(team, metadata?.runnerUp ?? null),
+        finishRank,
       };
     })
     .sort((first, second) => second.year - first.year);

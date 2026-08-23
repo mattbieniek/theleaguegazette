@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "franchise-profile-history-details",
+    date: "2026-08-23",
+    title: "Expanded franchise season history",
+    summary:
+      "Team profiles now give readers a more complete view of where each franchise finished and who appeared on its recent rosters.",
+    changes: [
+      "Added each franchise’s final placement to the season-by-season table when it did not finish as champion or runner-up.",
+      "Added archived 2024 and 2025 rosters alongside the existing 2022 and 2023 history.",
+      "Kept neighboring roster cards compact when one season is expanded, removing the misleading blank space.",
+    ],
+  },
+  {
     id: "homepage-full-league-standings",
     date: "2026-08-23",
     title: "Showed the full league standings on the homepage",

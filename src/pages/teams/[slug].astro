@@ -7,7 +7,10 @@ import TeamDraftClass from "../../components/teams/TeamDraftClass.astro";
 import TransactionHighlight from "../../components/transactions/TransactionHighlight.astro";
 import { getSeasonStandings } from "../../lib/queries/standings";
 import { getHistoricalResults } from "../../lib/queries/records";
-import { getTeamRoster } from "../../lib/queries/rosters";
+import {
+  getArchivedTeamRosters,
+  getTeamRoster,
+} from "../../lib/queries/rosters";
 import { getLegacyTeamRoster } from "../../lib/legacy";
 import { getDraftArchive } from "../../lib/queries/drafts";
 import {
@@ -65,9 +68,16 @@ const historicalResults = await getHistoricalResults();
 const roster = sleeperLeagueId
   ? await getTeamRoster(sleeperLeagueId, team.name)
   : null;
-const historicalRosters = [2022, 2023]
-  .map((year) => getLegacyTeamRoster(year, team.name))
-  .filter((historicalRoster): historicalRoster is NonNullable<typeof historicalRoster> => historicalRoster !== null);
+const sleeperHistoricalRosters = await getArchivedTeamRosters(
+  [2024, 2025],
+  [team.name, team.legacyName, ...(team.aliases ?? [])]
+);
+const historicalRosters = [
+  ...sleeperHistoricalRosters,
+  ...[2022, 2023]
+    .map((year) => getLegacyTeamRoster(year, team.name))
+    .filter((historicalRoster): historicalRoster is NonNullable<typeof historicalRoster> => historicalRoster !== null),
+].sort((first, second) => second.seasonYear - first.seasonYear);
 
 const draftArchive = sleeperLeagueId
   ? await getDraftArchive(sleeperLeagueId)
@@ -172,6 +182,25 @@ function formatPoints(value: number | null): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function formatOrdinal(value: number): string {
+  const remainder100 = value % 100;
+
+  if (remainder100 >= 11 && remainder100 <= 13) {
+    return `${value}th`;
+  }
+
+  switch (value % 10) {
+    case 1:
+      return `${value}st`;
+    case 2:
+      return `${value}nd`;
+    case 3:
+      return `${value}rd`;
+    default:
+      return `${value}th`;
+  }
 }
 ---
 
@@ -483,7 +512,9 @@ function formatPoints(value: number | null): string {
                             ? "Champion"
                             : season.runnerUp
                               ? "Runner-up"
-                              : "—"}
+                              : season.finishRank
+                                ? `${formatOrdinal(season.finishRank)} place`
+                                : "—"}
                         </td>
                         <td>
                           {formatFranchiseRecord(
@@ -565,7 +596,7 @@ function formatPoints(value: number | null): string {
               <p class="eyebrow">Historical Personnel</p>
               <h2 id="historical-rosters-title">Archived Rosters</h2>
             </div>
-            <p>Imported ESPN rosters from the 2022 and 2023 seasons, shown under this franchise’s current identity.</p>
+            <p>End-of-season rosters from 2022 through 2025, shown together under this franchise’s current identity.</p>
           </div>
           <div class="historical-rosters__grid">
             {historicalRosters.map((historicalRoster) => (
@@ -1203,6 +1234,7 @@ function formatPoints(value: number | null): string {
   .historical-rosters__grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
     gap: var(--space-5);
     padding-top: var(--space-5);
   }
