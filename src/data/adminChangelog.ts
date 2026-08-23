@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "homepage-full-league-standings",
+    date: "2026-08-23",
+    title: "Showed the full league standings on the homepage",
+    summary:
+      "Readers can now see every team’s current position directly in the League at a Glance section.",
+    changes: [
+      "Expanded the homepage standings table from the top five teams to the complete league table.",
+      "Updated the panel title and link wording to make the full standings view clearer.",
+      "Kept the compact table layout and small-screen scrolling behavior intact.",
+    ],
+  },
+  {
     id: "photo-desk-workflow-refresh",
     date: "2026-08-23",
     title: "Made the Photo Desk easier to use",
