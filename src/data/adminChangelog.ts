@@ -8,6 +8,20 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "admin-reader-poll-workspace-refresh",
+    date: "2026-08-24",
+    title: "Improved the Reader Poll workspace",
+    summary:
+      "Administrators now have a clearer control center for weekly ballots, email delivery, and private ballot review.",
+    changes: [
+      "Redesigned the Reader Poll workspace to match the polished visual style used throughout the Editorial Office.",
+      "Improved the ballot controls, participation summary, weekly digest panel, and recent delivery history.",
+      "Added an administrator-only Submitted Ballots section that follows the selected season and week.",
+      "Allowed administrators to review each reader’s complete ranking before the edition becomes visible publicly.",
+      "Kept active ballots sealed from readers until the public voting window closes.",
+    ],
+  },
+  {
     id: "wednesday-weekly-digest-schedule",
     date: "2026-08-24",
     title: "Scheduled the weekly Gazette email",
