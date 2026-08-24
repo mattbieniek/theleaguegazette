@@ -97,9 +97,15 @@ On August 9, 2026, a read-only production walkthrough successfully rendered the 
 - `theleaguegazette.org` is the production domain.
 - `www.theleaguegazette.org` redirects permanently (`308`) to `theleaguegazette.org`.
 - `theleaguegazette.vercel.app` is valid and assigned to Production.
-- Vercel Cron Jobs are enabled at the project level, but no job is configured; the dashboard shows only setup guidance.
+- Vercel Cron Jobs are enabled at the project level, but no job is configured; scheduled application work uses GitHub Actions instead.
 
-The lack of a configured Vercel cron reinforces the Supabase audit finding: the deployed weekly digest has no verified scheduler. Do not describe it as automatic until an external trigger is located or a schedule is added and tested.
+The weekly digest is scheduled by `.github/workflows/weekly-digest.yml` for
+14:00 UTC every Wednesday, which is 9:00 a.m. Central during daylight time and
+8:00 a.m. Central during standard time. It calls the protected
+`send-weekly-digest` Edge Function using the repository's `SUPABASE_URL` and
+`WEEKLY_DIGEST_CRON_SECRET` secrets. The function prevents duplicate delivery
+for the same season and week; administrators can inspect delivery history in
+the Readers workspace.
 
 Sleeper automation is configured as a GitHub Actions workflow in
 `.github/workflows/sleeper-sync.yml`. It calls the protected
@@ -133,5 +139,5 @@ whose returned season does not match the configured 2026 season.
 - TODO: Confirm the production branch, DNS ownership/provider, deployment-protection behavior, and an exact rollback runbook.
 - TODO: Review the reconstructed foundation and recovered Edge Functions, then approve a history-only linked migration repair for version `20260727000000` before the next database push. The full local chain now reproduces the production `public` schema exactly.
 - TODO: Record migration/function deployment commands, Auth redirect URLs, and backup policy. The linked Supabase project and Storage bucket are now verified.
-- TODO: Establish and verify the weekly-digest scheduler. The function now protects editions from duplicate sends, validates administrator test deliveries, checks database writes, records partial delivery explicitly, and avoids recipient/provider details in logs. Neither PostgreSQL cron nor a configured Vercel Cron Job was found.
+- TODO: Verify the first scheduled Wednesday digest in GitHub Actions and confirm its delivery totals in the Readers workspace.
 - TODO: Define logs, monitoring, alerts, incident contacts, and recovery time expectations.

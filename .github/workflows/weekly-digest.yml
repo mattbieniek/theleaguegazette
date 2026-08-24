@@ -1,0 +1,55 @@
+name: Send weekly Gazette digest
+
+on:
+  workflow_dispatch:
+  # GitHub schedules use UTC. 14:00 UTC is Wednesday morning in Chicago:
+  # 9:00 a.m. during daylight time and 8:00 a.m. during standard time.
+  schedule:
+    - cron: "0 14 * * 3"
+
+concurrency:
+  group: weekly-gazette-digest
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Send weekly digest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          WEEKLY_DIGEST_CRON_SECRET: ${{ secrets.WEEKLY_DIGEST_CRON_SECRET }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$WEEKLY_DIGEST_CRON_SECRET" ]; then
+            echo "SUPABASE_URL and WEEKLY_DIGEST_CRON_SECRET repository secrets are required." >&2
+            exit 1
+          fi
+
+          base_url="${SUPABASE_URL%/}"
+          response_file="$(mktemp)"
+
+          http_status="$(curl --silent --show-error \
+            --connect-timeout 15 --max-time 540 \
+            --output "$response_file" --write-out "%{http_code}" \
+            -X POST "$base_url/functions/v1/send-weekly-digest" \
+            -H "Content-Type: application/json" \
+            -H "X-Cron-Secret: $WEEKLY_DIGEST_CRON_SECRET" \
+            --data '{}')"
+
+          cat "$response_file"
+
+          if [ "$http_status" -lt 200 ] || [ "$http_status" -ge 300 ]; then
+            echo "Weekly digest request failed with HTTP $http_status." >&2
+            exit 1
+          fi
+
+      - name: Publish delivery summary
+        if: always()
+        run: |
+          {
+            echo "### Weekly Gazette digest"
+            echo "- Scheduled cadence: Wednesday morning in Chicago"
+            echo "- The function response above contains the delivery totals and status."
+            echo "- Administrators can review recent delivery history in the Readers workspace."
+          } >> "$GITHUB_STEP_SUMMARY"

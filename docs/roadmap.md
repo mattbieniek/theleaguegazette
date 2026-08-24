@@ -26,7 +26,7 @@ This page separates implemented foundations, active verification work, and expli
 
 - Review and commit the reconstructed foundation, nine recovered migrations, two recovered Edge Functions, regenerated types, schema snapshot, and handbook. A clean local replay now matches the production `public` schema exactly.
 - Before the next database deployment, approve a migration-history-only repair marking baseline version `20260727000000` applied on the linked project; never execute the guarded baseline against the existing schema.
-- Deploy and test the hardened `send-weekly-digest`, then establish its scheduler: duplicate-send protection, checked database operations, administrator-only test delivery, explicit partial-failure semantics, and privacy-conscious logging are implemented.
+- Verify the first scheduled Wednesday run of the hardened `send-weekly-digest`; duplicate-send protection, checked database operations, administrator-only test delivery, explicit partial-failure semantics, and privacy-conscious logging are implemented.
 - Complete an owner-session administrator/Op-Ed-contributor production presentation walkthrough without creating production test data. PR #26 is merged; its production deployment, corrected anonymous admin layout, public routes, anonymous redirects, and isolated local API authorization matrix are verified.
 - Verify scheduled publication timing, public visibility, review notifications, and image permissions.
 
@@ -34,7 +34,7 @@ This page separates implemented foundations, active verification work, and expli
 
 - Confirm the Vercel production branch, deployment-protection behavior, DNS ownership, and a tested rollback procedure; the project, Git integration, environment-variable names, domains, framework, build command, and Node version are verified.
 - Confirm Supabase linkage, migration/function deployment commands, backups, Auth redirects, and Storage configuration.
-- Locate or establish the weekly-digest scheduler; neither Supabase PostgreSQL cron nor a configured Vercel Cron Job was found. Inventory external Sleeper triggers and verify data-freshness expectations.
+- Verify the first Wednesday-morning GitHub Actions digest run and confirm its delivery totals in the Readers workspace.
 - Monitor the 2026 active-season Sleeper automation through the first complete in-season week, including scheduled retries, stale-run warnings, and recovery behavior during a real game window.
 
 ### Priority 3 — public experience

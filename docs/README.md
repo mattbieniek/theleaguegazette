@@ -95,6 +95,6 @@ The handbook check catches missing required pages, broken relative links, absent
 
 - TODO: Review and commit the locally reproducible Supabase baseline/recovery set, then explicitly approve the production migration-history alignment before the next database push. The contributor-facing CMS and its isolated local authorization matrix are aligned with the accepted Op-Ed model.
 - TODO: Confirm the production branch explicitly and perform a documented rollback drill; other core Vercel settings are recorded in `vercel-audit.md`.
-- TODO: Identify the external or manual trigger for the deployed weekly digest; the live database does not have `pg_cron` installed.
+- TODO: Verify the first Wednesday-morning weekly digest run in GitHub Actions and confirm its recorded delivery totals.
 - TODO: Complete the weekly-digest hardening work documented in `supabase-audit.md` before adding an automatic trigger.
 - TODO: Complete an owner-session administrator/Op-Ed-contributor production presentation walkthrough without creating production test data. PR #26, its production deployment, the corrected anonymous admin layout, the local Op-Ed authorization matrix, and representative public routes are verified.

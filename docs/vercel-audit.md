@@ -77,7 +77,7 @@ Server-only secrets used by Supabase Edge Functions are managed separately and a
 
 Vercel Cron Jobs are enabled, but no project cron job is configured. The dashboard presents setup instructions rather than a job inventory. Combined with the absence of PostgreSQL cron in Supabase, this leaves the deployed `send-weekly-digest` function without a verified automatic trigger.
 
-TODO: Locate the external/manual weekly-digest trigger or add an authenticated scheduler, then document its owner, cadence, timezone, failure alert, and retry behavior.
+The weekly digest is now scheduled through GitHub Actions for 14:00 UTC every Wednesday. Verify the first scheduled run, its failure reporting, and the corresponding delivery record in the Readers workspace.
 
 ## Operational follow-ups
 

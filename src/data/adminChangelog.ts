@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "wednesday-weekly-digest-schedule",
+    date: "2026-08-24",
+    title: "Scheduled the weekly Gazette email",
+    summary:
+      "Readers who opt into the weekly digest will now receive it automatically on Wednesday mornings during the season.",
+    changes: [
+      "Added a protected Wednesday-morning delivery schedule for the weekly Gazette digest.",
+      "Kept duplicate editions and overlapping delivery attempts from sending the same weekly email twice.",
+      "Updated the Readers workspace to show the new delivery day and retain administrator-only test emails.",
+      "Documented the schedule, required credentials, and first-run verification steps for future administrators.",
+    ],
+  },
+  {
     id: "franchise-profile-history-details",
     date: "2026-08-23",
     title: "Expanded franchise season history",

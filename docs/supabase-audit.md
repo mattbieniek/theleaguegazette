@@ -127,5 +127,5 @@ No production function was changed or redeployed during this review. Fixes shoul
 1. Review and commit the recovered migrations, Edge Functions, explicit JWT configuration, generated types, and handbook together.
 2. Review the reconstructed foundation, then separately approve marking version `20260727000000` as applied in linked migration history before any future database push. This must be a history-only repair; the baseline must not execute against the existing production schema.
 3. Preserve and rerun the local Op-Ed authorization matrix after policy changes; retire the legacy database constraint value only after checking for dependent production users.
-4. Identify or establish the weekly-digest scheduler after the hardened function has been deployed and an administrator test delivery has been approved.
+4. Verify the first scheduled Wednesday digest in GitHub Actions after an administrator test delivery has been approved.
 5. Run role-based smoke tests, preferably against a non-production project.
