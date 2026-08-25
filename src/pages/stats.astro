@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import ManagerLabel from "../components/teams/ManagerLabel.astro";
 import { teams as leagueTeams } from "../data/teams";
 import { getHistoricalResults } from "../lib/queries/records";
 import { setPublicCache } from "../lib/public-cache";
@@ -151,6 +152,7 @@ const benchLeader = highestBy(
               <article class="leader-card leader-card--feature">
                 <p class="leader-card__label">Total Scoring Leader</p>
                 <h3>{scoringLeader.teamName}</h3>
+                <ManagerLabel teamName={scoringLeader.teamName} compact />
                 <strong>{formatPoints(scoringLeader.pointsFor)}</strong>
                 <span>{formatPoints(scoringLeader.averageScore)} per week</span>
               </article>
@@ -159,6 +161,7 @@ const benchLeader = highestBy(
               <article class="leader-card">
                 <p class="leader-card__label">Highest Weekly Peak</p>
                 <h3>{weeklyPeak.teamName}</h3>
+                <ManagerLabel teamName={weeklyPeak.teamName} compact />
                 <strong>{formatPoints(weeklyPeak.highScore)}</strong>
                 <span>Best single-week score</span>
               </article>
@@ -167,6 +170,7 @@ const benchLeader = highestBy(
               <article class="leader-card">
                 <p class="leader-card__label">Most Consistent</p>
                 <h3>{mostConsistent.teamName}</h3>
+                <ManagerLabel teamName={mostConsistent.teamName} compact />
                 <strong>{formatPoints(mostConsistent.scoringDeviation)}</strong>
                 <span>Lowest weekly scoring deviation</span>
               </article>
@@ -175,6 +179,7 @@ const benchLeader = highestBy(
               <article class="leader-card">
                 <p class="leader-card__label">Deepest Bench</p>
                 <h3>{benchLeader.teamName}</h3>
+                <ManagerLabel teamName={benchLeader.teamName} compact />
                 <strong>{formatPoints(benchLeader.averageBenchPoints)}</strong>
                 <span>Average bench points per week</span>
               </article>
@@ -237,6 +242,7 @@ const benchLeader = highestBy(
                           ) : (
                             <span>{team.teamName}</span>
                           )}
+                          <ManagerLabel teamName={team.teamName} compact />
                         </td>
                         <td>{formatTeamRecord(team)}</td>
                         <td>{formatPoints(team.pointsFor)}</td>

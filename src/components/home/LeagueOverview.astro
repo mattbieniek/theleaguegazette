@@ -1,6 +1,7 @@
 ---
 import StandingsTable from "../StandingsTable.astro";
 import type { SeasonStanding } from "../../lib/queries/standings";
+import { findTeamByName } from "../../data/teams";
 
 interface Props {
   standings: SeasonStanding[];
@@ -33,6 +34,10 @@ const seasonYear =
     (standing) =>
       typeof standing.season_year === "number"
   )?.season_year ?? null;
+
+function managerName(team: SeasonStanding | null): string | null {
+  return findTeamByName(team?.team_name ?? null)?.owner ?? null;
+}
 
 function formatRecord(team: SeasonStanding | null): string {
   if (!team) {
@@ -104,6 +109,7 @@ function formatPoints(value: number | null): string {
           <StandingsTable
             standings={standings}
             compact
+            showManagers
             caption="Full league standings"
           />
         </section>
@@ -132,6 +138,10 @@ function formatPoints(value: number | null): string {
                 {leader?.team_name ?? "—"}
               </p>
 
+              {managerName(leader) && (
+                <p class="pulse-item__manager">Manager · {managerName(leader)}</p>
+              )}
+
               <p class="pulse-item__detail">
                 {formatRecord(leader)} record
               </p>
@@ -145,6 +155,10 @@ function formatPoints(value: number | null): string {
               <p class="pulse-item__value">
                 {highestScoringTeam?.team_name ?? "—"}
               </p>
+
+              {managerName(highestScoringTeam) && (
+                <p class="pulse-item__manager">Manager · {managerName(highestScoringTeam)}</p>
+              )}
 
               <p class="pulse-item__detail">
                 {formatPoints(
@@ -162,6 +176,10 @@ function formatPoints(value: number | null): string {
               <p class="pulse-item__value">
                 {closestDifferentialTeam?.team_name ?? "—"}
               </p>
+
+              {managerName(closestDifferentialTeam) && (
+                <p class="pulse-item__manager">Manager · {managerName(closestDifferentialTeam)}</p>
+              )}
 
               <p class="pulse-item__detail">
                 {formatPoints(
@@ -355,6 +373,16 @@ function formatPoints(value: number | null): string {
     font-size: 0.68rem;
     letter-spacing: 0.025em;
     line-height: 1.5;
+    text-transform: uppercase;
+  }
+
+  .pulse-item__manager {
+    margin: -0.15rem 0 var(--space-2);
+    color: var(--color-green);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+    font-weight: 650;
+    letter-spacing: 0.055em;
     text-transform: uppercase;
   }
 

@@ -1,0 +1,43 @@
+---
+import { findTeamByName } from "../../data/teams";
+
+interface Props {
+  teamName: string | null | undefined;
+  compact?: boolean;
+  inline?: boolean;
+}
+
+const { teamName, compact = false, inline = false } = Astro.props;
+const manager = findTeamByName(teamName ?? null)?.owner ?? null;
+---
+
+{manager && (
+  <small class:list={["manager-label", compact && "manager-label--compact", inline && "manager-label--inline"]}>
+    Manager · {manager}
+  </small>
+)}
+
+<style>
+  .manager-label {
+    display: block;
+    margin-top: 0.4rem;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+    font-weight: 650;
+    letter-spacing: 0.05em;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+
+  .manager-label--compact {
+    margin-top: 0.25rem;
+    font-size: 0.52rem;
+  }
+
+  .manager-label--inline {
+    display: inline;
+    margin: 0 0 0 0.45rem;
+    white-space: nowrap;
+  }
+</style>

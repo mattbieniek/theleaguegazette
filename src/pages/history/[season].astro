@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import ManagerLabel from "../../components/teams/ManagerLabel.astro";
 import HistoryNav from "../../components/history/HistoryNav.astro";
 import RankingJourney from "../../components/history/RankingJourney.astro";
 import { findTeamByName } from "../../data/teams";
@@ -75,7 +76,8 @@ const championProfile = getTeamProfile(season.champion);
       <div class="champion__copy">
         <p class="eyebrow">League Champion</p>
         <h2 id="champion-title">{season.champion ?? "Champion Unconfirmed"}</h2>
-        {season.runnerUp && <p>Defeated {season.runnerUp} in Week {season.championshipWeek}.</p>}
+        <ManagerLabel teamName={season.champion} />
+        {season.runnerUp && <p>Defeated {season.runnerUp} in Week {season.championshipWeek}. <ManagerLabel teamName={season.runnerUp} compact /></p>}
         {season.notes && <small>{season.notes}</small>}
       </div>
       {championProfile && (
@@ -93,6 +95,7 @@ const championProfile = getTeamProfile(season.champion);
           <article>
             <p>{highlight.label}</p>
             <h3>{highlight.title}</h3>
+            <ManagerLabel teamName={highlight.title} compact />
             <strong>{highlight.value}</strong>
             <span>
               {highlight.opponentName ? `vs. ${highlight.opponentName}` : `${season.year} season`}
@@ -128,6 +131,7 @@ const championProfile = getTeamProfile(season.champion);
                     <td>{index + 1}</td>
                     <td class="team-name">
                       {profile ? <a href={`/teams/${profile.slug}`}>{team.teamName}</a> : team.teamName}
+                      <ManagerLabel teamName={team.teamName} compact />
                     </td>
                     <td>{formatTeamRecord(team)}</td>
                     <td>{formatPoints(team.pointsFor)}</td>

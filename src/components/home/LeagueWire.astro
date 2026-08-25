@@ -19,7 +19,7 @@ const { transactions } = Astro.props;
       </div>
     </header>
     <div class="league-wire__grid">
-      {transactions.map((transaction) => <TransactionHighlight transaction={transaction} />)}
+      {transactions.map((transaction) => <TransactionHighlight transaction={transaction} showManager />)}
     </div>
   </section>
 )}

@@ -1,5 +1,6 @@
 ---
 import type { ReaderPollPreview } from "../../lib/queries/readerPoll";
+import ManagerLabel from "../teams/ManagerLabel.astro";
 interface Props { poll: ReaderPollPreview | null }
 const { poll } = Astro.props;
 ---
@@ -12,7 +13,7 @@ const { poll } = Astro.props;
     {poll?.isOpen ? (
       <div class="readers-poll__empty"><strong>This week’s votes are private.</strong><span>Cast your ballot now. The combined results will appear after the voting window closes.</span></div>
     ) : poll?.leaders.length ? (
-      <ol>{poll.leaders.map(entry => <li><b>{entry.rank}</b><div><strong>{entry.teamName}</strong><small>{entry.points} points · {entry.firstPlaceVotes} first-place {entry.firstPlaceVotes === 1 ? "vote" : "votes"}</small></div></li>)}</ol>
+      <ol>{poll.leaders.map(entry => <li><b>{entry.rank}</b><div><strong>{entry.teamName}</strong><ManagerLabel teamName={entry.teamName} compact /><small>{entry.points} points · {entry.firstPlaceVotes} first-place {entry.firstPlaceVotes === 1 ? "vote" : "votes"}</small></div></li>)}</ol>
     ) : (
       <div class="readers-poll__empty"><strong>The readers have not spoken yet.</strong><span>Submit a ballot and the results will be revealed after the edition closes.</span></div>
     )}

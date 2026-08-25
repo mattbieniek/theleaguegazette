@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import ManagerLabel from "../components/teams/ManagerLabel.astro";
 import HistoryNav from "../components/history/HistoryNav.astro";
 import { getDraftArchive, type DraftPick } from "../lib/queries/drafts";
 import { ACTIVE_SLEEPER_LEAGUE_ID } from "../lib/currentLeague";
@@ -96,6 +97,7 @@ function positionClass(position: string | null): string {
             <span>
               {firstPick?.position ?? "—"} · {firstPick?.proTeam ?? "FA"}<br />
               {firstPick?.fantasyTeamName ?? "Team unavailable"}
+              <ManagerLabel teamName={firstPick?.fantasyTeamName} compact />
             </span>
           </article>
           <article>
@@ -151,7 +153,7 @@ function positionClass(position: string | null): string {
                           {pick.fantasyTeam ? (
                             <>
                               <img src={pick.fantasyTeam.logo} alt="" width="40" height="40" loading="lazy" decoding="async" />
-                              <a href={`/teams/${pick.fantasyTeam.slug}`}>{pick.fantasyTeamName}</a>
+                              <span><a href={`/teams/${pick.fantasyTeam.slug}`}>{pick.fantasyTeamName}</a><ManagerLabel teamName={pick.fantasyTeamName} compact inline /></span>
                             </>
                           ) : (
                             <span>{pick.fantasyTeamName ?? `Roster ${pick.rosterId ?? "—"}`}</span>
@@ -178,7 +180,7 @@ function positionClass(position: string | null): string {
                 <article style={profile ? `--team-color: ${profile.primary}` : undefined}>
                   <header>
                     {profile && <img src={profile.logo} alt="" width="54" height="54" loading="lazy" decoding="async" />}
-                    <div><p>Draft Slot {picks[0]?.draftSlot ?? "—"}</p><h3>{teamName}</h3></div>
+                    <div><p>Draft Slot {picks[0]?.draftSlot ?? "—"}</p><h3>{teamName}</h3><ManagerLabel teamName={teamName} compact /></div>
                   </header>
                   <ol>
                     {picks.map((pick) => (

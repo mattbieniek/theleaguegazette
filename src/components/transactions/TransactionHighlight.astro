@@ -5,9 +5,10 @@ import { teams } from "../../data/teams";
 interface Props {
   transaction: LeagueTransaction;
   contextTeamName?: string;
+  showManager?: boolean;
 }
 
-const { transaction, contextTeamName } = Astro.props;
+const { transaction, contextTeamName, showManager = false } = Astro.props;
 
 const normalizedContext = contextTeamName?.trim().toLowerCase() ?? null;
 const participantNames = transaction.participants
@@ -72,7 +73,12 @@ const archiveHref = `/transactions?season=${transaction.seasonYear}&week=${trans
     {primaryTeam && (
       <img src={primaryTeam.logo} alt="" width="48" height="48" loading="lazy" decoding="async" />
     )}
-    <h3>{headline}</h3>
+    <div class="transaction-highlight__headline">
+      <h3>{headline}</h3>
+      {showManager && primaryTeam && (
+        <p>Manager · {primaryTeam.owner}</p>
+      )}
+    </div>
   </div>
 
   {featuredAssets.length > 0 && (
@@ -100,6 +106,8 @@ const archiveHref = `/transactions?season=${transaction.seasonYear}&week=${trans
   .transaction-highlight__identity { display:flex; align-items:center; gap:var(--space-3); padding:var(--space-5) var(--space-5) var(--space-4); }
   .transaction-highlight__identity img { width:3rem; height:3rem; flex:0 0 auto; object-fit:contain; }
   .transaction-highlight h3 { min-width:0; margin:0; font-size:clamp(1.45rem,2.8vw,2rem); letter-spacing:-.035em; line-height:1; overflow-wrap:anywhere; }
+  .transaction-highlight__headline { min-width:0; }
+  .transaction-highlight__headline p { margin:.55rem 0 0;color:var(--color-green);font-family:var(--font-data);font-size:.58rem;font-weight:650;letter-spacing:.055em;text-transform:uppercase; }
   .transaction-highlight__assets { display:grid; padding:0 var(--space-5); margin:0 0 var(--space-4); list-style:none; }
   .transaction-highlight__assets li { display:grid; grid-template-columns:1.5rem minmax(0,1fr) auto; align-items:baseline; gap:var(--space-2); padding-block:.65rem; border-top:1px solid var(--color-rule); }
   .transaction-highlight__assets li>span { color:var(--color-green); font-family:var(--font-data); font-weight:750; }

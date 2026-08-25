@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import ManagerLabel from "../../components/teams/ManagerLabel.astro";
 import HistoryNav from "../../components/history/HistoryNav.astro";
 import { getHistoricalResults } from "../../lib/queries/records";
 import { buildLeagueHistory } from "../../lib/gazette/history";
@@ -139,7 +140,8 @@ function formatPoints(value: number): string {
                 <div class="season-card__champion">
                   <p>{season.champion ? "League Champion" : "Champion Unconfirmed"}</p>
                   <h3>{season.champion ?? "Awaiting historical data"}</h3>
-                  {season.runnerUp && <span>over {season.runnerUp}</span>}
+                  <ManagerLabel teamName={season.champion} compact />
+                  {season.runnerUp && <span>over {season.runnerUp}<ManagerLabel teamName={season.runnerUp} compact /></span>}
                 </div>
 
                 <dl class="season-card__stats">

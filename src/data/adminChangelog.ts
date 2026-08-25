@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "sitewide-team-manager-labels",
+    date: "2026-08-25",
+    title: "Made team ownership clearer across the site",
+    summary:
+      "Visitors can now see who manages each franchise anywhere league teams are compared or discussed.",
+    changes: [
+      "Added manager names alongside team names throughout standings, matchups, rankings, records, drafts, transactions, polls, and league history.",
+      "Used compact manager labels in information-dense areas so the added context does not overwhelm the page.",
+      "Kept franchise profile pages unchanged because those pages already identify the manager prominently.",
+      "Matched historical team names to their current franchise managers while preserving the correct legacy names for each season.",
+    ],
+  },
+  {
     id: "preseason-sleeper-data-corrections",
     date: "2026-08-25",
     title: "Corrected preseason league data and recent moves",

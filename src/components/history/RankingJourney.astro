@@ -17,6 +17,7 @@ const chartTeams = teamNames.map((teamName, index) => {
   return {
     id: `team-${index}`,
     name: teamName,
+    manager: profile?.owner ?? null,
     color: profile?.primary ?? fallbackColors[index % fallbackColors.length],
     points: weeklyPolls.flatMap((poll, weekIndex) => {
       const ranking = poll.rankings.find((team) => team.teamName === teamName);
@@ -48,7 +49,7 @@ const pathFor = (points: typeof chartTeams[number]["points"]) => points.map((poi
 
     <div class="ranking-journey__legend" aria-label="Choose a team to highlight">
       <button type="button" class="is-active" data-team-filter="all" aria-pressed="true">All teams</button>
-      {chartTeams.map((team) => <button type="button" data-team-filter={team.id} aria-pressed="false"><i style={`--team-color:${team.color}`}></i>{team.name}</button>)}
+      {chartTeams.map((team) => <button type="button" data-team-filter={team.id} aria-pressed="false"><i style={`--team-color:${team.color}`}></i><span>{team.name}{team.manager && <small>Manager · {team.manager}</small>}</span></button>)}
     </div>
 
     <div class="ranking-journey__chart" tabindex="0" role="img" aria-label={`${season} weekly Computer Poll ranking journey for ${chartTeams.length} teams`}>
@@ -88,6 +89,7 @@ const pathFor = (points: typeof chartTeams[number]["points"]) => points.map((poi
   .ranking-journey__legend button{display:flex;align-items:center;gap:.4rem;padding:.48rem .68rem;border:1px solid var(--color-rule);border-radius:999px;background:var(--color-surface);color:var(--color-ink-soft);font-family:var(--font-data);font-size:.58rem;font-weight:700;cursor:pointer}
   .ranking-journey__legend button:hover,.ranking-journey__legend button.is-active{border-color:var(--color-rule-dark);background:var(--color-ink);color:#fff}
   .ranking-journey__legend i{width:.65rem;height:.65rem;border-radius:50%;background:var(--team-color)}
+  .ranking-journey__legend button>span{display:grid;gap:.12rem;text-align:left}.ranking-journey__legend small{font-size:.46rem;font-weight:600;opacity:.68;text-transform:uppercase}
   .ranking-journey__chart{overflow-x:auto;border:1px solid var(--color-rule-dark);border-top:5px solid var(--color-green);background:linear-gradient(180deg,#fbfaf6,#f1ede4)}
   .ranking-journey__chart svg{display:block;width:100%;min-width:58rem;height:auto}
   .ranking-journey__grid line{stroke:#d8d1c5;stroke-width:1}.ranking-journey__grid .week-line{stroke-dasharray:3 6;opacity:.65}

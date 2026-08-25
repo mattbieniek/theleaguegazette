@@ -117,6 +117,11 @@ const featuredTeams = featuredMatchup
                     ) : (
                       <strong>{team.teamName}</strong>
                     )}
+                    {profile && (
+                      <small class="featured-team__manager">
+                        Manager · {profile.owner}
+                      </small>
+                    )}
                   </div>
                 </div>
                 <p>{formatPoints(team.points)}</p>
@@ -146,7 +151,10 @@ const featuredTeams = featuredMatchup
                     <div class:list={[team.isWinner && "is-winner"]}>
                       <span class="scoreboard-row__team">
                         {profile && <img src={profile.logo} alt="" width="32" height="32" loading="lazy" decoding="async" />}
-                        {profile ? <a href={`/teams/${profile.slug}`}>{team.teamName}</a> : team.teamName}
+                        <span>
+                          {profile ? <a href={`/teams/${profile.slug}`}>{team.teamName}</a> : team.teamName}
+                          {profile && <small>Manager · {profile.owner}</small>}
+                        </span>
                       </span>
                       <strong>{formatPoints(team.points)}</strong>
                     </div>
@@ -184,6 +192,7 @@ const featuredTeams = featuredMatchup
   .featured-team--winner .featured-team__identity span { color:var(--color-green); }
   .featured-team__identity a,.featured-team__identity strong { display:block; color:var(--color-ink); font-family:var(--font-editorial); font-size:clamp(1.3rem,2.8vw,2rem); font-weight:680; letter-spacing:-.035em; line-height:1; overflow-wrap:anywhere; }
   .featured-team__identity a:hover { color:var(--color-green); }
+  .featured-team__manager { display:block;margin-top:.5rem;color:var(--color-ink-muted);font-family:var(--font-data);font-size:.56rem;font-weight:600;letter-spacing:.045em;line-height:1.2;text-transform:uppercase; }
   .featured-team>p { margin:0; font-family:var(--font-editorial); font-size:clamp(2.75rem,6vw,5rem); font-weight:720; letter-spacing:-.055em; line-height:.85; font-variant-numeric:tabular-nums; }
   .featured-team--winner>p { color:var(--color-green); }
   .featured-matchup__link { display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); padding:var(--space-4) clamp(1.25rem,3vw,2rem); border-top:1px solid var(--color-rule); }
@@ -198,6 +207,8 @@ const featuredTeams = featuredMatchup
   .scoreboard-row__teams .is-winner { color:var(--color-ink); }
   .scoreboard-row__team { display:flex; min-width:0; align-items:center; gap:var(--space-2); font-size:var(--text-sm); font-weight:650; overflow-wrap:anywhere; }
   .scoreboard-row__team img { width:2rem; height:2rem; flex:0 0 auto; object-fit:contain; }
+  .scoreboard-row__team>span { min-width:0; }
+  .scoreboard-row__team small { display:block;margin-top:.22rem;color:var(--color-ink-muted);font-family:var(--font-data);font-size:.5rem;font-weight:600;letter-spacing:.035em;line-height:1.2;text-transform:uppercase; }
   .scoreboard-row__team a:hover { color:var(--color-green); }
   .scoreboard-row__teams strong { color:inherit; font-family:var(--font-data); font-size:.72rem; font-variant-numeric:tabular-nums; }
   .scoreboard-row__teams .is-winner strong { color:var(--color-green); }

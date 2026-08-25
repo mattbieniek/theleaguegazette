@@ -6,6 +6,7 @@ import { buildLeagueRecords } from "../lib/gazette/records";
 import LineupTable from "../components/LineupTable.astro";
 import { buildSeasonSlotRecords, getPlayerWeeklyScores } from "../lib/queries/playerScores";
 import { setPublicCache } from "../lib/public-cache";
+import ManagerLabel from "../components/teams/ManagerLabel.astro";
 
 export const prerender = false;
 setPublicCache(Astro.response, 60, 600);
@@ -73,6 +74,7 @@ const remainingRecords = records.slice(1);
 
             <h2 id="record-feature-title">{featuredRecord.title}</h2>
             <p class="record-feature__team">{featuredRecord.teamName}</p>
+            <ManagerLabel teamName={featuredRecord.teamName} />
             <p class="record-feature__value">{featuredRecord.value}</p>
             <p class="record-feature__description">
               {featuredRecord.description}
@@ -86,13 +88,13 @@ const remainingRecords = records.slice(1);
             </div>
 
             <div class="record-score__row record-score__row--holder">
-              <span>{featuredRecord.teamName}</span>
+              <span>{featuredRecord.teamName}<ManagerLabel teamName={featuredRecord.teamName} compact /></span>
               <strong>{featuredRecord.teamScore.toFixed(2)}</strong>
             </div>
 
             {featuredRecord.opponentName && (
               <div class="record-score__row">
-                <span>{featuredRecord.opponentName}</span>
+                <span>{featuredRecord.opponentName}<ManagerLabel teamName={featuredRecord.opponentName} compact /></span>
                 <strong>{featuredRecord.opponentScore?.toFixed(2)}</strong>
               </div>
             )}
@@ -123,17 +125,18 @@ const remainingRecords = records.slice(1);
                 <h3>{record.title}</h3>
                 <div class="record-card__rule" aria-hidden="true"></div>
                 <p class="record-card__team">{record.teamName}</p>
+                <ManagerLabel teamName={record.teamName} compact />
                 <p class="record-card__value">{record.value}</p>
                 <p class="record-card__description">{record.description}</p>
 
                 <div class="record-card__result">
                   <div>
-                    <span>{record.teamName}</span>
+                    <span>{record.teamName}<ManagerLabel teamName={record.teamName} compact /></span>
                     <strong>{record.teamScore.toFixed(2)}</strong>
                   </div>
                   {record.opponentName && (
                     <div>
-                      <span>{record.opponentName}</span>
+                      <span>{record.opponentName}<ManagerLabel teamName={record.opponentName} compact /></span>
                       <strong>{record.opponentScore?.toFixed(2)}</strong>
                     </div>
                   )}

@@ -2,6 +2,7 @@
 import type { WeeklyAward } from "../../lib/gazette/awards";
 import type { LeagueRecord } from "../../lib/gazette/records";
 import type { SeasonHistoryMetadata } from "../../data/seasonHistory";
+import ManagerLabel from "../teams/ManagerLabel.astro";
 
 interface Props {
   featuredAward: WeeklyAward | null;
@@ -48,6 +49,7 @@ const {
           <div>
             <h3>{featuredAward.title}</h3>
             <p class="notebook-card__team">{featuredAward.teamName}</p>
+            <ManagerLabel teamName={featuredAward.teamName} />
             <strong>{featuredAward.primaryValue}</strong>
             <p class="notebook-card__description">
               {featuredAward.description}
@@ -57,11 +59,11 @@ const {
           {featuredAward.opponentName && (
             <div class="notebook-score">
               <div>
-                <span>{featuredAward.teamName}</span>
+                <span>{featuredAward.teamName}<ManagerLabel teamName={featuredAward.teamName} compact /></span>
                 <strong>{featuredAward.teamScore.toFixed(2)}</strong>
               </div>
               <div>
-                <span>{featuredAward.opponentName}</span>
+                <span>{featuredAward.opponentName}<ManagerLabel teamName={featuredAward.opponentName} compact /></span>
                 <strong>{featuredAward.opponentScore?.toFixed(2)}</strong>
               </div>
             </div>
@@ -91,6 +93,7 @@ const {
 
           <h3>{featuredRecord.title}</h3>
           <p class="notebook-card__team">{featuredRecord.teamName}</p>
+          <ManagerLabel teamName={featuredRecord.teamName} />
           <strong>{featuredRecord.value}</strong>
           <p class="notebook-card__description">
             The all-time mark still standing atop the completed matchup archive.
@@ -111,9 +114,11 @@ const {
           </div>
 
           <h3>{reigningSeason.champion ?? "Champion unconfirmed"}</h3>
+          <ManagerLabel teamName={reigningSeason.champion} />
           {reigningSeason.runnerUp && (
             <p class="notebook-card__description">
               Defeated {reigningSeason.runnerUp} in the championship.
+              <ManagerLabel teamName={reigningSeason.runnerUp} compact />
             </p>
           )}
 

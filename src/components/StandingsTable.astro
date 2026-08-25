@@ -1,11 +1,13 @@
 ---
 import type { HistoricalStanding } from "../lib/queries/standings";
+import { findTeamByName } from "../data/teams";
 
 interface Props {
   standings: HistoricalStanding[];
   compact?: boolean;
   limit?: number;
   caption?: string;
+  showManagers?: boolean;
 }
 
 const {
@@ -13,6 +15,7 @@ const {
   compact = false,
   limit,
   caption = "League standings",
+  showManagers = true,
 } = Astro.props;
 
 const visibleStandings =
@@ -81,6 +84,7 @@ function formatRecord(team: HistoricalStanding): string {
                 const differential = Number(
                   team.point_differential ?? 0
                 );
+                const profile = findTeamByName(team.team_name);
 
                 return (
                   <tr>
@@ -94,6 +98,11 @@ function formatRecord(team: HistoricalStanding): string {
                       <span class="standings-table__team">
                         {team.team_name ?? "Unnamed Team"}
                       </span>
+                      {showManagers && profile && (
+                        <span class="standings-table__manager">
+                          Manager · {profile.owner}
+                        </span>
+                      )}
                     </td>
 
                     <td class="standings-table__record">
@@ -226,6 +235,18 @@ function formatRecord(team: HistoricalStanding): string {
     font-weight: 650;
     letter-spacing: -0.015em;
     line-height: 1.1;
+  }
+
+  .standings-table__manager {
+    display: block;
+    margin-top: 0.3rem;
+    color: var(--color-ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.56rem;
+    font-weight: 600;
+    letter-spacing: 0.045em;
+    line-height: 1.2;
+    text-transform: uppercase;
   }
 
   .standings-table__record,

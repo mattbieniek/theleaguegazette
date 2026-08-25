@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import ManagerLabel from "../components/teams/ManagerLabel.astro";
 
 import { getAwardsPageData } from "../lib/queries/awards";
 
@@ -185,6 +186,7 @@ const awards = selectedOption
                                         <p class="award-card__team">
                                             {award.teamName}
                                         </p>
+                                        <ManagerLabel teamName={award.teamName} compact />
 
                                         <p class="award-card__value">
                                             {award.primaryValue}
@@ -205,7 +207,7 @@ const awards = selectedOption
                                             )}`}
                                         >
                                             <div class="award-score__row">
-                                                <span>{award.teamName}</span>
+                                                <span>{award.teamName}<ManagerLabel teamName={award.teamName} compact /></span>
 
                                                 <strong>
                                                     {award.teamScore.toFixed(2)}
@@ -215,6 +217,7 @@ const awards = selectedOption
                                             <div class="award-score__row">
                                                 <span>
                                                     {award.opponentName}
+                                                    <ManagerLabel teamName={award.opponentName} compact />
                                                 </span>
 
                                                 <strong>

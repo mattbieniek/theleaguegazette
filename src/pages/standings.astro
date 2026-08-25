@@ -6,6 +6,7 @@ import { buildStandingsThroughWeek } from "../lib/queries/standings";
 import { getHistoricalResults } from "../lib/queries/records";
 import { supabase } from "../lib/supabase";
 import { setPublicCache } from "../lib/public-cache";
+import ManagerLabel from "../components/teams/ManagerLabel.astro";
 
 export const prerender = false;
 setPublicCache(Astro.response, 30, 300);
@@ -101,6 +102,7 @@ function formatPoints(value: number | null): string {
             <p class="summary-card__value">
               {leader?.team_name ?? "—"}
             </p>
+            <ManagerLabel teamName={leader?.team_name} compact />
 
             <p class="summary-card__detail">
               {leader?.wins ?? 0}-{leader?.losses ?? 0}
@@ -119,6 +121,7 @@ function formatPoints(value: number | null): string {
             <p class="summary-card__value">
               {highestScoringTeam?.team_name ?? "—"}
             </p>
+            <ManagerLabel teamName={highestScoringTeam?.team_name} compact />
 
             <p class="summary-card__detail">
               {formatPoints(

@@ -1,5 +1,6 @@
 ---
 import type { PublishedPowerRanking } from "../../lib/queries/powerRankings";
+import ManagerLabel from "../teams/ManagerLabel.astro";
 
 interface Props {
   ranking: PublishedPowerRanking | null;
@@ -39,6 +40,7 @@ const entries = ranking?.entries ?? [];
                 <b>{entry.rank}</b>
                 <div>
                   <strong>{entry.teamName}</strong>
+                  <ManagerLabel teamName={entry.teamName} compact />
                   <span>{entry.note || entry.record}</span>
                 </div>
                 <small class:list={[movement && movement > 0 && "is-up", movement && movement < 0 && "is-down"]}>
