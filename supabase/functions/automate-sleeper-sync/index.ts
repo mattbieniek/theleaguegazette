@@ -221,12 +221,15 @@ Deno.serve(async (request: Request): Promise<Response> => {
       Math.min(18, Number(state.display_week ?? state.week ?? league.current_week ?? 1)),
     );
     const completedWeek = currentWeek - 1;
+    const hasRegularSeasonGames =
+      state.season_type === "regular" || state.season_type === "post";
 
     runId = await recordRun(db, "running", null, {
       mode,
       seasonYear,
       currentWeek,
       leagueStatus: league.status ?? null,
+      seasonType: state.season_type ?? null,
       recordsProcessed: 0,
     });
 
@@ -258,11 +261,13 @@ Deno.serve(async (request: Request): Promise<Response> => {
       await call("sync-sleeper-rosters", { sleeper_league_id: leagueId });
       await call("sync-sleeper-transactions", {
         sleeper_league_id: leagueId,
-        start_week: currentWeek,
+        // Sleeper assigns post-draft preseason moves to Week 1 even while
+        // its NFL state advances through preseason display weeks.
+        start_week: hasRegularSeasonGames ? currentWeek : 1,
         end_week: currentWeek,
       });
     } else if (mode === "weekly-finalize") {
-      if (completedWeek >= 1) {
+      if (hasRegularSeasonGames && completedWeek >= 1) {
         await call("sync-sleeper-matchups", {
           sleeper_league_id: leagueId,
           week: completedWeek,
@@ -285,7 +290,8 @@ Deno.serve(async (request: Request): Promise<Response> => {
         });
       }
     } else if (mode === "hourly") {
-      const hasMatchups = league.status === "in_season" || league.status === "complete";
+      const hasMatchups = hasRegularSeasonGames &&
+        (league.status === "in_season" || league.status === "complete");
       if (hasMatchups) {
         await call("sync-sleeper-matchups", {
           sleeper_league_id: leagueId,

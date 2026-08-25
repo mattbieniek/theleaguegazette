@@ -53,6 +53,12 @@ function keepCompletedMatchups(
     .filter(
       (matchup) =>
         matchup.length === 2 &&
+        // Sleeper publishes the schedule before games begin with both teams
+        // at 0. Those placeholders are not completed ties and must not enter
+        // standings, recent form, or the franchise record book.
+        matchup.some(
+          (row) => row.points_for !== 0 || row.points_against !== 0
+        ) &&
         matchup.every((row) =>
           ["W", "L", "T"].includes(row.result)
         )

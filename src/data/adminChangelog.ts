@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "preseason-sleeper-data-corrections",
+    date: "2026-08-25",
+    title: "Corrected preseason league data and recent moves",
+    summary:
+      "Team profiles and the homepage now use the current 2026 rosters without treating unplayed preseason matchups as completed games.",
+    changes: [
+      "Corrected active team rosters so franchise profiles use the current 2026 Sleeper league instead of last season’s roster data.",
+      "Removed blank Week 2 matchups that had been mistaken for ties and restored Recent Form to the latest genuinely completed games.",
+      "Prevented future preseason schedules from being counted as completed matchups, standings, or franchise records.",
+      "Repaired roster snapshots so every weekly snapshot is saved under the correct season.",
+      "Imported the latest post-draft roster moves and updated preseason automation to keep capturing them.",
+      "Changed the homepage League Wire to lead with the newest completed moves, including free-agent activity.",
+    ],
+  },
+  {
     id: "admin-reader-poll-workspace-refresh",
     date: "2026-08-24",
     title: "Improved the Reader Poll workspace",

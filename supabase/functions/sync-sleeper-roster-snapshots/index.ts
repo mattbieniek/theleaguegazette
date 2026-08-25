@@ -19,6 +19,7 @@ type SnapshotRequest = {
 type FantasyTeam = {
   id: string;
   league_id: string;
+  season_id: string;
   sleeper_roster_id: number;
   wins: number | null;
   losses: number | null;
@@ -43,6 +44,7 @@ type RosterPlayer = {
 type SnapshotRow = {
   id: string;
   fantasy_team_id: string;
+  season_id: string;
 };
 
 function jsonResponse(
@@ -215,6 +217,31 @@ Deno.serve(async (req: Request) => {
     }
 
     /*
+     * Resolve the season explicitly. Snapshot rows require season_id, and
+     * scoping teams through the season prevents another year's rosters from
+     * being copied when multiple seasons share the permanent league record.
+     */
+    const { data: season, error: seasonError } =
+      await supabase
+        .from("seasons")
+        .select("id, league_id, year, sleeper_league_id")
+        .eq("sleeper_league_id", sleeperLeagueId)
+        .single();
+
+    if (seasonError || !season) {
+      throw new Error(
+        `Season for Sleeper league ${sleeperLeagueId} was not found: ` +
+          `${seasonError?.message ?? "missing season row"}.`,
+      );
+    }
+
+    if (season.league_id !== league.id) {
+      throw new Error(
+        `Season ${season.year} is not attached to league ${league.name}.`,
+      );
+    }
+
+    /*
      * Load every fantasy team in this league.
      */
     const { data: fantasyTeamData, error: teamsError } =
@@ -223,6 +250,7 @@ Deno.serve(async (req: Request) => {
         .select(`
           id,
           league_id,
+          season_id,
           sleeper_roster_id,
           wins,
           losses,
@@ -235,7 +263,7 @@ Deno.serve(async (req: Request) => {
           metadata,
           raw_data
         `)
-        .eq("league_id", league.id);
+        .eq("season_id", season.id);
 
     if (teamsError) {
       throw teamsError;
@@ -282,7 +310,8 @@ Deno.serve(async (req: Request) => {
     const { data: existingSnapshotData, error: existingError } =
       await supabase
         .from("roster_snapshots")
-        .select("id, fantasy_team_id")
+        .select("id, fantasy_team_id, season_id")
+        .eq("season_id", season.id)
         .eq("week", week)
         .in("fantasy_team_id", fantasyTeamIds);
 
@@ -335,6 +364,7 @@ Deno.serve(async (req: Request) => {
      * Create one snapshot row per fantasy team.
      */
     const snapshotRecords = fantasyTeams.map((team) => ({
+      season_id: season.id,
       fantasy_team_id: team.id,
       week,
       wins: team.wins ?? 0,
@@ -446,6 +476,8 @@ Deno.serve(async (req: Request) => {
                 "sync-sleeper-roster-snapshots",
               league_id: league.id,
               league_name: league.name,
+              season_id: season.id,
+              season_year: season.year,
               week,
               overwrite,
               snapshots_created: snapshots.length,
@@ -476,6 +508,7 @@ Deno.serve(async (req: Request) => {
       },
       week,
       overwrite,
+      records_processed: recordsProcessed,
       snapshots_created: snapshots.length,
       snapshot_players_created:
         snapshotPlayerRecords.length,

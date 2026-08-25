@@ -119,6 +119,15 @@ const teamStanding = standings.find(
     team.name.trim().toLowerCase()
 );
 
+const hasSeasonPerformance = Boolean(
+  teamStanding &&
+    (Number(teamStanding.wins ?? 0) > 0 ||
+      Number(teamStanding.losses ?? 0) > 0 ||
+      Number(teamStanding.ties ?? 0) > 0 ||
+      Number(teamStanding.points_for ?? 0) !== 0 ||
+      Number(teamStanding.points_against ?? 0) !== 0)
+);
+
 const seasonYear =
   teamStanding?.season_year ??
   standings.find(
@@ -154,13 +163,16 @@ const pointDifferential =
     : null;
 
 const standingRank =
+  hasSeasonPerformance &&
   teamStanding?.standings_rank !== null &&
   teamStanding?.standings_rank !== undefined
     ? `No. ${teamStanding.standings_rank}`
     : "—";
 
 const surroundingStandings =
-  teamStanding?.standings_rank !== null &&
+  !hasSeasonPerformance
+    ? []
+    : teamStanding?.standings_rank !== null &&
   teamStanding?.standings_rank !== undefined
     ? standings.filter((standing) => {
         const rank = standing.standings_rank;
@@ -755,8 +767,9 @@ function formatOrdinal(value: number): string {
         </h2>
 
         <p>
-          The closest teams to this franchise in the current
-          standings.
+          {hasSeasonPerformance
+            ? "The closest teams to this franchise in the current standings."
+            : "League positions will appear after the first completed matchup."}
         </p>
       </div>
 

@@ -29,20 +29,20 @@ export function getHomepageTransactionHighlights(
   transactions: LeagueTransaction[],
   limit = 3
 ): LeagueTransaction[] {
-  const editorialMoves = transactions.filter(
-    (transaction) =>
-      transaction.type === "trade" || transaction.type === "waiver"
-  );
+  return [...transactions]
+    .sort((first, second) => {
+      const firstTime = first.occurredAt
+        ? new Date(first.occurredAt).getTime()
+        : 0;
+      const secondTime = second.occurredAt
+        ? new Date(second.occurredAt).getTime()
+        : 0;
 
-  const selected = editorialMoves.slice(0, limit);
-  const selectedIds = new Set(selected.map((transaction) => transaction.id));
-
-  for (const transaction of transactions) {
-    if (selected.length >= limit) break;
-    if (!selectedIds.has(transaction.id)) selected.push(transaction);
-  }
-
-  return selected;
+      return secondTime - firstTime ||
+        second.seasonYear - first.seasonYear ||
+        second.week - first.week;
+    })
+    .slice(0, limit);
 }
 
 export function getTeamTransactionHighlights(
