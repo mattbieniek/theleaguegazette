@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "preseason-digest-labels",
+    date: "2026-09-01",
+    title: "Clarified the pre-season weekly digest",
+    summary:
+      "The next two Wednesday emails will be clearly labeled as 2026 Preseason editions instead of carrying over last season’s Week 17 label.",
+    changes: [
+      "Changed the digest to use the configured active season instead of the last season with completed matchup results.",
+      "Added a clear 2026 Preseason subject and header while the new season has not recorded a completed week.",
+      "Allowed both pre-season Wednesday editions to send while still preventing duplicate sends on the same day.",
+      "Removed the empty 2026 Matchups preview link from pre-season emails; normal weekly links return once games begin.",
+    ],
+  },
+  {
     id: "article-reading-insights-eastern-time",
     date: "2026-09-01",
     title: "Added article reading insights and clearer publication times",
