@@ -60,7 +60,7 @@ function isActive(path: string, exact = false) {
             class="admin-navigation"
             aria-label="Admin navigation"
           >
-            <div class="admin-navigation__group">
+            <div class="admin-navigation__group" data-not-data-reader>
               <p class="admin-navigation__label">
                 Editorial
               </p>
@@ -147,6 +147,23 @@ function isActive(path: string, exact = false) {
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M16 11h6" />
                 </svg>
                 <span>Accounts</span>
+              </a>
+            </div>
+
+            <div class="admin-navigation__group" data-data-reader-navigation>
+              <p class="admin-navigation__label">Data</p>
+              <a
+                class:list={[
+                  "admin-navigation__link",
+                  { "admin-navigation__link--active": currentPath === "/admin/export" },
+                ]}
+                href="/admin/export"
+                data-data-access
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 4h14v16H5V4Zm4 4h6M9 12h6M9 16h4M16 14l3 3m0 0 3-3m-3 3V10" />
+                </svg>
+                <span>Data Export</span>
               </a>
             </div>
 
@@ -374,6 +391,7 @@ function isActive(path: string, exact = false) {
               <a
                 class="admin-topbar__new"
                 href="/admin/articles/new"
+                data-not-data-reader
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -437,12 +455,24 @@ function isActive(path: string, exact = false) {
             notificationCount.textContent = count > 99 ? "99+" : String(count);
             notificationCount.hidden = false;
           }
-          const [{ data: admin }, { data: contributor }] = await Promise.all([
+          const [{ data: admin }, { data: contributor }, { data: dataReader }] = await Promise.all([
             supabaseBrowser.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle(),
             supabaseBrowser.from("publication_contributors").select("role").eq("user_id", user.id).maybeSingle(),
+            supabaseBrowser.from("data_export_readers").select("user_id").eq("user_id", user.id).maybeSingle(),
           ]);
-          if (!admin && contributor?.role === "op_ed") {
+          if (!admin && dataReader) {
+            document.querySelectorAll<HTMLElement>("[data-admin-only], [data-not-data-reader]").forEach((element) => {
+              element.hidden = true;
+            });
+          } else if (!admin && contributor?.role === "op_ed") {
             document.querySelectorAll<HTMLElement>("[data-admin-only]").forEach((element) => {
+              element.hidden = true;
+            });
+            document.querySelectorAll<HTMLElement>("[data-data-reader-navigation]").forEach((element) => {
+              element.hidden = true;
+            });
+          } else if (!admin) {
+            document.querySelectorAll<HTMLElement>("[data-data-reader-navigation]").forEach((element) => {
               element.hidden = true;
             });
           }

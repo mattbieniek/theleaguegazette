@@ -1,0 +1,234 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Data Export | The League Gazette">
+  <main class="admin-shell export-page" id="export-page" hidden>
+    <header class="export-hero">
+      <div>
+        <p class="eyebrow">Research desk</p>
+        <h1>Data Export</h1>
+        <p>Download clean, read-only league data for Excel, reporting, and your own analysis.</p>
+      </div>
+      <div class="export-hero__badge">
+        <span aria-hidden="true">↓</span>
+        <strong>Read-only access</strong>
+        <small>Exports cannot change site data.</small>
+      </div>
+    </header>
+
+    <section class="export-layout">
+      <form class="export-card export-form" id="export-form">
+        <div class="export-card__heading">
+          <div>
+            <p class="eyebrow">Build a file</p>
+            <h2>Choose what to download</h2>
+          </div>
+          <span class="export-card__step">01 / 01</span>
+        </div>
+
+        <label class="export-field">
+          <span>Dataset</span>
+          <select id="dataset-select" required disabled>
+            <option>Loading datasets…</option>
+          </select>
+          <small id="dataset-description">The export catalog is loading.</small>
+        </label>
+
+        <label class="export-field" id="season-field">
+          <span>Season</span>
+          <select id="season-select" disabled>
+            <option value="all">All seasons</option>
+          </select>
+          <small>Limit larger exports to one season when you can.</small>
+        </label>
+
+        <fieldset class="export-field export-format">
+          <legend>File format</legend>
+          <div class="export-format__options">
+            <label>
+              <input type="radio" name="format" value="xlsx" checked />
+              <span><strong>Excel workbook</strong><small>.xlsx file with a formatted data sheet</small></span>
+            </label>
+            <label>
+              <input type="radio" name="format" value="csv" />
+              <span><strong>CSV</strong><small>Simple file that opens in Excel or Google Sheets</small></span>
+            </label>
+            <label>
+              <input type="radio" name="format" value="json" />
+              <span><strong>JSON</strong><small>Structured file for other tools and workflows</small></span>
+            </label>
+          </div>
+        </fieldset>
+
+        <p class="export-message" id="export-message" role="status" aria-live="polite"></p>
+        <button class="export-submit" id="export-submit" type="submit" disabled>
+          <span>Download export</span>
+          <span aria-hidden="true">↓</span>
+        </button>
+      </form>
+
+      <aside class="export-card export-catalog">
+        <div class="export-card__heading">
+          <div>
+            <p class="eyebrow">Available data</p>
+            <h2>Export catalog</h2>
+          </div>
+        </div>
+        <div id="dataset-catalog" class="export-catalog__list"></div>
+        <p class="export-catalog__note">The catalog intentionally contains approved league and Gazette data only. Private accounts, drafts, admin records, and credentials are not exportable.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    import { supabaseBrowser } from "../../lib/supabase-browser";
+
+    type Dataset = {
+      key: string;
+      label: string;
+      description: string;
+      seasonFilter: boolean;
+    };
+
+    const page = document.querySelector<HTMLElement>("#export-page");
+    const form = document.querySelector<HTMLFormElement>("#export-form");
+    const datasetSelect = document.querySelector<HTMLSelectElement>("#dataset-select");
+    const seasonSelect = document.querySelector<HTMLSelectElement>("#season-select");
+    const seasonField = document.querySelector<HTMLElement>("#season-field");
+    const description = document.querySelector<HTMLElement>("#dataset-description");
+    const catalog = document.querySelector<HTMLElement>("#dataset-catalog");
+    const message = document.querySelector<HTMLElement>("#export-message");
+    const submit = document.querySelector<HTMLButtonElement>("#export-submit");
+    let datasets: Dataset[] = [];
+    let accessToken = "";
+
+    function setMessage(text: string, error = false) {
+      if (!message) return;
+      message.textContent = text;
+      message.dataset.error = String(error);
+    }
+
+    function updateDatasetDetails() {
+      const dataset = datasets.find((item) => item.key === datasetSelect?.value);
+      if (description) description.textContent = dataset?.description ?? "Choose a dataset to continue.";
+      if (seasonField && seasonSelect) {
+        seasonField.hidden = !dataset?.seasonFilter;
+        seasonSelect.disabled = !dataset?.seasonFilter;
+        if (!dataset?.seasonFilter) seasonSelect.value = "all";
+      }
+    }
+
+    function renderCatalog() {
+      if (!catalog) return;
+      catalog.replaceChildren();
+      for (const dataset of datasets) {
+        const item = document.createElement("div");
+        item.className = "export-catalog__item";
+        const heading = document.createElement("strong");
+        heading.textContent = dataset.label;
+        const detail = document.createElement("span");
+        detail.textContent = dataset.seasonFilter ? "Season filter available" : "All published records";
+        item.append(heading, detail);
+        catalog.append(item);
+      }
+    }
+
+    function filenameFromResponse(response: Response): string {
+      const disposition = response.headers.get("content-disposition") ?? "";
+      const match = disposition.match(/filename="([^"]+)"/);
+      return match?.[1] ?? "league-gazette-export";
+    }
+
+    async function initialize() {
+      const { data: { session } } = await supabaseBrowser.auth.getSession();
+      if (!session) {
+        window.location.replace("/admin/login");
+        return;
+      }
+      accessToken = session.access_token;
+      const response = await fetch("/api/admin/export?metadata=1", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as { error?: string };
+        if (response.status === 401) {
+          window.location.replace("/admin/login");
+          return;
+        }
+        setMessage(body.error ?? "Data export access is not enabled for this account.", true);
+        if (page) page.hidden = false;
+        return;
+      }
+
+      const metadata = await response.json() as { datasets: Dataset[]; seasons: number[] };
+      datasets = metadata.datasets ?? [];
+      if (datasetSelect) {
+        datasetSelect.replaceChildren();
+        for (const dataset of datasets) {
+          const option = document.createElement("option");
+          option.value = dataset.key;
+          option.textContent = dataset.label;
+          datasetSelect.append(option);
+        }
+        datasetSelect.disabled = datasets.length === 0;
+      }
+      if (seasonSelect) {
+        for (const season of metadata.seasons ?? []) {
+          const option = document.createElement("option");
+          option.value = String(season);
+          option.textContent = String(season);
+          seasonSelect.append(option);
+        }
+        seasonSelect.disabled = !datasets[0]?.seasonFilter;
+      }
+      renderCatalog();
+      updateDatasetDetails();
+      if (submit) submit.disabled = datasets.length === 0;
+      if (page) page.hidden = false;
+    }
+
+    datasetSelect?.addEventListener("change", updateDatasetDetails);
+
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!datasetSelect || !submit || !accessToken) return;
+      const format = document.querySelector<HTMLInputElement>('input[name="format"]:checked')?.value ?? "xlsx";
+      const params = new URLSearchParams({ dataset: datasetSelect.value, format });
+      if (seasonSelect && !seasonSelect.disabled && seasonSelect.value !== "all") params.set("season", seasonSelect.value);
+      submit.disabled = true;
+      submit.querySelector("span")!.textContent = "Preparing file…";
+      setMessage("Collecting the approved records…");
+      try {
+        const response = await fetch(`/api/admin/export?${params.toString()}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({})) as { error?: string };
+          throw new Error(body.error ?? "The export could not be created.");
+        }
+        const blob = await response.blob();
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = filenameFromResponse(response);
+        document.body.append(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(downloadUrl);
+        setMessage(`Downloaded ${link.download}.`);
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "The export could not be created.", true);
+      } finally {
+        submit.disabled = false;
+        submit.querySelector("span")!.textContent = "Download export";
+      }
+    });
+
+    void initialize();
+  </script>
+</AdminLayout>
+
+<style is:global>
+  .export-page{display:grid;gap:1.5rem}.export-hero{display:flex;align-items:end;justify-content:space-between;gap:2rem;padding:clamp(1.5rem,3vw,2.5rem);border:1px solid #29473b;background:linear-gradient(135deg,#132d23,#1d4032);color:#fff;box-shadow:0 12px 30px rgb(25 42 34 / 10%)}.export-hero .eyebrow{color:#d8bd68}.export-hero h1{margin:.25rem 0;color:#fff;font-family:Georgia,serif;font-size:clamp(2.8rem,6vw,5rem);letter-spacing:-.05em;line-height:.95}.export-hero p:last-child{max-width:42rem;margin:0;color:#d4ddd9;font-size:1rem;line-height:1.55}.export-hero__badge{display:grid;min-width:12rem;gap:.2rem;padding:1rem;border:1px solid #597166;background:rgb(255 255 255 / 6%)}.export-hero__badge>span{font-size:1.8rem;line-height:1}.export-hero__badge strong{font-size:.8rem}.export-hero__badge small{color:#b9c9c1;font-size:.68rem;line-height:1.4}.export-layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(18rem,.75fr);gap:1.5rem;align-items:start}.export-card{border:1px solid #d8d1c5;background:#fff;box-shadow:0 10px 28px rgb(45 38 28 / 6%)}.export-form{display:grid;gap:1.35rem;padding:clamp(1.25rem,2.5vw,2rem)}.export-card__heading{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding-bottom:1.1rem;border-bottom:3px double #9d968a}.export-card__heading h2{margin:.2rem 0 0;font-family:Georgia,serif;font-size:clamp(1.6rem,3vw,2.2rem);letter-spacing:-.03em}.export-card__step{color:#8d8578;font-family:var(--font-data);font-size:.58rem;font-weight:800;letter-spacing:.08em}.export-field{display:grid;gap:.45rem}.export-field>span,.export-format legend{color:#625d55;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.export-field select{width:100%;min-height:3rem;padding:.7rem .8rem;border:1px solid #aaa39a;background:#faf8f3;color:#1e211e;font:inherit}.export-field select:focus{outline:2px solid #b8953e;outline-offset:2px;border-color:#173126}.export-field small{color:#817a70;font-size:.72rem;line-height:1.45}.export-format{display:grid;gap:.65rem;padding:0;border:0}.export-format__options{display:grid;gap:.55rem}.export-format__options label{display:grid;grid-template-columns:auto 1fr;gap:.75rem;align-items:start;padding:.8rem;border:1px solid #d8d1c5;background:#faf8f3;cursor:pointer}.export-format__options label:has(input:checked){border-color:#54725f;background:#eaf2ec;box-shadow:inset 3px 0 #315e49}.export-format__options input{margin-top:.2rem;accent-color:#173126}.export-format__options span{display:grid;gap:.2rem}.export-format__options strong{font-size:.82rem}.export-format__options small{color:#817a70;font-size:.7rem}.export-submit{display:flex;align-items:center;justify-content:space-between;min-height:3.2rem;padding:.8rem 1rem;border:1px solid #173126;background:#173126;color:#fff;font:inherit;font-weight:800;cursor:pointer}.export-submit:hover{background:#244b3b}.export-submit:disabled{cursor:wait;opacity:.6}.export-message{min-height:1.15rem;margin:0;color:#315e49;font-family:var(--font-data);font-size:.64rem;line-height:1.5}.export-message[data-error="true"]{color:#a32320}.export-catalog{padding:clamp(1.25rem,2.5vw,2rem)}.export-catalog__list{display:grid;margin-top:1.25rem;border-top:1px solid #d8d1c5}.export-catalog__item{display:grid;gap:.25rem;padding:.85rem .2rem;border-bottom:1px solid #e2ddd5}.export-catalog__item strong{font-family:Georgia,serif;font-size:1rem}.export-catalog__item span{color:#817a70;font-family:var(--font-data);font-size:.58rem;letter-spacing:.03em;text-transform:uppercase}.export-catalog__note{margin:1.25rem 0 0;color:#625d55;font-size:.75rem;line-height:1.55}@media(max-width:850px){.export-layout{grid-template-columns:1fr}.export-catalog{order:-1}}@media(max-width:620px){.export-hero{align-items:stretch;flex-direction:column}.export-hero__badge{min-width:0}.export-card__heading{align-items:start;flex-direction:column}.export-card__step{align-self:flex-start}}
+</style>

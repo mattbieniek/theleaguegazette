@@ -8,7 +8,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
       <div>
         <p class="eyebrow">People &amp; permissions</p>
         <h1>Accounts</h1>
-        <p>Review every registered Gazette account, manage Op-Ed access, or remove an account when necessary.</p>
+        <p>Review every registered Gazette account, manage Op-Ed and read-only data access, or remove an account when necessary.</p>
       </div>
       <div class="contributors__summary" id="account-summary" aria-label="Account summary"></div>
     </header>
@@ -24,7 +24,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
           <input id="account-search" type="search" placeholder="Search name or email" autocomplete="off" />
         </label>
       </div>
-      <p class="contributors__note">Limited contributors can create Op-Ed drafts and submit them for approval. Account deletion permanently removes sign-in access, reader activity, and any associated comments. Published stories remain in the Gazette.</p>
+      <p class="contributors__note">Limited contributors can create Op-Ed drafts and submit them for approval. Data readers can use the Export desk to download approved league data without editorial access. Account deletion permanently removes sign-in access, reader activity, and any associated comments. Published stories remain in the Gazette.</p>
       <p id="contributor-message" role="status" aria-live="polite"></p>
       <div id="account-list" class="account-list"></div>
       <div class="contributors__empty" id="account-empty" hidden>No accounts match that search.</div>
@@ -40,6 +40,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
       display_name: string;
       digest_enabled: boolean;
       is_contributor: boolean;
+      is_data_reader: boolean;
       is_admin: boolean;
       created_at: string;
     };
@@ -74,6 +75,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
       summary.replaceChildren(
         stat("Accounts", accounts.length),
         stat("Contributors", accounts.filter((account) => account.is_contributor).length),
+        stat("Data readers", accounts.filter((account) => account.is_data_reader).length),
         stat("Admins", accounts.filter((account) => account.is_admin).length),
       );
     }
@@ -125,6 +127,12 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
           contributorBadge.textContent = "Op-Ed contributor";
           flags.append(contributorBadge);
         }
+        if (account.is_data_reader) {
+          const dataReaderBadge = document.createElement("span");
+          dataReaderBadge.className = "account-row__badge--reader";
+          dataReaderBadge.textContent = "Data reader";
+          flags.append(dataReaderBadge);
+        }
 
         const actions = document.createElement("div");
         actions.className = "account-row__actions";
@@ -157,6 +165,31 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
           });
         }
 
+        const dataAccess = document.createElement("button");
+        dataAccess.type = "button";
+        dataAccess.className = account.is_data_reader ? "secondary" : "primary";
+        dataAccess.textContent = account.is_data_reader ? "Remove data access" : "Grant data access";
+        dataAccess.disabled = account.is_admin;
+        if (!account.is_admin) {
+          dataAccess.addEventListener("click", async () => {
+            const enabling = !account.is_data_reader;
+            dataAccess.disabled = true;
+            dataAccess.textContent = enabling ? "Granting…" : "Removing…";
+            const { error } = await supabaseBrowser.rpc("admin_set_data_export_access", {
+              target_user_id: account.user_id,
+              access_enabled: enabling,
+            });
+            if (error) {
+              setMessage(error.message, true);
+              dataAccess.disabled = false;
+              dataAccess.textContent = enabling ? "Grant data access" : "Remove data access";
+              return;
+            }
+            setMessage(`${account.display_name} ${enabling ? "now has" : "no longer has"} read-only data access.`);
+            await load();
+          });
+        }
+
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "danger";
@@ -183,7 +216,7 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
             await load();
           });
         }
-        actions.append(access, remove);
+        actions.append(access, dataAccess, remove);
 
         const joined = document.createElement("p");
         joined.className = "account-row__joined";
@@ -230,5 +263,5 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
 </AdminLayout>
 
 <style is:global>
-  .contributors{display:grid;gap:1.5rem}.contributors__header{display:flex;justify-content:space-between;align-items:end;gap:2rem;padding:clamp(1.5rem,3vw,2.25rem);border:1px solid #29473b;background:linear-gradient(135deg,#132d23,#1d4032);color:#fff;box-shadow:0 12px 30px rgb(25 42 34 / 10%)}.contributors__header .eyebrow{color:#d8bd68}.contributors__header h1{margin:.25rem 0;color:#fff;font-family:Georgia,serif;font-size:clamp(2.2rem,4vw,3.5rem);letter-spacing:-.035em}.contributors__header p:last-child{max-width:45rem;margin-bottom:0;color:#d4ddd9}.contributors__summary{display:flex;gap:.5rem}.contributors__summary>div{display:grid;min-width:6rem;padding:.85rem;border:1px solid #597166;background:rgb(255 255 255 / 5%);text-align:center}.contributors__summary strong{font:700 1.6rem Georgia,serif;color:#ead17d}.contributors__summary span{margin-top:.2rem;color:#d4ddd9;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase}.contributors__panel{padding:clamp(1.25rem,2.5vw,2rem);border:1px solid #d8d1c5;background:#fff;box-shadow:0 10px 28px rgb(45 38 28 / 6%)}.contributors__toolbar{display:flex;justify-content:space-between;align-items:end;gap:2rem;padding-bottom:1.25rem;border-bottom:3px double #9d968a}.contributors__toolbar h2{margin:.2rem 0 0;font-family:Georgia,serif;font-size:2rem;letter-spacing:-.025em}.contributors__toolbar label{display:grid;gap:.35rem;min-width:min(21rem,100%);font-size:.7rem;font-weight:750;letter-spacing:.05em;text-transform:uppercase}.contributors__toolbar input{min-height:2.75rem;padding:.65rem .8rem;border:1px solid #aaa39a;background:#faf8f3;font:inherit;text-transform:none;letter-spacing:0}.contributors__toolbar input:focus{outline:2px solid #b8953e;outline-offset:2px;border-color:#173126}.contributors__note{max-width:58rem;margin:1.1rem 0 .4rem;color:#625d55;line-height:1.55}.account-list{border-top:1px solid #d8d1c5}.account-row{display:grid;grid-template-columns:minmax(14rem,1.2fr) minmax(14rem,1fr) minmax(13rem,auto);gap:1.25rem;align-items:center;padding:1.15rem .75rem;border-bottom:1px solid #e2ddd5;transition:background .15s ease}.account-row:hover{background:#faf8f3}.account-row__identity{display:flex;align-items:center;gap:.8rem;min-width:0}.account-row__avatar{display:grid;width:2.9rem;height:2.9rem;flex:0 0 auto;place-items:center;border:1px solid #345346;border-radius:50%;background:#173126;color:#fff;font:700 1.2rem Georgia,serif;box-shadow:inset 0 0 0 3px #f4efe2}.account-row h3,.account-row p{margin:0}.account-row h3{font:700 1.08rem Georgia,serif;letter-spacing:-.01em}.account-row__identity p{margin-top:.2rem;color:#625d55;font-size:.78rem;overflow-wrap:anywhere}.account-row__flags{display:flex;flex-wrap:wrap;gap:.35rem}.account-row__flags span{padding:.3rem .48rem;border:1px solid #cdc6ba;background:#f5f1e9;color:#625d55;font-size:.58rem;font-weight:750;letter-spacing:.05em;text-transform:uppercase}.account-row__flags .account-row__badge--admin{border-color:#173126;background:#173126;color:#fff}.account-row__flags .account-row__badge--contributor{border-color:#b5933d;background:#f4e8bf;color:#59450f}.account-row__joined{margin-top:.4rem!important;color:#817a70;font-family:var(--font-data);font-size:.62rem;letter-spacing:.02em}.account-row__actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:.5rem}.account-row button{min-height:2.6rem;padding:.55rem .85rem;border:1px solid #173126;background:#fff;font-weight:750;cursor:pointer;transition:background .15s ease,color .15s ease}.account-row button.primary{background:#173126;color:#fff}.account-row button.primary:hover{background:#244b3b}.account-row button.secondary{background:transparent;color:#7d211f;border-color:#7d211f}.account-row button.secondary:hover{background:#f9ece9}.account-row button.danger{border-color:#9f2925;background:#fff7f5;color:#8e201d}.account-row button.danger:hover{background:#f8dfda}.account-row button:disabled{cursor:default;opacity:.55}#contributor-message{min-height:1.25rem;margin:.3rem 0;color:#315e49}#contributor-message[data-error="true"]{color:#a32320}.contributors__empty{padding:2rem;text-align:center;color:#625d55}@media(max-width:1050px){.account-row{grid-template-columns:minmax(14rem,1.2fr) minmax(13rem,1fr)}.account-row__actions{grid-column:1 / -1;justify-content:flex-start}}@media(max-width:900px){.contributors__header,.contributors__toolbar{align-items:stretch;flex-direction:column}.contributors__summary{width:100%}.contributors__summary>div{flex:1}.account-row{grid-template-columns:1fr}.account-row__meta,.account-row__actions{grid-column:auto}.account-row__actions{justify-content:flex-start}}@media(max-width:620px){.contributors__summary{display:grid;grid-template-columns:repeat(3,1fr)}.contributors__summary>div{min-width:0;padding:.65rem .25rem}.account-row{padding:1.1rem .25rem}.account-row__actions{display:grid;grid-template-columns:1fr}.account-row button{width:100%}}
+  .contributors{display:grid;gap:1.5rem}.contributors__header{display:flex;justify-content:space-between;align-items:end;gap:2rem;padding:clamp(1.5rem,3vw,2.25rem);border:1px solid #29473b;background:linear-gradient(135deg,#132d23,#1d4032);color:#fff;box-shadow:0 12px 30px rgb(25 42 34 / 10%)}.contributors__header .eyebrow{color:#d8bd68}.contributors__header h1{margin:.25rem 0;color:#fff;font-family:Georgia,serif;font-size:clamp(2.2rem,4vw,3.5rem);letter-spacing:-.035em}.contributors__header p:last-child{max-width:45rem;margin-bottom:0;color:#d4ddd9}.contributors__summary{display:flex;gap:.5rem}.contributors__summary>div{display:grid;min-width:6rem;padding:.85rem;border:1px solid #597166;background:rgb(255 255 255 / 5%);text-align:center}.contributors__summary strong{font:700 1.6rem Georgia,serif;color:#ead17d}.contributors__summary span{margin-top:.2rem;color:#d4ddd9;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase}.contributors__panel{padding:clamp(1.25rem,2.5vw,2rem);border:1px solid #d8d1c5;background:#fff;box-shadow:0 10px 28px rgb(45 38 28 / 6%)}.contributors__toolbar{display:flex;justify-content:space-between;align-items:end;gap:2rem;padding-bottom:1.25rem;border-bottom:3px double #9d968a}.contributors__toolbar h2{margin:.2rem 0 0;font-family:Georgia,serif;font-size:2rem;letter-spacing:-.025em}.contributors__toolbar label{display:grid;gap:.35rem;min-width:min(21rem,100%);font-size:.7rem;font-weight:750;letter-spacing:.05em;text-transform:uppercase}.contributors__toolbar input{min-height:2.75rem;padding:.65rem .8rem;border:1px solid #aaa39a;background:#faf8f3;font:inherit;text-transform:none;letter-spacing:0}.contributors__toolbar input:focus{outline:2px solid #b8953e;outline-offset:2px;border-color:#173126}.contributors__note{max-width:58rem;margin:1.1rem 0 .4rem;color:#625d55;line-height:1.55}.account-list{border-top:1px solid #d8d1c5}.account-row{display:grid;grid-template-columns:minmax(14rem,1.2fr) minmax(14rem,1fr) minmax(13rem,auto);gap:1.25rem;align-items:center;padding:1.15rem .75rem;border-bottom:1px solid #e2ddd5;transition:background .15s ease}.account-row:hover{background:#faf8f3}.account-row__identity{display:flex;align-items:center;gap:.8rem;min-width:0}.account-row__avatar{display:grid;width:2.9rem;height:2.9rem;flex:0 0 auto;place-items:center;border:1px solid #345346;border-radius:50%;background:#173126;color:#fff;font:700 1.2rem Georgia,serif;box-shadow:inset 0 0 0 3px #f4efe2}.account-row h3,.account-row p{margin:0}.account-row h3{font:700 1.08rem Georgia,serif;letter-spacing:-.01em}.account-row__identity p{margin-top:.2rem;color:#625d55;font-size:.78rem;overflow-wrap:anywhere}.account-row__flags{display:flex;flex-wrap:wrap;gap:.35rem}.account-row__flags span{padding:.3rem .48rem;border:1px solid #cdc6ba;background:#f5f1e9;color:#625d55;font-size:.58rem;font-weight:750;letter-spacing:.05em;text-transform:uppercase}.account-row__flags .account-row__badge--admin{border-color:#173126;background:#173126;color:#fff}.account-row__flags .account-row__badge--contributor{border-color:#b5933d;background:#f4e8bf;color:#59450f}.account-row__flags .account-row__badge--reader{border-color:#7e9e8a;background:#e7f1ea;color:#24543d}.account-row__joined{margin-top:.4rem!important;color:#817a70;font-family:var(--font-data);font-size:.62rem;letter-spacing:.02em}.account-row__actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:.5rem}.account-row button{min-height:2.6rem;padding:.55rem .85rem;border:1px solid #173126;background:#fff;font-weight:750;cursor:pointer;transition:background .15s ease,color .15s ease}.account-row button.primary{background:#173126;color:#fff}.account-row button.primary:hover{background:#244b3b}.account-row button.secondary{background:transparent;color:#7d211f;border-color:#7d211f}.account-row button.secondary:hover{background:#f9ece9}.account-row button.danger{border-color:#9f2925;background:#fff7f5;color:#8e201d}.account-row button.danger:hover{background:#f8dfda}.account-row button:disabled{cursor:default;opacity:.55}#contributor-message{min-height:1.25rem;margin:.3rem 0;color:#315e49}#contributor-message[data-error="true"]{color:#a32320}.contributors__empty{padding:2rem;text-align:center;color:#625d55}@media(max-width:1050px){.account-row{grid-template-columns:minmax(14rem,1.2fr) minmax(13rem,1fr)}.account-row__actions{grid-column:1 / -1;justify-content:flex-start}}@media(max-width:900px){.contributors__header,.contributors__toolbar{align-items:stretch;flex-direction:column}.contributors__summary{width:100%}.contributors__summary>div{flex:1}.account-row{grid-template-columns:1fr}.account-row__meta,.account-row__actions{grid-column:auto}.account-row__actions{justify-content:flex-start}}@media(max-width:620px){.contributors__summary{display:grid;grid-template-columns:repeat(2,1fr)}.contributors__summary>div{min-width:0;padding:.65rem .25rem}.account-row{padding:1.1rem .25rem}.account-row__actions{display:grid;grid-template-columns:1fr}.account-row button{width:100%}}
 </style>

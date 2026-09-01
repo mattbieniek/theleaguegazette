@@ -606,6 +606,24 @@ export type Database = {
         Update: { id?: string; user_id?: string; season_year?: number; week?: number; rankings?: Json; created_at?: string; updated_at?: string }
         Relationships: []
       }
+      data_export_readers: {
+        Row: {
+          user_id: string
+          display_name: string
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          display_name: string
+          created_at?: string
+        }
+        Update: {
+          user_id?: string
+          display_name?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       editorial_notifications: {
         Row: {
           action_url: string | null
@@ -1143,6 +1161,51 @@ export type Database = {
           status?: string | null
           updated_at?: string
           years_experience?: number | null
+        }
+        Relationships: []
+      }
+      player_weekly_scores: {
+        Row: {
+          id: string
+          season_id: string
+          season_year: number
+          week: number
+          sleeper_player_id: string
+          player_name: string
+          position: string
+          nfl_team: string | null
+          points: number
+          raw_stats: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          season_id: string
+          season_year: number
+          week: number
+          sleeper_player_id: string
+          player_name: string
+          position: string
+          nfl_team?: string | null
+          points?: number
+          raw_stats?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          season_id?: string
+          season_year?: number
+          week?: number
+          sleeper_player_id?: string
+          player_name?: string
+          position?: string
+          nfl_team?: string | null
+          points?: number
+          raw_stats?: Json
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1954,9 +2017,14 @@ export type Database = {
           display_name: string
           digest_enabled: boolean
           is_contributor: boolean
+          is_data_reader: boolean
           is_admin: boolean
           created_at: string
         }[]
+      }
+      admin_set_data_export_access: {
+        Args: { target_user_id: string; access_enabled: boolean }
+        Returns: undefined
       }
       admin_set_contributor_access: {
         Args: { target_user_id: string; access_enabled: boolean }

@@ -51,13 +51,14 @@ Admin pages are client-oriented Astro pages. Authentication and authorization ch
 - `src/lib/queries/`: data-access modules for league features.
 - `src/lib/gazette/`: presentation/domain aggregation for editorial pages.
 - `supabase/functions/`: privileged ingestion boundary; service-role secrets stay server-side.
+- `src/pages/api/admin/export.ts`: authenticated, read-only export boundary for approved league and published Gazette datasets.
 - RLS and RPC functions: final authorization boundary for browser-originated data access.
 
 ## Security model
 
 The public clients use `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_PUBLISHABLE_KEY`; these are intentionally browser-visible and must be paired with correct RLS. Edge Functions use `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. Never expose the service-role key to Astro client code.
 
-The owner-confirmed contributor model uses the `op_ed` role with ownership- and category-limited draft/review access; only administrators publish. Live policies, recovered migrations, and contributor-facing CMS checks implement that direction. The earlier commissioner migration remains historical, and the live role constraint temporarily accepts its value for compatibility. Administrative checks use `admin_users` and security-definer RPCs or Edge Function authorization.
+The owner-confirmed contributor model uses the `op_ed` role with ownership- and category-limited draft/review access; only administrators publish. Live policies, recovered migrations, and contributor-facing CMS checks implement that direction. The earlier commissioner migration remains historical, and the live role constraint temporarily accepts its value for compatibility. Administrative checks use `admin_users` and security-definer RPCs or Edge Function authorization. Data readers use the separate `data_export_readers` grant; the export route verifies the session and grant, then queries only public/RLS-approved objects through the user's authenticated Supabase client.
 
 ## Architectural risks and verification work
 

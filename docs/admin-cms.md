@@ -29,7 +29,9 @@ Authorization is enforced twice: browser code chooses the appropriate workspace 
 | `/admin/teams` | Inspect teams, managers, records, and rosters | Administrator |
 | `/admin/archive` | Inspect historical coverage and refresh draft/transaction archives | Administrator |
 | `/admin/sleeper` | Run foundational and weekly Sleeper syncs and inspect freshness | Administrator |
+| `/admin/projections` | Enter weekly projected player scores for the active or future season | Administrator |
 | `/admin/changelog` | Review plain-language website changes grouped by commit date | Administrator |
+| `/admin/export` | Download approved league and Gazette data as XLSX, CSV, or JSON | Administrator or data reader |
 
 Contributor navigation hides administrator groups, while direct-route checks and database authorization remain necessary. Contributor-facing route checks use the `op_ed` role.
 
@@ -47,8 +49,10 @@ Contributor navigation hides administrator groups, while direct-route checks and
 - Homepage curation reads published and due scheduled stories, then writes `homepage_order` and `is_featured`.
 - Contributors are managed through administrator-only RPCs. The user must already exist in Supabase Auth; granting access does not send an invitation.
 - Sleeper, teams, archive, awards, and rankings pages use the administrator check before allowing operational actions.
+- Projections are administrator-only, limited to active or future seasons, and can be entered individually, by team group, or through the spreadsheet-friendly bulk field. Team groups can be collapsed, and the empty-only filter plus Next empty control support large weekly entry batches.
 - Notifications are personal: authenticated users can mark their own notifications read, while administrators receive review requests.
 - Changelog entries are stored in `src/data/adminChangelog.ts` and served only after the private API verifies the current account in `admin_users`; the static page does not contain the entries.
+- Data Export is a read-only workspace for administrators and accounts granted `data_export_readers` access. Its API uses an explicit dataset/column allowlist and never accepts arbitrary SQL.
 
 ## Failure and recovery notes
 

@@ -544,6 +544,17 @@ const archivedCount =
           return false;
         }
 
+        const { data: dataReader } = await supabaseBrowser
+          .from("data_export_readers")
+          .select("user_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (dataReader) {
+          window.location.replace("/admin/export");
+          return false;
+        }
+
         await supabaseBrowser.auth.signOut();
         window.location.replace("/admin/login");
         return false;

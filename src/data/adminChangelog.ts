@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "read-only-data-export-desk",
+    date: "2026-09-01",
+    title: "Added the read-only Data Export desk",
+    summary:
+      "Approved accounts can now download curated Gazette and league data in Excel, CSV, or JSON without receiving editorial access.",
+    changes: [
+      "Added a separate data-reader permission that administrators can grant or revoke from Accounts.",
+      "Added the Data Export workspace with season filters and nine approved datasets, including articles, standings, drafts, transactions, and player scores.",
+      "Added Excel workbook, CSV, and JSON downloads with a 50,000-row limit and spreadsheet formula-injection protection.",
+      "Kept exports read-only by using the signed-in user's authenticated Supabase access and explicit dataset/column allowlists.",
+    ],
+  },
+  {
     id: "preseason-digest-labels",
     date: "2026-09-01",
     title: "Clarified the pre-season weekly digest",

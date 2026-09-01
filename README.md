@@ -78,3 +78,7 @@ values ('AUTH_USER_UUID', 'Commissioner Name', 'commissioner');
 ```
 
 Commissioners can create, edit, upload artwork for, and delete only their own **Commissioner's Corner** stories. They can save drafts and submit stories for review. Scheduling, publishing, archiving, and homepage placement remain administrator-only.
+
+## Read-only data exports
+
+Administrators can grant a registered account read-only data access from `/admin/contributors`. The account then uses `/admin/export` to download approved league and published Gazette datasets as Excel (`.xlsx`), CSV, or JSON. See [`docs/data-export.md`](docs/data-export.md) for the access model and deployment steps.
