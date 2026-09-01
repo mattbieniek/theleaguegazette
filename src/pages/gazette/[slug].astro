@@ -7,7 +7,7 @@ import {
   getPublishedArticles,
 } from "../../lib/queries/gazette";
 import { supabase } from "../../lib/supabase";
-import { formatPublicationDate } from "../../lib/formatDate";
+import { formatPublicationDate, formatPublicationDateTime } from "../../lib/formatDate";
 import { formatStoryCategory } from "../../lib/gazette/categories";
 import { normalizeArticleBody, type RichTextDocument } from "../../lib/gazette/articleBody";
 
@@ -207,7 +207,7 @@ const canonicalUrl = new URL(
                   <span aria-hidden="true">·</span>
 
                   <time datetime={story.published_at}>
-                    {formatPublicationDate(
+                    {formatPublicationDateTime(
                       story.published_at
                     )}
                   </time>
@@ -294,6 +294,8 @@ const canonicalUrl = new URL(
         <ArticleBody body={story.body} />
       </div>
     </div>
+
+    <span id="article-view-tracker" data-article-id={story.id} hidden></span>
 
     <section
       class="article-comments site-shell"
@@ -565,7 +567,7 @@ const canonicalUrl = new URL(
                         <time
                           datetime={article.published_at}
                         >
-                          {formatPublicationDate(
+                          {formatPublicationDateTime(
                             article.published_at
                           )}
                         </time>
@@ -700,6 +702,32 @@ const canonicalUrl = new URL(
     });
 
     const comments = document.querySelector<HTMLElement>("#article-comments");
+    const viewTracker = document.querySelector<HTMLElement>("#article-view-tracker");
+
+    function getVisitorKey(): string {
+      const storageKey = "gazette-visitor-key";
+      try {
+        const existing = window.localStorage.getItem(storageKey);
+        if (existing && existing.length >= 16) return existing;
+        const generated = window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        window.localStorage.setItem(storageKey, generated);
+        return generated;
+      } catch {
+        return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      }
+    }
+
+    async function trackArticleView(): Promise<void> {
+      const articleId = viewTracker?.dataset.articleId;
+      if (!articleId) return;
+      await supabaseBrowser.rpc("track_gazette_article_view", {
+        target_article_id: articleId,
+        target_visitor_key: getVisitorKey(),
+      });
+    }
+
+    void trackArticleView();
+
     const commentForm = document.querySelector<HTMLFormElement>("#comment-form");
     const commentsSignIn = document.querySelector<HTMLElement>("#comments-sign-in");
     const commentsMessage = document.querySelector<HTMLElement>("#comments-message");

@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { getPublishedArticles } from "../lib/queries/gazette";
-import { formatPublicationDate } from "../lib/formatDate";
+import { formatPublicationDateTime } from "../lib/formatDate";
 import { teams } from "../data/teams";
 import {
   highlightSearchTerm,
@@ -104,7 +104,7 @@ function highlighted(value: string) {
                   <div>
                     <p class="story-result__meta">
                       <span>{story.category}</span>
-                      {story.published_at && <time datetime={story.published_at}>{formatPublicationDate(story.published_at)}</time>}
+                      {story.published_at && <time datetime={story.published_at}>{formatPublicationDateTime(story.published_at)}</time>}
                     </p>
                     <h4><a href={`/gazette/${story.slug}`}>{highlighted(story.headline).map((part) => part.match ? <mark>{part.text}</mark> : part.text)}</a></h4>
                     {story.summary && <p>{highlighted(story.summary).map((part) => part.match ? <mark>{part.text}</mark> : part.text)}</p>}

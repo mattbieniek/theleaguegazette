@@ -445,6 +445,61 @@ export type Database = {
           },
         ]
       }
+      gazette_article_view_events: {
+        Row: {
+          article_id: string
+          bucket: number
+          created_at: string
+          visitor_key: string
+        }
+        Insert: {
+          article_id: string
+          bucket: number
+          created_at?: string
+          visitor_key: string
+        }
+        Update: {
+          article_id?: string
+          bucket?: number
+          created_at?: string
+          visitor_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gazette_article_view_events_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "gazette_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gazette_article_view_totals: {
+        Row: {
+          article_id: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          article_id: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          article_id?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gazette_article_view_totals_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: true
+            referencedRelation: "gazette_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_weekly_projections: {
         Row: {
           created_at: string
@@ -1959,6 +2014,17 @@ export type Database = {
         Returns: { user_id: string; email: string; login: string }[]
       }
       is_gazette_admin: { Args: never; Returns: boolean }
+      track_gazette_article_view: {
+        Args: { target_article_id: string; target_visitor_key: string }
+        Returns: number
+      }
+      admin_article_view_counts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          article_id: string
+          view_count: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

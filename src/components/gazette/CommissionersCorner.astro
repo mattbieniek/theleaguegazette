@@ -1,6 +1,6 @@
 ---
 import type { GazetteArticle } from "../../lib/queries/gazette";
-import { formatPublicationDate } from "../../lib/formatDate";
+import { formatPublicationDateTime } from "../../lib/formatDate";
 
 interface Props {
   articles: GazetteArticle[];
@@ -59,7 +59,7 @@ const previous = articles.slice(1, 3);
               <>
                 <span aria-hidden="true">·</span>
                 <time datetime={latest.published_at}>
-                  {formatPublicationDate(latest.published_at)}
+                  {formatPublicationDateTime(latest.published_at)}
                 </time>
               </>
             )}
@@ -74,10 +74,10 @@ const previous = articles.slice(1, 3);
         <div class="commissioners-corner__previous" aria-label="Earlier Commissioner’s Corner stories">
           <p>Earlier from the desk</p>
           <div>
-            {previous.map((story) => (
+                {previous.map((story) => (
               <a href={`/gazette/${story.slug}`}>
                 <span>{story.headline}</span>
-                {story.published_at && <time datetime={story.published_at}>{formatPublicationDate(story.published_at)}</time>}
+                {story.published_at && <time datetime={story.published_at}>{formatPublicationDateTime(story.published_at)}</time>}
               </a>
             ))}
           </div>

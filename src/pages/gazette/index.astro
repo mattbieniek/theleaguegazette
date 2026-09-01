@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getPublishedArticles } from "../../lib/queries/gazette";
-import { formatPublicationDate } from "../../lib/formatDate";
+import { formatPublicationDateTime } from "../../lib/formatDate";
 import GazetteRankings from "../../components/gazette/GazetteRankings.astro";
 import { getLatestPublishedPowerRanking } from "../../lib/queries/powerRankings";
 import ReadersPoll from "../../components/gazette/ReadersPoll.astro";
@@ -167,7 +167,7 @@ function getArticleImage(
                           leadArticle.published_at
                         }
                       >
-                        {formatPublicationDate(
+                        {formatPublicationDateTime(
                           leadArticle.published_at
                         )}
                       </time>
@@ -288,7 +288,7 @@ function getArticleImage(
                                         story.published_at
                                       }
                                     >
-                                      {formatPublicationDate(
+                                      {formatPublicationDateTime(
                                         story.published_at
                                       )}
                                     </time>

@@ -277,6 +277,7 @@ type ArticleSummary = {
   can_publish: boolean;
   needs_image_alt: boolean;
   image_url: string | null;
+  view_count: number;
 };
 type EditorialNotification = { id: string; kind: string; title: string; message: string; action_url: string | null; created_at: string };
 type ReviewEvent = { id: string; article_id: string; action: string; note: string | null; created_at: string };
@@ -345,42 +346,32 @@ const archivedCount =
     const operationSleeper = document.querySelector<HTMLElement>("#operation-sleeper");
 
     function formatDate(value: string): string {
-      return new Intl.DateTimeFormat("en-US", {
+      const formatted = new Intl.DateTimeFormat("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: "America/New_York",
       }).format(new Date(value));
+      return `${formatted} ET`;
     }
 
-    function getArticleDateLabel(
-  article: ArticleSummary
-): string {
-  if (
-    article.status === "scheduled" &&
-    article.published_at
-  ) {
-    return `Scheduled for ${formatDate(
-      article.published_at
-    )}`;
-  }
+    function getArticleDateLabel(article: ArticleSummary): string {
+      if (article.status === "scheduled" && article.published_at) {
+        return `Scheduled for ${formatDate(article.published_at)}`;
+      }
 
-  if (
-    article.status === "published" &&
-    article.published_at
-  ) {
-    return `Published ${formatDate(
-      article.published_at
-    )}`;
-  }
+      if (article.status === "published" && article.published_at) {
+        return `Published ${formatDate(article.published_at)}`;
+      }
 
-  if (article.status === "archived") {
-    return `Archived · Updated ${formatDate(
-      article.updated_at
-    )}`;
-  }
+      if (article.status === "archived") {
+        return `Archived · Updated ${formatDate(article.updated_at)}`;
+      }
 
-  return `Updated ${formatDate(article.updated_at)}`;
-}
+      return `Updated ${formatDate(article.updated_at)}`;
+    }
 
     function isPubliclyAvailable(article: ArticleSummary): boolean {
       if (
@@ -439,7 +430,8 @@ const archivedCount =
 
       const meta = document.createElement("p");
       meta.className = "recent-story__meta";
-      meta.textContent = getArticleDateLabel(article);
+      const viewLabel = `${article.view_count.toLocaleString()} ${article.view_count === 1 ? "view" : "views"}`;
+      meta.textContent = `${getArticleDateLabel(article)} · ${viewLabel}`;
 
       content.append(categoryRow, headline, meta);
 
@@ -588,7 +580,7 @@ const archivedCount =
       }
 
       const db = supabaseBrowser as any;
-      const [articleResult, notificationResult, activityResult, rankingsResult, weeklyResult, teamsResult, seasonsResult, sleeperResult] = await Promise.all([
+      const [articleResult, notificationResult, activityResult, rankingsResult, weeklyResult, teamsResult, seasonsResult, sleeperResult, viewCountsResult] = await Promise.all([
         supabaseBrowser
   .from("editorial_articles")
   .select(
@@ -620,6 +612,7 @@ const archivedCount =
         supabaseBrowser.from("fantasy_teams").select("id,last_synced_at,seasons!inner(year)").order("last_synced_at", { ascending: false }).limit(20),
         supabaseBrowser.from("seasons").select("id,year").order("year", { ascending: false }),
         supabaseBrowser.rpc("admin_sleeper_status"),
+        supabaseBrowser.rpc("admin_article_view_counts"),
       ]);
 
       const { data, error } = articleResult;
@@ -641,8 +634,16 @@ const archivedCount =
         return;
       }
 
-      const articles =
-        (data ?? []) as ArticleSummary[];
+      const viewCounts = new Map(
+        ((viewCountsResult.data ?? []) as Array<{ article_id: string; view_count: number }>).map((row) => [
+          row.article_id,
+          Number(row.view_count ?? 0),
+        ]),
+      );
+      const articles = (data ?? []).map((article) => ({
+        ...(article as ArticleSummary),
+        view_count: viewCounts.get(article.id ?? "") ?? 0,
+      })) as ArticleSummary[];
 
       const rankingRows = rankingsResult.data ?? [];
       const readyRankings = rankingRows.filter((row:any) => row.status === "ready").length;

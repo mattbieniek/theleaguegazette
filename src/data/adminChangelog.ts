@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "article-reading-insights-eastern-time",
+    date: "2026-09-01",
+    title: "Added article reading insights and clearer publication times",
+    summary:
+      "Administrators can now see how many times each published story has been viewed, while publication dates across the site include the exact Eastern Time.",
+    changes: [
+      "Added private article view tracking that counts a browser’s reading visit once every 30 minutes, avoiding inflated totals from repeated refreshes.",
+      "Added view totals to the Editorial Desk and administrator dashboard without exposing current readership numbers publicly.",
+      "Updated story timestamps across the Gazette, homepage, search, and related story cards to show the publication date and time in Eastern Time.",
+      "Kept timestamps stored in UTC so the displayed time automatically follows Eastern daylight-saving changes.",
+    ],
+  },
+  {
     id: "sitewide-team-manager-labels",
     date: "2026-08-25",
     title: "Made team ownership clearer across the site",

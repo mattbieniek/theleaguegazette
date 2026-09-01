@@ -190,6 +190,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       needs_image_alt: boolean;
       is_due_for_publishing: boolean;
       is_publicly_available: boolean;
+      view_count: number;
     };
 
     const STATUS_LABELS: Record<ArticleStatus | "all", string> = {
@@ -268,7 +269,10 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         month: "short",
         day: "numeric",
         year: "numeric",
-      }).format(parsedDate);
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: "America/New_York",
+      }).format(parsedDate) + " ET";
     }
 
     function getArticleDateLabel(article: ArticleSummary): string {
@@ -443,7 +447,8 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 
       const authorName = normalizeText(article.author_name);
       const dateLabel = getArticleDateLabel(article);
-      meta.textContent = authorName ? `${authorName} · ${dateLabel}` : dateLabel;
+      const viewLabel = `${article.view_count.toLocaleString()} ${article.view_count === 1 ? "view" : "views"}`;
+      meta.textContent = authorName ? `${authorName} · ${dateLabel} · ${viewLabel}` : `${dateLabel} · ${viewLabel}`;
 
       main.append(categoryRow, headline, meta);
 
@@ -908,6 +913,14 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
         return;
       }
 
+      const viewCounts = new Map<string, number>();
+      if (!isOpEdContributor) {
+        const { data: viewRows } = await supabaseBrowser.rpc("admin_article_view_counts");
+        for (const row of viewRows ?? []) {
+          viewCounts.set(String(row.article_id), Number(row.view_count ?? 0));
+        }
+      }
+
       articles = isOpEdContributor
         ? (((data ?? []) as Array<{
             id: string;
@@ -937,8 +950,14 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
             needs_image_alt: Boolean(article.image_url && !article.image_alt),
             is_due_for_publishing: article.status === "scheduled" && Boolean(article.published_at && new Date(article.published_at) <= new Date()),
             is_publicly_available: article.status === "published" || (article.status === "scheduled" && Boolean(article.published_at && new Date(article.published_at) <= new Date())),
+            view_count: 0,
           })) as ArticleSummary[])
         : ((data ?? []) as ArticleSummary[]);
+
+      articles = articles.map((article) => ({
+        ...article,
+        view_count: viewCounts.get(article.id) ?? 0,
+      }));
 
       updateSummaryCounts();
 

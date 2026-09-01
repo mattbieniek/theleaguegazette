@@ -1,6 +1,6 @@
 ---
 import type { GazetteArticleSummary } from "../../lib/queries/gazette";
-import { formatPublicationDate } from "../../lib/formatDate";
+import { formatPublicationDateTime } from "../../lib/formatDate";
 
 interface Props {
   story: GazetteArticleSummary;
@@ -72,7 +72,7 @@ const {
               <span aria-hidden="true">·</span>
 
               <time datetime={story.published_at}>
-                {formatPublicationDate(story.published_at)}
+                {formatPublicationDateTime(story.published_at)}
               </time>
             </>
           )
