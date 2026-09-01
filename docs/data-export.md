@@ -22,6 +22,8 @@ Administrators can grant or revoke the permission from `/admin/contributors` aft
 
 Season-aware datasets can be narrowed to one season. Each export is built from an explicit allowlist of columns. The API supports `.xlsx`, `.csv`, and `.json` downloads and caps an individual export at 50,000 rows.
 
+The 2022 and 2023 ESPN seasons are preserved as repository-backed legacy archives rather than Supabase rows. The export service uses the same normalized legacy helpers as the public history, draft, transaction, and player-score pages, so those seasons remain available without duplicating or migrating the historical source files.
+
 ## Deployment
 
 1. Apply the latest Supabase migrations, including `20260901100000_add_data_export_access.sql`.

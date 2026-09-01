@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getPlainTextFromBody } from "./gazette/articleBody";
+import {
+  getLegacyDrafts,
+  getLegacyPlayerWeeklyScores,
+  getLegacyResults,
+  getLegacyTransactions,
+} from "./legacy";
 import type { Database, Json } from "../types/database";
 
 export type ExportFormat = "xlsx" | "csv" | "json";
@@ -160,6 +166,225 @@ function shapeRows(definition: ExportDatasetDefinition, rows: ExportRow[]): Expo
   ));
 }
 
+type LegacyResult = ReturnType<typeof getLegacyResults>[number];
+
+function legacyResultsFor(season?: number): LegacyResult[] {
+  return getLegacyResults().filter((row) => season === undefined || row.season_year === season);
+}
+
+type LegacyStanding = {
+  fantasy_team_id: string;
+  season_year: number;
+  team_name: string;
+  games_played: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  points_for: number;
+  points_against: number;
+  point_differential: number;
+  winning_percentage: number;
+  average_points: number;
+  highest_score: number | null;
+  lowest_score: number | null;
+  standings_rank: number;
+};
+
+function legacyStandingsFor(results: LegacyResult[], season: number, throughWeek?: number): LegacyStanding[] {
+  const teams = new Map<string, Omit<LegacyStanding, "standings_rank" | "winning_percentage" | "average_points"> & { scores: number[] }>();
+
+  for (const result of results) {
+    if (result.season_year !== season || (throughWeek !== undefined && result.week > throughWeek)) continue;
+    const current = teams.get(result.fantasy_team_id) ?? {
+      fantasy_team_id: result.fantasy_team_id,
+      season_year: season,
+      team_name: result.team_name,
+      games_played: 0,
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      points_for: 0,
+      points_against: 0,
+      point_differential: 0,
+      highest_score: null,
+      lowest_score: null,
+      scores: [],
+    };
+
+    current.games_played += 1;
+    current.wins += result.result === "W" ? 1 : 0;
+    current.losses += result.result === "L" ? 1 : 0;
+    current.ties += result.result === "T" ? 1 : 0;
+    current.points_for += result.points_for;
+    current.points_against += result.points_against;
+    current.point_differential = current.points_for - current.points_against;
+    current.scores.push(result.points_for);
+    current.highest_score = current.highest_score === null
+      ? result.points_for
+      : Math.max(current.highest_score, result.points_for);
+    current.lowest_score = current.lowest_score === null
+      ? result.points_for
+      : Math.min(current.lowest_score, result.points_for);
+    teams.set(result.fantasy_team_id, current);
+  }
+
+  return [...teams.values()]
+    .map((team) => ({
+      ...team,
+      winning_percentage: team.games_played
+        ? (team.wins + team.ties * 0.5) / team.games_played
+        : 0,
+      average_points: team.games_played ? team.points_for / team.games_played : 0,
+    }))
+    .sort((first, second) =>
+      second.winning_percentage - first.winning_percentage ||
+      second.points_for - first.points_for ||
+      second.point_differential - first.point_differential ||
+      first.team_name.localeCompare(second.team_name),
+    )
+    .map((team, index) => ({ ...team, standings_rank: index + 1 }));
+}
+
+function legacyStandingsRows(season?: number): ExportRow[] {
+  const results = legacyResultsFor(season);
+  const seasons = [...new Set(results.map((row) => row.season_year))];
+  return seasons.flatMap((year) => legacyStandingsFor(results, year).map((row) => ({
+    season_year: row.season_year,
+    standings_rank: row.standings_rank,
+    team_name: row.team_name,
+    sleeper_roster_id: null,
+    games_played: row.games_played,
+    wins: row.wins,
+    losses: row.losses,
+    ties: row.ties,
+    winning_percentage: row.winning_percentage,
+    points_for: row.points_for,
+    points_against: row.points_against,
+    point_differential: row.point_differential,
+    average_points: row.average_points,
+    highest_score: row.highest_score,
+    lowest_score: row.lowest_score,
+  })));
+}
+
+function legacyWeeklyStandingsRows(season?: number): ExportRow[] {
+  const results = legacyResultsFor(season);
+  const seasons = [...new Set(results.map((row) => row.season_year))];
+  return seasons.flatMap((year) => {
+    const weeks = [...new Set(results.filter((row) => row.season_year === year).map((row) => row.week))].sort((a, b) => a - b);
+    return weeks.flatMap((week) => legacyStandingsFor(results, year, week).map((row) => ({
+      season_year: row.season_year,
+      week,
+      standings_rank: row.standings_rank,
+      team_name: row.team_name,
+      sleeper_roster_id: null,
+      games_played: row.games_played,
+      wins: row.wins,
+      losses: row.losses,
+      ties: row.ties,
+      winning_percentage: row.winning_percentage,
+      points_for: row.points_for,
+      points_against: row.points_against,
+      point_differential: row.point_differential,
+      average_points: row.average_points,
+      highest_score: row.highest_score,
+      lowest_score: row.lowest_score,
+    })));
+  });
+}
+
+function legacyWeeklyResultRows(season?: number): ExportRow[] {
+  return legacyResultsFor(season).map((row) => ({
+    season_year: row.season_year,
+    week: row.week,
+    team_name: row.team_name,
+    sleeper_roster_id: null,
+    opponent_team_name: row.opponent_team_name,
+    opponent_sleeper_roster_id: null,
+    points_for: row.points_for,
+    points_against: row.points_against,
+    point_differential: row.point_differential,
+    result: row.result,
+    starters_points: row.starters_points,
+    bench_points: row.bench_points,
+    sleeper_matchup_id: row.sleeper_matchup_id,
+  }));
+}
+
+function legacyTeamRows(season?: number): ExportRow[] {
+  return legacyStandingsRows(season).map((row) => ({
+    season_year: row.season_year,
+    team_name: row.team_name,
+    sleeper_roster_id: row.sleeper_roster_id,
+    wins: row.wins,
+    losses: row.losses,
+    ties: row.ties,
+    points_for: row.points_for,
+    points_against: row.points_against,
+    last_synced_at: null,
+  }));
+}
+
+function legacyDraftRows(season?: number): ExportRow[] {
+  return getLegacyDrafts()
+    .filter((draft) => season === undefined || draft.seasonYear === season)
+    .flatMap((draft) => draft.picks.map((pick) => ({
+      season_year: draft.seasonYear,
+      draft_name: draft.name,
+      provider: draft.provider,
+      provider_draft_id: draft.providerDraftId,
+      pick_number: pick.pickNumber,
+      round: pick.round,
+      round_pick: pick.roundPick,
+      draft_slot: pick.draftSlot,
+      roster_id: pick.rosterId,
+      team_name: pick.fantasyTeamName,
+      player_name: pick.playerName,
+      player_provider_id: pick.playerId,
+      position: pick.position,
+      pro_team: pick.proTeam,
+      is_keeper: pick.isKeeper,
+    })));
+}
+
+function legacyTransactionRows(season?: number): ExportRow[] {
+  return getLegacyTransactions()
+    .filter((transaction) => season === undefined || transaction.seasonYear === season)
+    .map((transaction) => ({
+      season_year: transaction.seasonYear,
+      week: transaction.week,
+      transaction_type: transaction.type,
+      status: transaction.status,
+      provider: transaction.provider,
+      provider_transaction_id: transaction.providerTransactionId,
+      creator_provider_id: null,
+      faab_bid: transaction.faabBid,
+      occurred_at: transaction.occurredAt,
+      processed_at: null,
+    }));
+}
+
+function legacyTransactionAssetRows(season?: number): ExportRow[] {
+  return getLegacyTransactions()
+    .filter((transaction) => season === undefined || transaction.seasonYear === season)
+    .flatMap((transaction) => transaction.assets.map((asset) => ({
+      season_year: transaction.seasonYear,
+      week: transaction.week,
+      transaction_type: transaction.type,
+      occurred_at: transaction.occurredAt,
+      asset_type: asset.assetType,
+      movement_type: asset.movementType,
+      player_name: asset.playerName,
+      position: asset.position,
+      pro_team: asset.proTeam,
+      from_team_name: asset.fromTeamName,
+      to_team_name: asset.toTeamName,
+      draft_season: asset.draftSeason,
+      draft_round: asset.draftRound,
+      amount: asset.amount,
+    })));
+}
+
 export async function getExportRows(
   client: ExportClient,
   key: ExportDatasetKey,
@@ -188,7 +413,7 @@ export async function getExportRows(
         if (season !== undefined) query = query.eq("season_year", season);
         return query.order("season_year", { ascending: false }).order("standings_rank").range(from, to);
       });
-      rows = data;
+      rows = [...data, ...legacyStandingsRows(season)];
       break;
     }
     case "weekly_results": {
@@ -197,7 +422,7 @@ export async function getExportRows(
         if (season !== undefined) query = query.eq("season_year", season);
         return query.order("season_year", { ascending: false }).order("week", { ascending: false }).range(from, to);
       });
-      rows = data;
+      rows = [...data, ...legacyWeeklyResultRows(season)];
       break;
     }
     case "weekly_standings": {
@@ -206,7 +431,7 @@ export async function getExportRows(
         if (season !== undefined) query = query.eq("season_year", season);
         return query.order("season_year", { ascending: false }).order("week", { ascending: false }).order("standings_rank").range(from, to);
       });
-      rows = data;
+      rows = [...data, ...legacyWeeklyStandingsRows(season)];
       break;
     }
     case "teams": {
@@ -215,7 +440,7 @@ export async function getExportRows(
         if (season !== undefined) query = query.eq("seasons.year", season);
         return query.order("sleeper_roster_id").range(from, to);
       });
-      rows = data.map((row) => {
+      rows = [...data.map((row) => {
         const seasonRow = relationOne(row.seasons);
         return {
           season_year: numberOrNull(seasonRow.year),
@@ -228,7 +453,7 @@ export async function getExportRows(
           points_against: row.points_against,
           last_synced_at: row.last_synced_at,
         };
-      });
+      }), ...legacyTeamRows(season)];
       break;
     }
     case "draft_picks": {
@@ -237,7 +462,7 @@ export async function getExportRows(
         if (season !== undefined) query = query.eq("drafts.season_year", season);
         return query.order("pick_number").range(from, to);
       });
-      rows = data.map((row) => {
+      rows = [...data.map((row) => {
         const draft = relationOne(row.drafts);
         const team = relationOne(row.fantasy_teams);
         return {
@@ -257,7 +482,7 @@ export async function getExportRows(
           pro_team: row.pro_team,
           is_keeper: row.is_keeper,
         };
-      });
+      }), ...legacyDraftRows(season)];
       break;
     }
     case "transactions": {
@@ -266,7 +491,7 @@ export async function getExportRows(
         if (season !== undefined) query = query.eq("season_year", season);
         return query.order("season_year", { ascending: false }).order("week", { ascending: false }).order("occurred_at", { ascending: false, nullsFirst: false }).range(from, to);
       });
-      rows = data;
+      rows = [...data, ...legacyTransactionRows(season)];
       break;
     }
     case "transaction_assets": {
@@ -278,7 +503,7 @@ export async function getExportRows(
           .order("week", { referencedTable: "league_transactions", ascending: false })
           .range(from, to);
       });
-      rows = data.map((row) => {
+      rows = [...data.map((row) => {
         const transaction = relationOne(row.league_transactions);
         const fromTeam = relationOne(row.from_team);
         const toTeam = relationOne(row.to_team);
@@ -298,7 +523,7 @@ export async function getExportRows(
           draft_round: row.draft_round,
           amount: row.amount,
         };
-      });
+      }), ...legacyTransactionAssetRows(season)];
       break;
     }
     case "player_scores": {
@@ -307,7 +532,7 @@ export async function getExportRows(
         if (season !== undefined) query = query.eq("season_year", season);
         return query.order("season_year", { ascending: false }).order("week", { ascending: false }).order("points", { ascending: false }).range(from, to);
       });
-      rows = data;
+      rows = [...data, ...getLegacyPlayerWeeklyScores(season)];
       break;
     }
   }
@@ -321,5 +546,8 @@ export async function getExportSeasons(client: ExportClient): Promise<number[]> 
     .select("year")
     .order("year", { ascending: false });
   if (error) throw new Error(error.message);
-  return [...new Set((data ?? []).map((row) => Number(row.year)).filter(Number.isInteger))];
+  return [...new Set([
+    ...(data ?? []).map((row) => Number(row.year)).filter(Number.isInteger),
+    ...getLegacyResults().map((row) => row.season_year),
+  ])].sort((first, second) => second - first);
 }

@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "historical-espn-data-exports",
+    date: "2026-09-01",
+    title: "Included the ESPN seasons in Data Export",
+    summary:
+      "The Data Export desk now includes the preserved 2022 and 2023 ESPN archives alongside the Supabase-backed seasons.",
+    changes: [
+      "Added 2022 and 2023 to the season selector without migrating or duplicating the legacy source files into Supabase.",
+      "Mapped historical matchup results into weekly results, final standings, weekly standings, and team-record exports.",
+      "Included the legacy draft picks, transactions, transaction assets, and weekly player scores already used by the public archive.",
+      "Kept the export columns and read-only access boundary consistent across ESPN and Sleeper seasons.",
+    ],
+  },
+  {
     id: "read-only-data-export-desk",
     date: "2026-09-01",
     title: "Added the read-only Data Export desk",
