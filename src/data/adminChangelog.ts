@@ -21,6 +21,18 @@ export const adminChangelog: ChangelogEntry[] = [
     ],
   },
   {
+    id: "projection-editor-visual-refresh",
+    date: "2026-09-01",
+    title: "Refined the weekly projections workspace",
+    summary:
+      "The projections editor is now easier to scan and faster to work through when entering scores for a full roster.",
+    changes: [
+      "Grouped rostered players into compact team sections with each franchise’s colors and a quick progress count.",
+      "Added clear expand and collapse controls so administrators can focus on one team or review the full roster at once.",
+      "Improved player labels, spacing, focus states, and responsive behavior for narrow screens.",
+    ],
+  },
+  {
     id: "article-reading-insights-eastern-time",
     date: "2026-09-01",
     title: "Added article reading insights and clearer publication times",
