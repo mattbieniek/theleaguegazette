@@ -20,7 +20,7 @@ Administrators can grant or revoke the permission from `/admin/contributors` aft
 - Completed transaction assets
 - Weekly player scores
 
-Season-aware datasets can be narrowed to one season. Each export is built from an explicit allowlist of columns. The API supports `.xlsx`, `.csv`, and `.json` downloads and caps an individual export at 50,000 rows.
+Select one or more datasets and seasons at a time. Excel downloads contain one worksheet per selected dataset, multi-dataset JSON downloads contain a named array for each dataset, and multi-dataset CSV downloads are packaged as a ZIP with one CSV per dataset. Single-dataset JSON and CSV downloads retain their simple array/file behavior. Season-aware datasets can be narrowed to one or more seasons; published articles always include all published records. Each export is built from an explicit allowlist of columns. The API supports `.xlsx`, `.csv`, and `.json` downloads and caps each dataset at 50,000 rows.
 
 The 2022 and 2023 ESPN seasons are preserved as repository-backed legacy archives rather than Supabase rows. The export service uses the same normalized legacy helpers as the public history, draft, transaction, and player-score pages, so those seasons remain available without duplicating or migrating the historical source files.
 

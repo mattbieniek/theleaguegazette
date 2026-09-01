@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "multi-dataset-exports",
+    date: "2026-09-01",
+    title: "Added multi-dataset export packages",
+    summary:
+      "The Data Export desk can now combine several datasets and seasons into one Excel, JSON, or CSV package.",
+    changes: [
+      "Added checkbox selection for multiple datasets and seasons, including the 2022 and 2023 ESPN archives.",
+      "Built Excel workbooks with one worksheet per selected dataset.",
+      "Built named multi-dataset JSON packages and ZIP downloads containing one CSV per selected dataset.",
+      "Kept each dataset subject to the existing 50,000-row safety limit and the same read-only authorization checks.",
+    ],
+  },
+  {
     id: "historical-espn-data-exports",
     date: "2026-09-01",
     title: "Included the ESPN seasons in Data Export",

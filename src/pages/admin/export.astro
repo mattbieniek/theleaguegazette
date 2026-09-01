@@ -27,21 +27,17 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
           <span class="export-card__step">01 / 01</span>
         </div>
 
-        <label class="export-field">
-          <span>Dataset</span>
-          <select id="dataset-select" required disabled>
-            <option>Loading datasets…</option>
-          </select>
-          <small id="dataset-description">The export catalog is loading.</small>
-        </label>
+        <fieldset class="export-field export-choice-group">
+          <legend>Datasets</legend>
+          <div id="dataset-options" class="export-choice-list"><p>Loading datasets…</p></div>
+          <small id="dataset-description">Choose one or more approved datasets.</small>
+        </fieldset>
 
-        <label class="export-field" id="season-field">
-          <span>Season</span>
-          <select id="season-select" disabled>
-            <option value="all">All seasons</option>
-          </select>
-          <small>Limit larger exports to one season when you can.</small>
-        </label>
+        <fieldset class="export-field export-choice-group" id="season-field" hidden>
+          <legend>Seasons</legend>
+          <div id="season-options" class="export-choice-list"><p>Loading seasons…</p></div>
+          <small>Choose one or more seasons. Season filters apply to league datasets; published articles always include all published records.</small>
+        </fieldset>
 
         <fieldset class="export-field export-format">
           <legend>File format</legend>
@@ -52,11 +48,11 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
             </label>
             <label>
               <input type="radio" name="format" value="csv" />
-              <span><strong>CSV</strong><small>Simple file that opens in Excel or Google Sheets</small></span>
+              <span><strong>CSV files</strong><small>CSV for one dataset, or a ZIP package for multiple datasets</small></span>
             </label>
             <label>
               <input type="radio" name="format" value="json" />
-              <span><strong>JSON</strong><small>Structured file for other tools and workflows</small></span>
+              <span><strong>JSON files</strong><small>Array for one dataset, or named arrays for multiple datasets</small></span>
             </label>
           </div>
         </fieldset>
@@ -93,8 +89,8 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
 
     const page = document.querySelector<HTMLElement>("#export-page");
     const form = document.querySelector<HTMLFormElement>("#export-form");
-    const datasetSelect = document.querySelector<HTMLSelectElement>("#dataset-select");
-    const seasonSelect = document.querySelector<HTMLSelectElement>("#season-select");
+    const datasetOptions = document.querySelector<HTMLElement>("#dataset-options");
+    const seasonOptions = document.querySelector<HTMLElement>("#season-options");
     const seasonField = document.querySelector<HTMLElement>("#season-field");
     const description = document.querySelector<HTMLElement>("#dataset-description");
     const catalog = document.querySelector<HTMLElement>("#dataset-catalog");
@@ -109,13 +105,71 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
       message.dataset.error = String(error);
     }
 
+    function selectedDatasetKeys(): string[] {
+      return [...document.querySelectorAll<HTMLInputElement>('input[name="dataset"]:checked')].map((input) => input.value);
+    }
+
+    function selectedSeasonValues(): string[] {
+      return [...document.querySelectorAll<HTMLInputElement>('input[name="season"]:checked')].map((input) => input.value);
+    }
+
     function updateDatasetDetails() {
-      const dataset = datasets.find((item) => item.key === datasetSelect?.value);
-      if (description) description.textContent = dataset?.description ?? "Choose a dataset to continue.";
-      if (seasonField && seasonSelect) {
-        seasonField.hidden = !dataset?.seasonFilter;
-        seasonSelect.disabled = !dataset?.seasonFilter;
-        if (!dataset?.seasonFilter) seasonSelect.value = "all";
+      const selected = datasets.filter((item) => selectedDatasetKeys().includes(item.key));
+      const seasonAware = selected.some((item) => item.seasonFilter);
+      if (description) {
+        description.textContent = selected.length
+          ? `${selected.length} dataset${selected.length === 1 ? "" : "s"} selected.`
+          : "Choose one or more approved datasets.";
+      }
+      if (seasonField) seasonField.hidden = !seasonAware;
+      if (submit) submit.disabled = selected.length === 0;
+    }
+
+    function renderDatasetOptions() {
+      if (!datasetOptions) return;
+      datasetOptions.replaceChildren();
+      const defaultDatasetKey = datasets.find((item) => item.seasonFilter)?.key ?? datasets[0]?.key;
+      for (const [index, dataset] of datasets.entries()) {
+        const label = document.createElement("label");
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.name = "dataset";
+        input.value = dataset.key;
+        input.checked = dataset.key === defaultDatasetKey || (!defaultDatasetKey && index === 0);
+        const copy = document.createElement("span");
+        const title = document.createElement("strong");
+        title.textContent = dataset.label;
+        const detail = document.createElement("small");
+        detail.textContent = dataset.description;
+        copy.append(title, detail);
+        label.append(input, copy);
+        datasetOptions.append(label);
+      }
+    }
+
+    function renderSeasonOptions(seasons: number[]) {
+      if (!seasonOptions) return;
+      seasonOptions.replaceChildren();
+      const allLabel = document.createElement("label");
+      const allInput = document.createElement("input");
+      allInput.type = "checkbox";
+      allInput.name = "season";
+      allInput.value = "all";
+      allInput.checked = true;
+      const allCopy = document.createElement("span");
+      allCopy.textContent = "All seasons";
+      allLabel.append(allInput, allCopy);
+      seasonOptions.append(allLabel);
+      for (const season of seasons) {
+        const label = document.createElement("label");
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.name = "season";
+        input.value = String(season);
+        const copy = document.createElement("span");
+        copy.textContent = String(season);
+        label.append(input, copy);
+        seasonOptions.append(label);
       }
     }
 
@@ -163,39 +217,32 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
 
       const metadata = await response.json() as { datasets: Dataset[]; seasons: number[] };
       datasets = metadata.datasets ?? [];
-      if (datasetSelect) {
-        datasetSelect.replaceChildren();
-        for (const dataset of datasets) {
-          const option = document.createElement("option");
-          option.value = dataset.key;
-          option.textContent = dataset.label;
-          datasetSelect.append(option);
-        }
-        datasetSelect.disabled = datasets.length === 0;
-      }
-      if (seasonSelect) {
-        for (const season of metadata.seasons ?? []) {
-          const option = document.createElement("option");
-          option.value = String(season);
-          option.textContent = String(season);
-          seasonSelect.append(option);
-        }
-        seasonSelect.disabled = !datasets[0]?.seasonFilter;
-      }
+      renderDatasetOptions();
+      renderSeasonOptions(metadata.seasons ?? []);
       renderCatalog();
       updateDatasetDetails();
-      if (submit) submit.disabled = datasets.length === 0;
       if (page) page.hidden = false;
     }
 
-    datasetSelect?.addEventListener("change", updateDatasetDetails);
+    datasetOptions?.addEventListener("change", updateDatasetDetails);
+    seasonOptions?.addEventListener("change", (event) => {
+      const target = event.target as HTMLInputElement;
+      if (target.name !== "season") return;
+      const all = seasonOptions.querySelector<HTMLInputElement>('input[value="all"]');
+      const years = [...seasonOptions.querySelectorAll<HTMLInputElement>('input[name="season"]:not([value="all"])')];
+      if (target.value === "all" && target.checked) years.forEach((input) => { input.checked = false; });
+      if (target.value !== "all" && target.checked && all) all.checked = false;
+      if (years.every((input) => !input.checked) && all) all.checked = true;
+    });
 
     form?.addEventListener("submit", async (event) => {
       event.preventDefault();
-      if (!datasetSelect || !submit || !accessToken) return;
+      if (!submit || !accessToken) return;
       const format = document.querySelector<HTMLInputElement>('input[name="format"]:checked')?.value ?? "xlsx";
-      const params = new URLSearchParams({ dataset: datasetSelect.value, format });
-      if (seasonSelect && !seasonSelect.disabled && seasonSelect.value !== "all") params.set("season", seasonSelect.value);
+      const params = new URLSearchParams({ format });
+      for (const dataset of selectedDatasetKeys()) params.append("dataset", dataset);
+      const selected = selectedSeasonValues().filter((value) => value !== "all");
+      if (selected.length) for (const season of selected) params.append("season", season);
       submit.disabled = true;
       submit.querySelector("span")!.textContent = "Preparing file…";
       setMessage("Collecting the approved records…");
@@ -230,5 +277,5 @@ import AdminLayout from "../../layouts/AdminLayout.astro";
 </AdminLayout>
 
 <style is:global>
-  .export-page{display:grid;gap:1.5rem}.export-hero{display:flex;align-items:end;justify-content:space-between;gap:2rem;padding:clamp(1.5rem,3vw,2.5rem);border:1px solid #29473b;background:linear-gradient(135deg,#132d23,#1d4032);color:#fff;box-shadow:0 12px 30px rgb(25 42 34 / 10%)}.export-hero .eyebrow{color:#d8bd68}.export-hero h1{margin:.25rem 0;color:#fff;font-family:Georgia,serif;font-size:clamp(2.8rem,6vw,5rem);letter-spacing:-.05em;line-height:.95}.export-hero p:last-child{max-width:42rem;margin:0;color:#d4ddd9;font-size:1rem;line-height:1.55}.export-hero__badge{display:grid;min-width:12rem;gap:.2rem;padding:1rem;border:1px solid #597166;background:rgb(255 255 255 / 6%)}.export-hero__badge>span{font-size:1.8rem;line-height:1}.export-hero__badge strong{font-size:.8rem}.export-hero__badge small{color:#b9c9c1;font-size:.68rem;line-height:1.4}.export-layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(18rem,.75fr);gap:1.5rem;align-items:start}.export-card{border:1px solid #d8d1c5;background:#fff;box-shadow:0 10px 28px rgb(45 38 28 / 6%)}.export-form{display:grid;gap:1.35rem;padding:clamp(1.25rem,2.5vw,2rem)}.export-card__heading{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding-bottom:1.1rem;border-bottom:3px double #9d968a}.export-card__heading h2{margin:.2rem 0 0;font-family:Georgia,serif;font-size:clamp(1.6rem,3vw,2.2rem);letter-spacing:-.03em}.export-card__step{color:#8d8578;font-family:var(--font-data);font-size:.58rem;font-weight:800;letter-spacing:.08em}.export-field{display:grid;gap:.45rem}.export-field>span,.export-format legend{color:#625d55;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.export-field select{width:100%;min-height:3rem;padding:.7rem .8rem;border:1px solid #aaa39a;background:#faf8f3;color:#1e211e;font:inherit}.export-field select:focus{outline:2px solid #b8953e;outline-offset:2px;border-color:#173126}.export-field small{color:#817a70;font-size:.72rem;line-height:1.45}.export-format{display:grid;gap:.65rem;padding:0;border:0}.export-format__options{display:grid;gap:.55rem}.export-format__options label{display:grid;grid-template-columns:auto 1fr;gap:.75rem;align-items:start;padding:.8rem;border:1px solid #d8d1c5;background:#faf8f3;cursor:pointer}.export-format__options label:has(input:checked){border-color:#54725f;background:#eaf2ec;box-shadow:inset 3px 0 #315e49}.export-format__options input{margin-top:.2rem;accent-color:#173126}.export-format__options span{display:grid;gap:.2rem}.export-format__options strong{font-size:.82rem}.export-format__options small{color:#817a70;font-size:.7rem}.export-submit{display:flex;align-items:center;justify-content:space-between;min-height:3.2rem;padding:.8rem 1rem;border:1px solid #173126;background:#173126;color:#fff;font:inherit;font-weight:800;cursor:pointer}.export-submit:hover{background:#244b3b}.export-submit:disabled{cursor:wait;opacity:.6}.export-message{min-height:1.15rem;margin:0;color:#315e49;font-family:var(--font-data);font-size:.64rem;line-height:1.5}.export-message[data-error="true"]{color:#a32320}.export-catalog{padding:clamp(1.25rem,2.5vw,2rem)}.export-catalog__list{display:grid;margin-top:1.25rem;border-top:1px solid #d8d1c5}.export-catalog__item{display:grid;gap:.25rem;padding:.85rem .2rem;border-bottom:1px solid #e2ddd5}.export-catalog__item strong{font-family:Georgia,serif;font-size:1rem}.export-catalog__item span{color:#817a70;font-family:var(--font-data);font-size:.58rem;letter-spacing:.03em;text-transform:uppercase}.export-catalog__note{margin:1.25rem 0 0;color:#625d55;font-size:.75rem;line-height:1.55}@media(max-width:850px){.export-layout{grid-template-columns:1fr}.export-catalog{order:-1}}@media(max-width:620px){.export-hero{align-items:stretch;flex-direction:column}.export-hero__badge{min-width:0}.export-card__heading{align-items:start;flex-direction:column}.export-card__step{align-self:flex-start}}
+  .export-page{display:grid;gap:1.5rem}.export-hero{display:flex;align-items:end;justify-content:space-between;gap:2rem;padding:clamp(1.5rem,3vw,2.5rem);border:1px solid #29473b;background:linear-gradient(135deg,#132d23,#1d4032);color:#fff;box-shadow:0 12px 30px rgb(25 42 34 / 10%)}.export-hero .eyebrow{color:#d8bd68}.export-hero h1{margin:.25rem 0;color:#fff;font-family:Georgia,serif;font-size:clamp(2.8rem,6vw,5rem);letter-spacing:-.05em;line-height:.95}.export-hero p:last-child{max-width:42rem;margin:0;color:#d4ddd9;font-size:1rem;line-height:1.55}.export-hero__badge{display:grid;min-width:12rem;gap:.2rem;padding:1rem;border:1px solid #597166;background:rgb(255 255 255 / 6%)}.export-hero__badge>span{font-size:1.8rem;line-height:1}.export-hero__badge strong{font-size:.8rem}.export-hero__badge small{color:#b9c9c1;font-size:.68rem;line-height:1.4}.export-layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(18rem,.75fr);gap:1.5rem;align-items:start}.export-card{border:1px solid #d8d1c5;background:#fff;box-shadow:0 10px 28px rgb(45 38 28 / 6%)}.export-form{display:grid;gap:1.35rem;padding:clamp(1.25rem,2.5vw,2rem)}.export-card__heading{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding-bottom:1.1rem;border-bottom:3px double #9d968a}.export-card__heading h2{margin:.2rem 0 0;font-family:Georgia,serif;font-size:clamp(1.6rem,3vw,2.2rem);letter-spacing:-.03em}.export-card__step{color:#8d8578;font-family:var(--font-data);font-size:.58rem;font-weight:800;letter-spacing:.08em}.export-field{display:grid;gap:.45rem}.export-field>span,.export-format legend,.export-choice-group legend{color:#625d55;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.export-choice-group{padding:0;border:0}.export-choice-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin-top:.1rem}.export-choice-list>label{display:grid;grid-template-columns:auto 1fr;gap:.65rem;align-items:start;min-width:0;padding:.75rem;border:1px solid #d8d1c5;background:#faf8f3;cursor:pointer}.export-choice-list>label:has(input:checked){border-color:#54725f;background:#eaf2ec;box-shadow:inset 3px 0 #315e49}.export-choice-list input{margin-top:.2rem;accent-color:#173126}.export-choice-list label>span{display:grid;gap:.2rem;min-width:0}.export-choice-list strong{font-size:.82rem}.export-choice-list small{color:#817a70;font-size:.68rem;line-height:1.35}.export-choice-list>label:not(:has(span small)){display:flex;align-items:center}.export-choice-list>p{grid-column:1 / -1;margin:0;color:#817a70}.export-field select{width:100%;min-height:3rem;padding:.7rem .8rem;border:1px solid #aaa39a;background:#faf8f3;color:#1e211e;font:inherit}.export-field select:focus{outline:2px solid #b8953e;outline-offset:2px;border-color:#173126}.export-field small{color:#817a70;font-size:.72rem;line-height:1.45}.export-format{display:grid;gap:.65rem;padding:0;border:0}.export-format__options{display:grid;gap:.55rem}.export-format__options label{display:grid;grid-template-columns:auto 1fr;gap:.75rem;align-items:start;padding:.8rem;border:1px solid #d8d1c5;background:#faf8f3;cursor:pointer}.export-format__options label:has(input:checked){border-color:#54725f;background:#eaf2ec;box-shadow:inset 3px 0 #315e49}.export-format__options input{margin-top:.2rem;accent-color:#173126}.export-format__options span{display:grid;gap:.2rem}.export-format__options strong{font-size:.82rem}.export-format__options small{color:#817a70;font-size:.7rem}.export-submit{display:flex;align-items:center;justify-content:space-between;min-height:3.2rem;padding:.8rem 1rem;border:1px solid #173126;background:#173126;color:#fff;font:inherit;font-weight:800;cursor:pointer}.export-submit:hover{background:#244b3b}.export-submit:disabled{cursor:wait;opacity:.6}.export-message{min-height:1.15rem;margin:0;color:#315e49;font-family:var(--font-data);font-size:.64rem;line-height:1.5}.export-message[data-error="true"]{color:#a32320}.export-catalog{padding:clamp(1.25rem,2.5vw,2rem)}.export-catalog__list{display:grid;margin-top:1.25rem;border-top:1px solid #d8d1c5}.export-catalog__item{display:grid;gap:.25rem;padding:.85rem .2rem;border-bottom:1px solid #e2ddd5}.export-catalog__item strong{font-family:Georgia,serif;font-size:1rem}.export-catalog__item span{color:#817a70;font-family:var(--font-data);font-size:.58rem;letter-spacing:.03em;text-transform:uppercase}.export-catalog__note{margin:1.25rem 0 0;color:#625d55;font-size:.75rem;line-height:1.55}@media(max-width:850px){.export-layout{grid-template-columns:1fr}.export-catalog{order:-1}}@media(max-width:620px){.export-hero{align-items:stretch;flex-direction:column}.export-hero__badge{min-width:0}.export-card__heading{align-items:start;flex-direction:column}.export-card__step{align-self:flex-start}.export-choice-list{grid-template-columns:1fr}}
 </style>

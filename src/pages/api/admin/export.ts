@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { APIRoute } from "astro";
+import { strToU8, zipSync } from "fflate";
 import * as XLSX from "xlsx";
 import {
   exportDatasets,
@@ -44,13 +45,39 @@ function safeRows(rows: ExportRow[]) {
   ));
 }
 
-function workbookFor(rows: ExportRow[], columns: string[]) {
-  const workbook = XLSX.utils.book_new();
+function worksheetFor(rows: ExportRow[], columns: string[]) {
   const worksheet = XLSX.utils.json_to_sheet(safeRows(rows), { header: columns });
   worksheet["!cols"] = columns.map((column) => ({
     wch: Math.min(42, Math.max(column.length + 2, ...rows.slice(0, 50).map((row) => String(row[column] ?? "").length + 2))),
   }));
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+  return worksheet;
+}
+
+function sheetName(label: string, index: number): string {
+  const cleaned = label.replace(/[\\/*?:\[\]]/g, "-").trim() || `Data ${index + 1}`;
+  return cleaned.slice(0, 31);
+}
+
+type PreparedExport = {
+  definition: (typeof exportDatasets)[number];
+  rows: ExportRow[];
+};
+
+function workbookFor(exports: PreparedExport[]) {
+  const workbook = XLSX.utils.book_new();
+  const usedNames = new Set<string>();
+  exports.forEach(({ definition, rows }, index) => {
+    const baseName = exports.length === 1 ? "Data" : sheetName(definition.label, index);
+    let name = baseName;
+    let suffix = 2;
+    while (usedNames.has(name)) {
+      const suffixText = ` ${suffix}`;
+      name = `${baseName.slice(0, 31 - suffixText.length)}${suffixText}`;
+      suffix += 1;
+    }
+    usedNames.add(name);
+    XLSX.utils.book_append_sheet(workbook, worksheetFor(rows, definition.columns), name);
+  });
   return workbook;
 }
 
@@ -59,10 +86,60 @@ function requestedFormat(value: string | null): ExportFormat {
   throw new Error("Choose XLSX, CSV, or JSON as the export format.");
 }
 
-function requestedSeason(value: string | null): number | undefined {
-  if (!value || value === "all") return undefined;
-  if (!/^\d{4}$/.test(value)) throw new Error("Choose a valid season.");
-  return Number(value);
+function requestedDatasets(url: URL): ExportDatasetKey[] {
+  const values = [
+    ...url.searchParams.getAll("dataset"),
+    ...url.searchParams.getAll("datasets").flatMap((value) => value.split(",")),
+  ].map((value) => value.trim()).filter(Boolean);
+  const keys = [...new Set(values)];
+  if (!keys.length) throw new Error("Choose at least one dataset to export.");
+  for (const key of keys) {
+    if (!exportDatasets.some((dataset) => dataset.key === key)) {
+      throw new Error("One of the selected datasets is not available for export.");
+    }
+  }
+  return keys as ExportDatasetKey[];
+}
+
+function requestedSeasons(url: URL): number[] | undefined {
+  const values = [
+    ...url.searchParams.getAll("season"),
+    ...url.searchParams.getAll("seasons").flatMap((value) => value.split(",")),
+  ].map((value) => value.trim()).filter(Boolean);
+  if (!values.length || values.includes("all")) return undefined;
+  const seasons = [...new Set(values.map((value) => {
+    if (!/^\d{4}$/.test(value)) throw new Error("Choose valid seasons.");
+    return Number(value);
+  }))];
+  return seasons.sort((first, second) => second - first);
+}
+
+async function prepareExports(
+  client: ReturnType<typeof createClient<Database>>,
+  keys: ExportDatasetKey[],
+  seasons: number[] | undefined,
+): Promise<PreparedExport[]> {
+  const prepared: PreparedExport[] = [];
+  const maxRows = 50_000;
+
+  for (const key of keys) {
+    const definition = exportDatasets.find((item) => item.key === key);
+    if (!definition) throw new Error("One of the selected datasets is not available for export.");
+    const requestedRows = definition.seasonFilter && seasons?.length
+      ? await Promise.all(seasons.map((season) => getExportRows(client, key, season)))
+      : [await getExportRows(client, key)];
+    const rows = requestedRows.flatMap((result) => result.rows);
+    if (rows.length > maxRows) {
+      throw new Error(`${definition.label} is larger than the 50,000-row limit. Narrow the seasons or choose fewer datasets.`);
+    }
+    prepared.push({ definition, rows });
+  }
+
+  return prepared;
+}
+
+function seasonSuffix(seasons: number[] | undefined): string {
+  return seasons?.length ? `-${seasons.join("-")}` : "-all-seasons";
 }
 
 export const GET: APIRoute = async ({ request }) => {
@@ -93,16 +170,29 @@ export const GET: APIRoute = async ({ request }) => {
       return new Response(JSON.stringify({ datasets: exportDatasets, seasons: await getExportSeasons(supabase) }), { headers: jsonHeaders });
     }
 
-    const key = url.searchParams.get("dataset") as ExportDatasetKey | null;
-    if (!key) return jsonResponse({ error: "Choose a dataset to export." }, 400);
     const format = requestedFormat(url.searchParams.get("format"));
-    const season = requestedSeason(url.searchParams.get("season"));
-    const { definition, rows } = await getExportRows(supabase, key, season);
-    const seasonSuffix = season ? `-${season}` : "";
-    const filename = `${definition.filename}${seasonSuffix}`;
+    const keys = requestedDatasets(url);
+    const seasons = requestedSeasons(url);
+    const prepared = await prepareExports(supabase, keys, seasons);
+    const filename = `gazette-export${seasonSuffix(seasons)}`;
 
     if (format === "json") {
-      return new Response(JSON.stringify(rows), {
+      if (prepared.length === 1) {
+        const only = prepared[0];
+        return new Response(JSON.stringify(only.rows), {
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "content-disposition": `attachment; filename="${prepared[0].definition.filename}${seasonSuffix(seasons)}.json"`,
+            "cache-control": "private, no-store",
+          },
+        });
+      }
+      const datasets = Object.fromEntries(prepared.map(({ definition, rows }) => [definition.key, rows]));
+      return new Response(JSON.stringify({
+        generated_at: new Date().toISOString(),
+        seasons: seasons ?? "all",
+        datasets,
+      }), {
         headers: {
           "content-type": "application/json; charset=utf-8",
           "content-disposition": `attachment; filename="${filename}.json"`,
@@ -111,13 +201,28 @@ export const GET: APIRoute = async ({ request }) => {
       });
     }
 
-    const workbook = workbookFor(rows, definition.columns);
+    const workbook = workbookFor(prepared);
     if (format === "csv") {
-      const csv = XLSX.write(workbook, { bookType: "csv", type: "string" });
-      return new Response(`\ufeff${csv}`, {
+      if (prepared.length === 1) {
+        const only = prepared[0];
+        const csv = XLSX.utils.sheet_to_csv(worksheetFor(only.rows, only.definition.columns));
+        return new Response(`\ufeff${csv}`, {
+          headers: {
+            "content-type": "text/csv; charset=utf-8",
+            "content-disposition": `attachment; filename="${only.definition.filename}${seasonSuffix(seasons)}.csv"`,
+            "cache-control": "private, no-store",
+          },
+        });
+      }
+      const files = Object.fromEntries(prepared.map(({ definition, rows }) => {
+        const worksheet = worksheetFor(rows, definition.columns);
+        return [`${definition.filename}${seasonSuffix(seasons)}.csv`, `\ufeff${XLSX.utils.sheet_to_csv(worksheet)}`];
+      }));
+      const archive = zipSync(Object.fromEntries(Object.entries(files).map(([name, contents]) => [name, strToU8(contents)])));
+      return new Response(archive as unknown as BodyInit, {
         headers: {
-          "content-type": "text/csv; charset=utf-8",
-          "content-disposition": `attachment; filename="${filename}.csv"`,
+          "content-type": "application/zip",
+          "content-disposition": `attachment; filename="${filename}.zip"`,
           "cache-control": "private, no-store",
         },
       });
