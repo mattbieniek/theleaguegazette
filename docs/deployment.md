@@ -101,13 +101,16 @@ On August 9, 2026, a read-only production walkthrough successfully rendered the 
 
 The weekly digest is scheduled by `.github/workflows/weekly-digest.yml` for
 14:00 UTC every Wednesday, which is 9:00 a.m. Central during daylight time and
-8:00 a.m. Central during standard time. It calls the protected
-`send-weekly-digest` Edge Function using the repository's `SUPABASE_URL` and
-`WEEKLY_DIGEST_CRON_SECRET` secrets. The function prevents duplicate delivery
-for the same season and week; before the active season has any completed
-weekly results, it labels the edition as `${season} Preseason` and uses the
-calendar date in its duplicate key so multiple pre-season Wednesday editions
-can be sent safely. Administrators can inspect delivery history in the Readers
+8:00 a.m. Central during standard time. A second
+`.github/workflows/weekly-digest-watchdog.yml` check runs at 14:45 UTC. Both
+call the protected `send-weekly-digest` Edge Function using the repository's
+`SUPABASE_URL` and `WEEKLY_DIGEST_CRON_SECRET` secrets. The function prevents
+duplicate delivery for the same season and week, so the watchdog safely exits
+when the primary send succeeded and recovers an edition when the scheduled
+primary run was missed. Before the active season has any completed weekly
+results, it labels the edition as `${season} Preseason` and uses the calendar
+date in its duplicate key so multiple pre-season Wednesday editions can be
+sent safely. Administrators can inspect delivery history in the Readers
 workspace.
 
 Sleeper automation is configured as a GitHub Actions workflow in

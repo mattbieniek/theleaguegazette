@@ -1,0 +1,56 @@
+name: Verify weekly Gazette digest
+
+on:
+  workflow_dispatch:
+  # Run 30 minutes after the primary send. The digest endpoint is idempotent:
+  # an already-completed edition returns safely, while a missed schedule is sent here.
+  schedule:
+    - cron: "45 14 * * 3"
+
+concurrency:
+  group: weekly-gazette-digest
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify or recover weekly digest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          WEEKLY_DIGEST_CRON_SECRET: ${{ secrets.WEEKLY_DIGEST_CRON_SECRET }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$WEEKLY_DIGEST_CRON_SECRET" ]; then
+            echo "SUPABASE_URL and WEEKLY_DIGEST_CRON_SECRET repository secrets are required." >&2
+            exit 1
+          fi
+
+          base_url="${SUPABASE_URL%/}"
+          response_file="$(mktemp)"
+
+          http_status="$(curl --silent --show-error \
+            --connect-timeout 15 --max-time 540 \
+            --output "$response_file" --write-out "%{http_code}" \
+            -X POST "$base_url/functions/v1/send-weekly-digest" \
+            -H "Content-Type: application/json" \
+            -H "X-Cron-Secret: $WEEKLY_DIGEST_CRON_SECRET" \
+            --data '{}')"
+
+          cat "$response_file"
+
+          if [ "$http_status" -lt 200 ] || [ "$http_status" -ge 300 ]; then
+            echo "Weekly digest verification failed with HTTP $http_status." >&2
+            exit 1
+          fi
+
+      - name: Publish verification summary
+        if: always()
+        run: |
+          {
+            echo "### Weekly Gazette digest safeguard"
+            echo "- Primary send: 14:00 UTC Wednesday"
+            echo "- Watchdog check: 14:45 UTC Wednesday"
+            echo "- If the primary run was missed, this check sends the edition; otherwise it exits safely."
+            echo "- Administrators can review delivery history in the Readers workspace."
+          } >> "$GITHUB_STEP_SUMMARY"

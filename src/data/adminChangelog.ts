@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "weekly-digest-schedule-safeguard",
+    date: "2026-09-02",
+    title: "Added a safeguard for the weekly digest",
+    summary:
+      "A backup Wednesday check now recovers the digest if GitHub misses the primary scheduled run.",
+    changes: [
+      "Kept the primary send at the requested 9:00 a.m. Wednesday time.",
+      "Added a second Wednesday-morning watchdog that safely confirms or sends the current edition if the primary schedule is missed.",
+      "Kept duplicate protection in place so the backup cannot send the same edition twice.",
+    ],
+  },
+  {
     id: "multi-dataset-exports",
     date: "2026-09-01",
     title: "Added multi-dataset export packages",
