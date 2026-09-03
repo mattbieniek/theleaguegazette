@@ -16,6 +16,40 @@ export interface RichTextDocument extends RichTextNode {
   content: RichTextNode[];
 }
 
+export interface ArticleFootnote {
+  id: string;
+  number: number;
+  text: string;
+}
+
+export function getFootnotesFromBody(
+  body: RichTextDocument,
+): ArticleFootnote[] {
+  const footnotes: ArticleFootnote[] = [];
+
+  function visit(node: RichTextNode): void {
+    if (node.type === "footnote") {
+      const text = String(node.attrs?.text ?? "").trim();
+
+      if (text) {
+        const number = Number(node.attrs?.number);
+        footnotes.push({
+          id: String(node.attrs?.id ?? `footnote-${footnotes.length + 1}`),
+          number: Number.isFinite(number) && number > 0
+            ? Math.floor(number)
+            : footnotes.length + 1,
+          text,
+        });
+      }
+    }
+
+    node.content?.forEach(visit);
+  }
+
+  visit(body);
+  return footnotes;
+}
+
 export type LegacyArticleBody = string[];
 
 export type StoredArticleBody =

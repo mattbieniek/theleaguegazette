@@ -184,6 +184,28 @@ const editorMode = articleId ? "edit" : "create";
                 <button
                   type="button"
                   class="editor-toolbar__button"
+                  data-editor-command="superscript"
+                  aria-label="Superscript"
+                  aria-pressed="false"
+                  title="Superscript"
+                >
+                  x<sup>2</sup>
+                </button>
+
+                <button
+                  type="button"
+                  class="editor-toolbar__button"
+                  data-editor-command="footnote"
+                  aria-label="Add footnote"
+                  aria-pressed="false"
+                  title="Add or edit footnote"
+                >
+                  <sup>1</sup> Note
+                </button>
+
+                <button
+                  type="button"
+                  class="editor-toolbar__button"
                   data-editor-command="link"
                   aria-label="Add or edit link"
                   aria-pressed="false"
@@ -382,8 +404,8 @@ const editorMode = articleId ? "edit" : "create";
           </div>
 
           <p class="editor-field-help">
-            Use the toolbar to add headings, emphasis, alignment, links, image
-            captions, image sizes, lists, pull quotes, and section dividers.
+            Use the toolbar to add headings, emphasis, superscript, footnotes, alignment,
+            links, image captions, image sizes, lists, pull quotes, and section dividers.
             Changes autosave after the story has been created.
           </p>
         </section>
@@ -744,6 +766,39 @@ const editorMode = articleId ? "edit" : "create";
       </div>
     </div>
   </dialog>
+  <dialog
+    id="footnote-dialog"
+    class="status-confirmation"
+    aria-labelledby="footnote-dialog-title"
+  >
+    <form id="footnote-form" class="status-confirmation__panel">
+      <div class="status-confirmation__heading">
+        <p class="eyebrow">Article reference</p>
+        <h2 id="footnote-dialog-title">Add footnote</h2>
+      </div>
+
+      <div class="return-changes__body">
+        <label for="footnote-text">Footnote text</label>
+        <textarea
+          id="footnote-text"
+          rows="4"
+          maxlength="1000"
+          required
+          placeholder="Explain the source or detail you are referencing…"
+        ></textarea>
+        <small>This note will appear at the bottom of the published story.</small>
+      </div>
+
+      <div class="status-confirmation__actions">
+        <button id="cancel-footnote" class="editor-button editor-button--secondary" type="button">
+          Cancel
+        </button>
+        <button id="save-footnote" class="editor-button editor-button--primary" type="submit">
+          Save footnote
+        </button>
+      </div>
+    </form>
+  </dialog>
   <dialog id="image-library-dialog" class="image-library-dialog" aria-labelledby="image-library-title">
     <div class="image-library-panel">
       <header class="image-library-header">
@@ -874,6 +929,13 @@ const editorMode = articleId ? "edit" : "create";
 
           <div id="preview-body" class="story-preview__body"></div>
 
+          <section
+            id="preview-footnotes"
+            class="story-preview__footnotes"
+            aria-labelledby="preview-footnotes-title"
+            hidden
+          ></section>
+
           <div id="preview-empty-body" class="story-preview__empty" hidden>
             <p>The article body will appear here.</p>
           </div>
@@ -891,6 +953,7 @@ const editorMode = articleId ? "edit" : "create";
   import { supabaseBrowser } from "../../lib/supabase-browser";
   import {
     bodyHasContent,
+    getFootnotesFromBody,
     getPlainTextFromBody,
     normalizeArticleBody,
     type RichTextDocument,
@@ -1026,6 +1089,11 @@ const editorMode = articleId ? "edit" : "create";
   );
   const chooseLibraryImageButton = document.querySelector<HTMLButtonElement>("#choose-library-image-button");
   const imageLibraryDialog = document.querySelector<HTMLDialogElement>("#image-library-dialog");
+  const footnoteDialog = document.querySelector<HTMLDialogElement>("#footnote-dialog");
+  const footnoteForm = document.querySelector<HTMLFormElement>("#footnote-form");
+  const footnoteDialogTitle = document.querySelector<HTMLElement>("#footnote-dialog-title");
+  const footnoteTextInput = document.querySelector<HTMLTextAreaElement>("#footnote-text");
+  const cancelFootnoteButton = document.querySelector<HTMLButtonElement>("#cancel-footnote");
   const closeImageLibraryButton = document.querySelector<HTMLButtonElement>("#close-image-library");
   const imageLibrarySearch = document.querySelector<HTMLInputElement>("#image-library-search");
   const imageLibraryGrid = document.querySelector<HTMLElement>("#image-library-grid");
@@ -1148,6 +1216,10 @@ const editorMode = articleId ? "edit" : "create";
 
   const previewBody = document.querySelector<HTMLElement>("#preview-body");
 
+  const previewFootnotes = document.querySelector<HTMLElement>(
+    "#preview-footnotes",
+  );
+
   const previewEmptyBody = document.querySelector<HTMLElement>(
     "#preview-empty-body",
   );
@@ -1245,6 +1317,8 @@ const editorMode = articleId ? "edit" : "create";
   let pendingInlineImage: (typeof libraryImages)[number] | null = null;
 
   let richTextEditor: Editor | null = null;
+  let pendingFootnoteSelection: { from: number; to: number } | null = null;
+  let editingFootnote = false;
 
   const UnderlineMark = Mark.create({
     name: "underline",
@@ -1252,6 +1326,66 @@ const editorMode = articleId ? "edit" : "create";
     renderHTML: ({ HTMLAttributes }) => ["u", mergeAttributes(HTMLAttributes), 0],
     addCommands() {
       return { toggleUnderline: () => ({ commands }) => commands.toggleMark(this.name) };
+    },
+  });
+
+  const SuperscriptMark = Mark.create({
+    name: "superscript",
+    parseHTML: () => [{ tag: "sup" }],
+    renderHTML: ({ HTMLAttributes }) => [
+      "sup",
+      mergeAttributes(HTMLAttributes),
+      0,
+    ],
+  });
+
+  const FootnoteNode = Node.create({
+    name: "footnote",
+    group: "inline",
+    inline: true,
+    atom: true,
+    selectable: true,
+    addAttributes: () => ({
+      id: { default: null },
+      number: { default: 1 },
+      text: { default: "" },
+    }),
+    parseHTML: () => [
+      {
+        tag: "sup[data-footnote]",
+        getAttrs: (dom) => {
+          const element = dom as HTMLElement;
+          return {
+            id: element.dataset.footnoteId ?? null,
+            number: Number(element.dataset.footnoteNumber ?? 1),
+            text: element.getAttribute("title") ?? "",
+          };
+        },
+      },
+    ],
+    renderHTML: ({ HTMLAttributes }) => {
+      const id = String(HTMLAttributes.id ?? "");
+      const number = Number(HTMLAttributes.number) || 1;
+      const text = String(HTMLAttributes.text ?? "");
+
+      return [
+        "sup",
+        {
+          "data-footnote": "true",
+          "data-footnote-id": id,
+          "data-footnote-number": String(number),
+          title: text,
+        },
+        [
+          "a",
+          {
+            href: `#footnote-${id}`,
+            id: `footnote-ref-${id}`,
+            "aria-label": `Footnote ${number}`,
+          },
+          String(number),
+        ],
+      ];
     },
   });
 
@@ -1351,6 +1485,92 @@ const editorMode = articleId ? "edit" : "create";
 
   function getCurrentBody(): RichTextDocument {
     return normalizeArticleBody(richTextEditor?.getJSON());
+  }
+
+  function createFootnoteId(): string {
+    return window.crypto?.randomUUID?.() ?? `footnote-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+
+  function getNextFootnoteNumber(): number {
+    const numbers = getFootnotesFromBody(getCurrentBody()).map((footnote) => footnote.number);
+    return numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  }
+
+  function openFootnoteDialog(): void {
+    if (!richTextEditor || !footnoteDialog || !footnoteTextInput) {
+      return;
+    }
+
+    editingFootnote = richTextEditor.isActive("footnote");
+    pendingFootnoteSelection = {
+      from: richTextEditor.state.selection.from,
+      to: richTextEditor.state.selection.to,
+    };
+
+    if (footnoteDialogTitle) {
+      footnoteDialogTitle.textContent = editingFootnote
+        ? "Edit footnote"
+        : "Add footnote";
+    }
+
+    footnoteTextInput.value = editingFootnote
+      ? String(richTextEditor.getAttributes("footnote").text ?? "")
+      : "";
+
+    footnoteDialog.showModal();
+    footnoteTextInput.focus();
+  }
+
+  function closeFootnoteDialog(): void {
+    if (footnoteDialog?.open) {
+      footnoteDialog.close();
+    }
+
+    pendingFootnoteSelection = null;
+    editingFootnote = false;
+  }
+
+  function saveFootnote(): void {
+    if (!richTextEditor || !footnoteTextInput) {
+      return;
+    }
+
+    const text = footnoteTextInput.value.trim();
+
+    if (!text) {
+      setMessage("Enter some text for the footnote.", "error");
+      footnoteTextInput.focus();
+      return;
+    }
+
+    if (editingFootnote) {
+      richTextEditor
+        .chain()
+        .focus()
+        .updateAttributes("footnote", { text })
+        .run();
+    } else {
+      const selection = pendingFootnoteSelection;
+      const chain = richTextEditor.chain().focus();
+
+      if (selection) {
+        chain.setTextSelection(selection);
+      }
+
+      chain
+        .insertContent({
+          type: "footnote",
+          attrs: {
+            id: createFootnoteId(),
+            number: getNextFootnoteNumber(),
+            text,
+          },
+        })
+        .insertContent(" ")
+        .run();
+    }
+
+    closeFootnoteDialog();
   }
 
   function getCurrentBodyText(): string {
@@ -1952,6 +2172,14 @@ const editorMode = articleId ? "edit" : "create";
           isActive = richTextEditor.isActive("italic");
           break;
 
+        case "superscript":
+          isActive = richTextEditor.isActive("superscript");
+          break;
+
+        case "footnote":
+          isActive = richTextEditor.isActive("footnote");
+          break;
+
         case "underline":
           isActive = richTextEditor.isActive("underline");
           break;
@@ -2171,6 +2399,14 @@ const editorMode = articleId ? "edit" : "create";
         richTextEditor.chain().focus().toggleItalic().run();
         break;
 
+      case "superscript":
+        richTextEditor.chain().focus().toggleMark("superscript").run();
+        break;
+
+      case "footnote":
+        openFootnoteDialog();
+        break;
+
       case "strike":
         richTextEditor.chain().focus().toggleStrike().run();
         break;
@@ -2281,6 +2517,8 @@ const editorMode = articleId ? "edit" : "create";
           types: ["heading", "paragraph", "blockquote", "pullQuote"],
         }),
         UnderlineMark,
+        SuperscriptMark,
+        FootnoteNode,
         InlineImage,
         PullQuote,
       ],
@@ -3709,6 +3947,52 @@ const editorMode = articleId ? "edit" : "create";
     setImageUploadStatus("Featured image removed.", "success");
   }
 
+  function renderPreviewFootnotes(body: RichTextDocument): void {
+    if (!previewFootnotes) {
+      return;
+    }
+
+    previewFootnotes.replaceChildren();
+    const footnotes = getFootnotesFromBody(body);
+
+    if (footnotes.length === 0) {
+      previewFootnotes.hidden = true;
+      return;
+    }
+
+    const eyebrow = document.createElement("p");
+    eyebrow.className = "eyebrow";
+    eyebrow.textContent = "References";
+
+    const heading = document.createElement("h2");
+    heading.id = "preview-footnotes-title";
+    heading.textContent = "Footnotes";
+
+    const list = document.createElement("ol");
+
+    for (const footnote of footnotes) {
+      const item = document.createElement("li");
+      item.id = `footnote-${footnote.id}`;
+
+      const text = document.createElement("span");
+      text.textContent = footnote.text;
+
+      const backLink = document.createElement("a");
+      backLink.href = `#footnote-ref-${footnote.id}`;
+      backLink.setAttribute(
+        "aria-label",
+        `Return to footnote ${footnote.number}`,
+      );
+      backLink.textContent = " ↩";
+
+      item.append(text, backLink);
+      list.append(item);
+    }
+
+    previewFootnotes.append(eyebrow, heading, list);
+    previewFootnotes.hidden = false;
+  }
+
   function renderPreview(): void {
     const headline = headlineInput?.value.trim() || "Untitled story";
 
@@ -3776,6 +4060,8 @@ const editorMode = articleId ? "edit" : "create";
       previewBody.innerHTML = bodyHtml;
       previewBody.hidden = !hasBody;
     }
+
+    renderPreviewFootnotes(body);
 
     if (previewEmptyBody) {
       previewEmptyBody.hidden = hasBody;
@@ -3873,6 +4159,15 @@ const editorMode = articleId ? "edit" : "create";
   imageSizeControl?.addEventListener("change", editSelectedImageSize);
   imageAlignControl?.addEventListener("change", editSelectedImageAlignment);
   insertLibraryImageButton?.addEventListener("click", insertSelectedLibraryImage);
+  cancelFootnoteButton?.addEventListener("click", closeFootnoteDialog);
+  footnoteDialog?.addEventListener("cancel", () => {
+    pendingFootnoteSelection = null;
+    editingFootnote = false;
+  });
+  footnoteForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveFootnote();
+  });
 
   imageFileInput?.addEventListener("change", () => {
     const file = imageFileInput.files?.[0];
@@ -4531,6 +4826,18 @@ const editorMode = articleId ? "edit" : "create";
     margin-bottom: 0;
   }
 
+  .body-editor :global(.ProseMirror sup[data-footnote]) {
+    margin-inline: 0.08em;
+    font-size: 0.72em;
+    font-weight: 750;
+    vertical-align: super;
+  }
+
+  .body-editor :global(.ProseMirror sup[data-footnote] a) {
+    color: var(--color-green);
+    text-decoration: none;
+  }
+
   .body-editor :global(.ProseMirror figure[data-inline-image]) {
     max-width: 100%;
     width: min(100%, 56rem);
@@ -5085,9 +5392,69 @@ const editorMode = articleId ? "edit" : "create";
     text-align: center;
   }
 
+  .story-preview__body :global(sup) {
+    font-size: 0.68em;
+    line-height: 0;
+    vertical-align: super;
+  }
+
   .story-preview__body :global(figure[data-inline-image]) {
     max-width: 100%;
     margin: 2rem 0;
+  }
+
+  .story-preview__body :global(sup[data-footnote]) {
+    margin-inline: 0.08em;
+    font-size: 0.72em;
+    font-weight: 750;
+  }
+
+  .story-preview__body :global(sup[data-footnote] a) {
+    text-decoration: none;
+  }
+
+  .story-preview__footnotes {
+    width: min(100%, 45rem);
+    margin: clamp(3rem, 8vw, 6rem) auto 0;
+    padding-top: 1.5rem;
+    border-top: 3px double var(--color-rule-dark);
+    color: var(--color-ink-soft);
+    font-family: var(--font-body, Georgia, serif);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .story-preview__footnotes .eyebrow {
+    margin: 0 0 0.35rem;
+    color: var(--color-green);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .story-preview__footnotes h2 {
+    margin: 0 0 0.9rem;
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: clamp(1.45rem, 3vw, 2rem);
+    letter-spacing: -0.035em;
+  }
+
+  .story-preview__footnotes ol {
+    margin: 0;
+    padding-left: 1.35rem;
+  }
+
+  .story-preview__footnotes li {
+    padding-left: 0.25rem;
+  }
+
+  .story-preview__footnotes a {
+    color: var(--color-green);
+    font-weight: 700;
+    text-decoration: none;
   }
 
   .story-preview__body :global(figure[data-inline-image][data-image-align="left"]) {

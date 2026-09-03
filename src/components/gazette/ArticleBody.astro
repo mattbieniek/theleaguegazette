@@ -4,8 +4,9 @@ import { Mark, Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
-import type {
-  RichTextDocument,
+import {
+  getFootnotesFromBody,
+  type RichTextDocument,
 } from "../../lib/gazette/articleBody";
 
 interface Props {
@@ -18,6 +19,65 @@ const UnderlineMark = Mark.create({
   name: "underline",
   parseHTML: () => [{ tag: "u" }],
   renderHTML: ({ HTMLAttributes }) => ["u", mergeAttributes(HTMLAttributes), 0],
+});
+
+const SuperscriptMark = Mark.create({
+  name: "superscript",
+  parseHTML: () => [{ tag: "sup" }],
+  renderHTML: ({ HTMLAttributes }) => [
+    "sup",
+    mergeAttributes(HTMLAttributes),
+    0,
+  ],
+});
+
+const FootnoteNode = Node.create({
+  name: "footnote",
+  group: "inline",
+  inline: true,
+  atom: true,
+  addAttributes: () => ({
+    id: { default: null },
+    number: { default: 1 },
+    text: { default: "" },
+  }),
+  parseHTML: () => [
+    {
+      tag: "sup[data-footnote]",
+      getAttrs: (dom) => {
+        const element = dom as HTMLElement;
+        return {
+          id: element.dataset.footnoteId ?? null,
+          number: Number(element.dataset.footnoteNumber ?? 1),
+          text: element.getAttribute("title") ?? "",
+        };
+      },
+    },
+  ],
+  renderHTML: ({ HTMLAttributes }) => {
+    const id = String(HTMLAttributes.id ?? "");
+    const number = Number(HTMLAttributes.number) || 1;
+    const text = String(HTMLAttributes.text ?? "");
+
+    return [
+      "sup",
+      {
+        "data-footnote": "true",
+        "data-footnote-id": id,
+        "data-footnote-number": String(number),
+        title: text,
+      },
+      [
+        "a",
+        {
+          href: `#footnote-${id}`,
+          id: `footnote-ref-${id}`,
+          "aria-label": `Footnote ${number}`,
+        },
+        String(number),
+      ],
+    ];
+  },
 });
 
 function normalizeInlineImageWidth(value: unknown): string | null {
@@ -122,6 +182,8 @@ const PullQuote = Node.create({
   ],
 });
 
+const footnotes = getFootnotesFromBody(body);
+
 const html = generateHTML(body, [
   StarterKit.configure({
     heading: {
@@ -139,12 +201,33 @@ const html = generateHTML(body, [
     types: ["heading", "paragraph", "blockquote", "pullQuote"],
   }),
   UnderlineMark,
+  SuperscriptMark,
+  FootnoteNode,
   InlineImage,
   PullQuote,
 ]);
 ---
 
-<div class="article-rich-text" set:html={html} />
+<div class="article-rich-text">
+  <div set:html={html} />
+
+  {footnotes.length > 0 && (
+    <section class="article-footnotes" aria-labelledby="article-footnotes-title">
+      <p class="eyebrow">References</p>
+      <h2 id="article-footnotes-title">Footnotes</h2>
+      <ol>
+        {footnotes.map((footnote) => (
+          <li id={`footnote-${footnote.id}`}>
+            <span>{footnote.text}</span>{" "}
+            <a href={`#footnote-ref-${footnote.id}`} aria-label={`Return to footnote ${footnote.number}`}>
+              ↩
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )}
+</div>
 
 <style>
   .article-rich-text {
@@ -272,6 +355,65 @@ const html = generateHTML(body, [
   .article-rich-text :global(strong) {
     color: var(--color-ink);
     font-weight: 750;
+  }
+
+  .article-rich-text :global(sup) {
+    font-size: 0.68em;
+    line-height: 0;
+    vertical-align: super;
+  }
+
+  .article-rich-text :global(sup[data-footnote]) {
+    margin-inline: 0.08em;
+    font-size: 0.72em;
+    font-weight: 750;
+  }
+
+  .article-rich-text :global(sup[data-footnote] a) {
+    text-decoration: none;
+  }
+
+  .article-footnotes {
+    margin-top: clamp(3rem, 8vw, 6rem);
+    padding-top: 1.5rem;
+    border-top: 3px double var(--color-rule-dark);
+    color: var(--color-ink-soft);
+    font-family: var(--font-body, Georgia, serif);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .article-footnotes .eyebrow {
+    margin: 0 0 0.35rem;
+    color: var(--color-green);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .article-footnotes h2 {
+    margin: 0 0 0.9rem;
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: clamp(1.45rem, 3vw, 2rem);
+    letter-spacing: -0.035em;
+  }
+
+  .article-footnotes ol {
+    margin: 0;
+    padding-left: 1.35rem;
+  }
+
+  .article-footnotes li {
+    padding-left: 0.25rem;
+  }
+
+  .article-footnotes a {
+    color: var(--color-green);
+    font-weight: 700;
+    text-decoration: none;
   }
 
   .article-rich-text :global(s) {
