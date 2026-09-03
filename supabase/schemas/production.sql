@@ -856,6 +856,7 @@ CREATE TABLE IF NOT EXISTS "public"."gazette_articles" (
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_by" "uuid",
     "subcategory" "text",
+    "exclude_from_search" boolean DEFAULT false NOT NULL,
     CONSTRAINT "gazette_articles_body_is_valid" CHECK ((("body" IS NULL) OR ("jsonb_typeof"("body") = ANY (ARRAY['array'::"text", 'object'::"text"])))),
     CONSTRAINT "gazette_articles_status_check" CHECK (("status" = ANY (ARRAY['draft'::"text", 'ready_for_review'::"text", 'scheduled'::"text", 'published'::"text", 'archived'::"text"]))),
     CONSTRAINT "gazette_articles_subcategory_check" CHECK ((("subcategory" IS NULL) OR ("subcategory" = ANY (ARRAY['General'::"text", 'Hot Takes'::"text", 'Hit Piece'::"text"]))))
@@ -866,6 +867,9 @@ ALTER TABLE "public"."gazette_articles" OWNER TO "postgres";
 
 
 COMMENT ON COLUMN "public"."gazette_articles"."subcategory" IS 'Optional desk-specific classification. Limited Op-Ed contributors choose from the approved Op-Ed subcategories.';
+
+
+COMMENT ON COLUMN "public"."gazette_articles"."exclude_from_search" IS 'When true, keep the article visible on the site while asking public search engines not to index it.';
 
 
 CREATE TABLE IF NOT EXISTS "public"."gazette_comments" (
@@ -919,7 +923,8 @@ CREATE OR REPLACE VIEW "public"."editorial_articles" AS
             WHEN (("status" = ANY (ARRAY['published'::"text", 'scheduled'::"text"])) AND ("published_at" IS NOT NULL)) THEN "published_at"
             ELSE "updated_at"
         END AS "editorial_date",
-    GREATEST("updated_at", COALESCE("published_at", "updated_at")) AS "editorial_sort_at"
+    GREATEST("updated_at", COALESCE("published_at", "updated_at")) AS "editorial_sort_at",
+    "exclude_from_search"
    FROM "public"."gazette_articles" "article";
 
 
@@ -1170,7 +1175,8 @@ CREATE OR REPLACE VIEW "public"."public_gazette_articles" WITH ("security_invoke
         CASE
             WHEN (("status" = 'scheduled'::"text") AND ("published_at" IS NOT NULL) AND ("published_at" <= "now"())) THEN true
             ELSE false
-        END AS "published_from_schedule"
+        END AS "published_from_schedule",
+    "exclude_from_search"
    FROM "public"."gazette_articles"
   WHERE ((("status" = 'published'::"text") AND ("published_at" IS NOT NULL) AND ("published_at" <= "now"())) OR (("status" = 'scheduled'::"text") AND ("published_at" IS NOT NULL) AND ("published_at" <= "now"())));
 

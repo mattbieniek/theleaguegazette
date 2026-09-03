@@ -31,6 +31,7 @@ export type GazetteArticleSummary = Pick<
   | "created_at"
   | "updated_at"
   | "status"
+  | "exclude_from_search"
   | "created_by"
 >;
 
@@ -61,6 +62,7 @@ const articleSummarySelect = `
   created_at,
   updated_at,
   status,
+  exclude_from_search,
   created_by
 `;
 

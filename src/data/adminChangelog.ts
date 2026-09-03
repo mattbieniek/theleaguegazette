@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "article-search-exclusion-and-view-tracking",
+    date: "2026-09-03",
+    title: "Added search-engine controls and restored article view tracking",
+    summary:
+      "Administrators can keep a story out of public search-engine results without hiding it from the Gazette, and article views now record correctly in production.",
+    changes: [
+      "Added an opt-in article-editor setting that asks Google and other public search engines not to index a story while leaving it visible on the site and in digest emails.",
+      "Added noindex metadata and removed excluded stories from the sitemap without changing the Gazette’s internal search or story listings.",
+      "Applied the missing production view-tracking migration so published-story visits are counted once per browser every 30 minutes.",
+    ],
+  },
+  {
     id: "weekly-digest-schedule-safeguard",
     date: "2026-09-02",
     title: "Added a safeguard for the weekly digest",

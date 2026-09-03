@@ -321,6 +321,7 @@ export type Database = {
           category: string
           created_at: string
           created_by: string | null
+          exclude_from_search: boolean
           headline: string
           homepage_order: number | null
           id: string
@@ -340,6 +341,7 @@ export type Database = {
           category: string
           created_at?: string
           created_by?: string | null
+          exclude_from_search?: boolean
           headline: string
           homepage_order?: number | null
           id?: string
@@ -359,6 +361,7 @@ export type Database = {
           category?: string
           created_at?: string
           created_by?: string | null
+          exclude_from_search?: boolean
           headline?: string
           homepage_order?: number | null
           id?: string
@@ -1726,6 +1729,7 @@ export type Database = {
           status_label: string | null
           summary: string | null
           updated_at: string | null
+          exclude_from_search: boolean | null
         }
         Insert: {
           author_name?: string | null
@@ -1753,6 +1757,7 @@ export type Database = {
           status_label?: never
           summary?: string | null
           updated_at?: string | null
+          exclude_from_search?: boolean | null
         }
         Update: {
           author_name?: string | null
@@ -1780,6 +1785,7 @@ export type Database = {
           status_label?: never
           summary?: string | null
           updated_at?: string | null
+          exclude_from_search?: boolean | null
         }
         Relationships: []
       }
@@ -1801,6 +1807,7 @@ export type Database = {
           slug: string | null
           summary: string | null
           updated_at: string | null
+          exclude_from_search: boolean | null
         }
         Insert: {
           author_name?: string | null
@@ -1819,6 +1826,7 @@ export type Database = {
           slug?: string | null
           summary?: string | null
           updated_at?: string | null
+          exclude_from_search?: boolean | null
         }
         Update: {
           author_name?: string | null
@@ -1837,6 +1845,7 @@ export type Database = {
           slug?: string | null
           summary?: string | null
           updated_at?: string | null
+          exclude_from_search?: boolean | null
         }
         Relationships: []
       }

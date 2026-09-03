@@ -468,6 +468,26 @@ const editorMode = articleId ? "edit" : "create";
                 type="datetime-local"
               />
             </label>
+
+            <label class="editor-checkbox editor-checkbox--search-visibility">
+              <input
+                id="exclude-from-search"
+                name="exclude_from_search"
+                type="checkbox"
+              />
+
+              <span>
+                <strong>Exclude from public search engines</strong>
+                <small>
+                  Keep this story visible across the Gazette and digest, but
+                  ask Google and other public search engines not to list it.
+                </small>
+                <small>
+                  This is not a privacy control; anyone with the story link can
+                  still read it.
+                </small>
+              </span>
+            </label>
           </div>
         </section>
 
@@ -897,6 +917,7 @@ const editorMode = articleId ? "edit" : "create";
     homepage_order: number | null;
     created_at: string;
     updated_at: string;
+    exclude_from_search: boolean;
   };
 
   type ArticlePayload = {
@@ -913,6 +934,7 @@ const editorMode = articleId ? "edit" : "create";
     status: ArticleStatus;
     is_featured: boolean;
     homepage_order: number | null;
+    exclude_from_search: boolean;
     updated_at: string;
     created_by?: string;
   };
@@ -1046,6 +1068,9 @@ const editorMode = articleId ? "edit" : "create";
 
   const homepageOrderInput =
     document.querySelector<HTMLInputElement>("#homepage-order");
+
+  const excludeFromSearchInput =
+    document.querySelector<HTMLInputElement>("#exclude-from-search");
 
   const publishingReadinessSummary = document.querySelector<HTMLElement>(
     "#publishing-readiness-summary",
@@ -2310,6 +2335,7 @@ const editorMode = articleId ? "edit" : "create";
       imageAlt: imageAltInput?.value ?? "",
       isFeatured: isFeaturedInput?.checked ?? false,
       homepageOrder: homepageOrderInput?.value ?? "",
+      excludeFromSearch: excludeFromSearchInput?.checked ?? false,
     });
   }
 
@@ -3036,6 +3062,10 @@ const editorMode = articleId ? "edit" : "create";
         article.homepage_order === null ? "" : String(article.homepage_order);
     }
 
+    if (excludeFromSearchInput) {
+      excludeFromSearchInput.checked = article.exclude_from_search;
+    }
+
     updateEditorTitle();
     updateWritingStats();
     renderPublishingReadiness();
@@ -3173,6 +3203,7 @@ const editorMode = articleId ? "edit" : "create";
         : homepageOrderValue
           ? Number(homepageOrderValue)
           : null,
+      exclude_from_search: excludeFromSearchInput?.checked ?? false,
       updated_at: new Date().toISOString(),
       ...(articleId ? {} : { created_by: currentUserId }),
     };
@@ -3807,6 +3838,7 @@ const editorMode = articleId ? "edit" : "create";
     imageUrlInput,
     imageAltInput,
     homepageOrderInput,
+    excludeFromSearchInput,
   ];
 
   for (const input of autosaveInputs) {

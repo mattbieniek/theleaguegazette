@@ -25,6 +25,10 @@ if (!story) {
   return Astro.redirect("/404");
 }
 
+if (story.exclude_from_search) {
+  Astro.response.headers.set("X-Robots-Tag", "noindex");
+}
+
 type GazetteComment = {
   id: string;
   userId: string;
@@ -164,6 +168,7 @@ const canonicalUrl = new URL(
   publishedTime={story.published_at}
   modifiedTime={story.updated_at}
   author={story.author_name}
+  noindex={story.exclude_from_search}
 >
   <article class="article-page">
     <header class="article-header site-shell">

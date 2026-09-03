@@ -37,10 +37,12 @@ export const GET: APIRoute = async ({ site }) => {
     ...staticPaths.map((path) => ({ path, lastmod: null as string | null })),
     ...teams.map((team) => ({ path: `/teams/${team.slug}`, lastmod: null })),
     ...seasonHistoryMetadata.map((season) => ({ path: `/history/${season.year}`, lastmod: null })),
-    ...articles.map((article) => ({
-      path: `/gazette/${article.slug}`,
-      lastmod: article.updated_at ?? article.published_at,
-    })),
+    ...articles
+      .filter((article) => !article.exclude_from_search)
+      .map((article) => ({
+        path: `/gazette/${article.slug}`,
+        lastmod: article.updated_at ?? article.published_at,
+      })),
   ];
 
   const body = entries.map((entry) => {
