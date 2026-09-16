@@ -96,6 +96,12 @@ export async function getHomepageArticles(): Promise<
     .select(articleSummarySelect)
     .in("status", ["published", "scheduled"])
     .lte("published_at", new Date().toISOString())
+    // Keep a legacy `is_featured` row visible even if it predates the
+    // homepage-order field. The editor and curation desk normalize it to slot 1.
+    .order("is_featured", {
+      ascending: false,
+      nullsFirst: false,
+    })
     .order("homepage_order", {
       ascending: true,
       nullsFirst: false,

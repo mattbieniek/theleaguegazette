@@ -38,7 +38,10 @@ Deno.serve(async (request: Request) => {
   let runId = "";
   try {
     const activeSeason = activeSeasonYear();
-    const { data: weekly, error: weeklyError } = await supabase.from("team_weekly_results").select("season_year,week").eq("season_year", activeSeason).order("week",{ascending:false}).limit(1).maybeSingle();
+    // Only completed matchup rows should advance the digest edition. Sleeper can
+    // expose the active/upcoming week before any games have been played, which
+    // previously made preseason (or the wrong week) appear in the subject line.
+    const { data: weekly, error: weeklyError } = await supabase.from("team_weekly_results").select("season_year,week").eq("season_year", activeSeason).in("result", ["W", "L", "T"]).order("week",{ascending:false}).limit(1).maybeSingle();
     if (weeklyError) throw new Error("Could not determine the latest league week.");
     const season = activeSeason, week = Number(weekly?.week ?? 1);
     if (!Number.isInteger(season) || !Number.isInteger(week) || week < 1 || week > 18) throw new Error("The latest league week is invalid.");

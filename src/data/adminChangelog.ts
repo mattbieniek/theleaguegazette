@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "weekly-digest-completed-week-and-homepage-lead",
+    date: "2026-09-16",
+    title: "Made weekly editions and homepage leads easier to manage",
+    summary:
+      "The weekly digest now labels itself with the latest completed week, and editors can make a story the homepage lead directly from the story editor or curation desk.",
+    changes: [
+      "Updated digest subjects, preheaders, and in-email headings to use the latest completed matchup week instead of showing 2026 Preseason after games have begun.",
+      "Changed the article-editor feature option to make the story the homepage lead automatically when it is published or scheduled.",
+      "Automatically replaced the previous homepage lead while keeping supporting-story placements available.",
+      "Added a clearer Make lead story action and normalized older homepage placements in Homepage Curation.",
+    ],
+  },
+  {
     id: "article-search-exclusion-and-view-tracking",
     date: "2026-09-03",
     title: "Added search-engine controls and restored article view tracking",

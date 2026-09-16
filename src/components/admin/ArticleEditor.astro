@@ -609,9 +609,10 @@ const editorMode = articleId ? "edit" : "create";
               <input id="is-featured" name="is_featured" type="checkbox" />
 
               <span>
-                <strong>Feature this story</strong>
+                <strong>Make this the lead story</strong>
                 <small>
-                  Allow the story to receive prominent homepage placement.
+                  Place this story in the homepage lead slot. Saving a published
+                  or scheduled story here automatically replaces the current lead.
                 </small>
               </span>
             </label>
@@ -628,7 +629,7 @@ const editorMode = articleId ? "edit" : "create";
                 placeholder="1"
               />
 
-              <small> Lower numbers appear first. </small>
+              <small>Use 2 or 3 for supporting stories. Choosing the lead checkbox sets this to 1.</small>
             </label>
           </div>
         </section>
@@ -3422,6 +3423,20 @@ const editorMode = articleId ? "edit" : "create";
     }
 
     const homepageOrderValue = homepageOrderInput?.value.trim() ?? "";
+    const requestedHomepageOrder = homepageOrderValue ? Number(homepageOrderValue) : null;
+    const wantsLeadStory = !isOpEdContributor && (
+      Boolean(isFeaturedInput?.checked) || requestedHomepageOrder === 1
+    );
+    const homepageOrder = isOpEdContributor
+      ? null
+      : wantsLeadStory
+        ? 1
+        : requestedHomepageOrder && Number.isInteger(requestedHomepageOrder) && requestedHomepageOrder > 0
+          ? requestedHomepageOrder
+          : null;
+    if (homepageOrderInput && wantsLeadStory) {
+      homepageOrderInput.value = "1";
+    }
 
     return {
       slug,
@@ -3435,16 +3450,67 @@ const editorMode = articleId ? "edit" : "create";
       image_alt: imageAltInput?.value.trim() || null,
       body: body as unknown as Json,
       status: requestedStatus,
-      is_featured: isOpEdContributor ? false : isFeaturedInput?.checked ?? false,
-      homepage_order: isOpEdContributor
-        ? null
-        : homepageOrderValue
-          ? Number(homepageOrderValue)
-          : null,
+      is_featured: wantsLeadStory,
+      homepage_order: homepageOrder,
       exclude_from_search: excludeFromSearchInput?.checked ?? false,
       updated_at: new Date().toISOString(),
       ...(articleId ? {} : { created_by: currentUserId }),
     };
+  }
+
+  /**
+   * Keep the lead-story slot unique when a story is saved from the editor.
+   * Homepage curation remains available for supporting-story placement, while
+   * the editor's lead checkbox now does what its label promises.
+   */
+  async function syncHomepageLead(articleId: string, payload: ArticlePayload): Promise<boolean> {
+    if (payload.status !== "published" && payload.status !== "scheduled") {
+      return true;
+    }
+
+    if (payload.is_featured) {
+      const { data: existingLeads, error: leadQueryError } = await supabaseBrowser
+        .from("gazette_articles")
+        .select("id")
+        .or("is_featured.eq.true,homepage_order.eq.1");
+
+      if (leadQueryError) {
+        console.error("Unable to find the current homepage lead.", leadQueryError);
+        return false;
+      }
+
+      const otherLeadIds = (existingLeads ?? [])
+        .map((row) => String(row.id))
+        .filter((id) => id !== articleId);
+
+      if (otherLeadIds.length) {
+        const results = await Promise.all(
+          otherLeadIds.map((id) =>
+            supabaseBrowser
+              .from("gazette_articles")
+              .update({ is_featured: false, homepage_order: null })
+              .eq("id", id),
+          ),
+        );
+
+        if (results.some((result) => result.error)) {
+          console.error("Unable to clear the previous homepage lead.", results);
+          return false;
+        }
+      }
+
+      const { error: leadUpdateError } = await supabaseBrowser
+        .from("gazette_articles")
+        .update({ is_featured: true, homepage_order: 1 })
+        .eq("id", articleId);
+
+      if (leadUpdateError) {
+        console.error("Unable to assign the homepage lead.", leadUpdateError);
+        return false;
+      }
+    }
+
+    return true;
   }
 
   async function saveArticle(
@@ -3511,6 +3577,8 @@ const editorMode = articleId ? "edit" : "create";
 
       const article = data as ArticleRecord;
 
+      const homepageLeadSynced = await syncHomepageLead(article.id, payload);
+
       updateStatusDisplay(article, {
         syncSelectedStatus: !isAutosave,
       });
@@ -3523,7 +3591,12 @@ const editorMode = articleId ? "edit" : "create";
         const statusChanged = statusBeforeSave !== requestedStatus;
 
         if (!statusChanged) {
-          setMessage("Story saved successfully.", "success");
+          setMessage(
+            homepageLeadSynced
+              ? "Story saved successfully."
+              : "Story saved, but homepage placement could not be updated.",
+            homepageLeadSynced ? "success" : "error",
+          );
         } else {
           const transitionMessages: Record<ArticleStatus, string> = {
             draft: "Story moved to draft.",
@@ -3533,7 +3606,12 @@ const editorMode = articleId ? "edit" : "create";
             archived: "Story archived successfully.",
           };
 
-          setMessage(transitionMessages[requestedStatus], "success");
+          setMessage(
+            homepageLeadSynced
+              ? transitionMessages[requestedStatus]
+              : `${transitionMessages[requestedStatus]} Homepage placement could not be updated.`,
+            homepageLeadSynced ? "success" : "error",
+          );
         }
       }
 
@@ -3566,6 +3644,8 @@ const editorMode = articleId ? "edit" : "create";
 
     const article = data as ArticleRecord;
 
+    const homepageLeadSynced = await syncHomepageLead(article.id, payload);
+
     articleId = article.id;
     currentArticleStatus = article.status;
 
@@ -3582,7 +3662,12 @@ const editorMode = articleId ? "edit" : "create";
       archived: "Archived story created.",
     };
 
-    setMessage(creationMessages[requestedStatus], "success");
+    setMessage(
+      homepageLeadSynced
+        ? creationMessages[requestedStatus]
+        : `${creationMessages[requestedStatus]} Homepage placement could not be updated.`,
+      homepageLeadSynced ? "success" : "error",
+    );
 
     return true;
   }
@@ -4138,7 +4223,24 @@ const editorMode = articleId ? "edit" : "create";
     }
   });
 
-  isFeaturedInput?.addEventListener("change", scheduleAutosave);
+  isFeaturedInput?.addEventListener("change", () => {
+    if (isFeaturedInput.checked) {
+      if (homepageOrderInput) homepageOrderInput.value = "1";
+    } else if (homepageOrderInput?.value.trim() === "1") {
+      homepageOrderInput.value = "";
+    }
+    scheduleAutosave();
+  });
+
+  homepageOrderInput?.addEventListener("change", () => {
+    const value = homepageOrderInput.value.trim();
+    if (value === "1" && isFeaturedInput) {
+      isFeaturedInput.checked = true;
+    } else if (value && isFeaturedInput) {
+      isFeaturedInput.checked = false;
+    }
+    scheduleAutosave();
+  });
 
   uploadImageButton?.addEventListener("click", () => {
     imageFileInput?.click();
