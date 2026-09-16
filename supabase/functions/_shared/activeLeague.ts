@@ -30,6 +30,9 @@ export type SleeperLeagueSummary = {
   status?: string | null;
   current_week?: number | null;
   previous_league_id?: string | null;
+  settings?: {
+    last_scored_leg?: number | null;
+  } | null;
 };
 
 export function assertActiveLeague(

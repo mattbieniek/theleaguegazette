@@ -220,7 +220,14 @@ Deno.serve(async (request: Request): Promise<Response> => {
       1,
       Math.min(18, Number(state.display_week ?? state.week ?? league.current_week ?? 1)),
     );
-    const completedWeek = currentWeek - 1;
+    // Sleeper exposes the last scored leg independently of its display week.
+    // Prefer that signal so a scheduled finalizer can recover a week even when
+    // GitHub skips the Tuesday run or the NFL state advances late.
+    const lastScoredLeg = Number(league.settings?.last_scored_leg ?? 0);
+    const completedWeek = Math.max(
+      currentWeek - 1,
+      Number.isInteger(lastScoredLeg) ? lastScoredLeg : 0,
+    );
     const hasRegularSeasonGames =
       state.season_type === "regular" || state.season_type === "post";
 
@@ -303,6 +310,42 @@ Deno.serve(async (request: Request): Promise<Response> => {
           start_week: currentWeek,
           end_week: currentWeek,
         });
+
+        // Hourly runs also repair a missed weekly finalization. The existence
+        // check keeps this to a one-time catch-up call per completed week.
+        if (completedWeek >= 1) {
+          const { data: activeSeason, error: activeSeasonError } = await db
+            .from("seasons")
+            .select("id")
+            .eq("sleeper_league_id", leagueId)
+            .maybeSingle();
+          if (activeSeasonError) {
+            throw new Error(`Could not find the active season: ${activeSeasonError.message}`);
+          }
+          const { data: finalizedMatchup, error: finalizedMatchupError } = await db
+            .from("matchups")
+            .select("id")
+            .eq("season_id", activeSeason?.id ?? "")
+            .eq("week", completedWeek)
+            .eq("status", "complete")
+            .limit(1)
+            .maybeSingle();
+          if (finalizedMatchupError) {
+            throw new Error(`Could not verify completed matchup data: ${finalizedMatchupError.message}`);
+          }
+          if (!finalizedMatchup) {
+            await call("sync-sleeper-matchups", {
+              sleeper_league_id: leagueId,
+              week: completedWeek,
+              status: "complete",
+            });
+            await call("sync-sleeper-player-scores", {
+              sleeper_league_id: leagueId,
+              start_week: completedWeek,
+              end_week: completedWeek,
+            });
+          }
+        }
       }
     }
 

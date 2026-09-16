@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "sleeper-sync-missed-week-recovery",
+    date: "2026-09-16",
+    title: "Made weekly Sleeper updates recover missed results",
+    summary:
+      "The active season now catches up automatically when a scheduled sync is skipped, so a completed week is not left looking live or missing from the site.",
+    changes: [
+      "Used Sleeper's last-scored-week signal alongside the displayed week to identify when a matchup week is truly finished.",
+      "Added an hourly recovery check that finalizes the prior scored week when the normal Tuesday run does not happen.",
+      "Repaired the 2026 Week 1 matchup statuses so completed results now appear in the homepage scoreboard, standings, awards, and Matchups pages.",
+      "Kept historical seasons unchanged; the recovery only runs for the configured active season.",
+    ],
+  },
+  {
     id: "weekly-digest-completed-week-and-homepage-lead",
     date: "2026-09-16",
     title: "Made weekly editions and homepage leads easier to manage",
