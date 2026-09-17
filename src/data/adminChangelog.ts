@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "homepage-curation-placement-toggles",
+    date: "2026-09-17",
+    title: "Made homepage story placement easier to manage",
+    summary:
+      "Homepage Curation now uses clear placement buttons so editors can assign or remove the lead and supporting story slots without a dropdown.",
+    changes: [
+      "Added one-click buttons for Lead story, Supporting story 1, and Supporting story 2 on every available story.",
+      "Added checked active states so each story's current homepage placement is immediately visible.",
+      "Made it possible to clear a placement by selecting its active button again, while automatically freeing a slot when another story takes it.",
+      "Improved the Top stories preview contrast, spacing, focus states, and responsive layout.",
+    ],
+  },
+  {
     id: "sleeper-sync-missed-week-recovery",
     date: "2026-09-16",
     title: "Made weekly Sleeper updates recover missed results",
