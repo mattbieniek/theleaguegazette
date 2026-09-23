@@ -14,14 +14,17 @@ Deno.serve(async (request: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const resendKey = Deno.env.get("RESEND_API_KEY");
-  const cronSecret = Deno.env.get("WEEKLY_DIGEST_CRON_SECRET");
+  const cronSecrets = [
+    Deno.env.get("WEEKLY_DIGEST_CRON_SECRET"),
+    Deno.env.get("WEEKLY_DIGEST_SUPABASE_CRON_SECRET"),
+  ].filter((secret): secret is string => Boolean(secret));
   const sender = Deno.env.get("WEEKLY_DIGEST_FROM") ?? "The League Gazette <gazette@theleaguegazette.org>";
   const siteUrl = Deno.env.get("PUBLIC_SITE_URL") ?? "https://theleaguegazette.org";
-  if (!supabaseUrl || !serviceKey || !resendKey || !cronSecret) return json({ success: false, error: "Digest secrets are not configured." }, 503);
+  if (!supabaseUrl || !serviceKey || !resendKey || cronSecrets.length === 0) return json({ success: false, error: "Digest secrets are not configured." }, 503);
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const requestBody = await request.json().catch(() => ({})) as { test_email?: string; retry_failed?: boolean };
   const testEmail = requestBody.test_email?.trim().toLowerCase() || "";
-  const isCronRequest = request.headers.get("x-cron-secret")?.trim() === cronSecret;
+  const isCronRequest = cronSecrets.includes(request.headers.get("x-cron-secret")?.trim() ?? "");
   let isAdminRequest = false;
   if (!isCronRequest) {
     const accessToken = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";

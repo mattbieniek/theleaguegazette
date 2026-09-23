@@ -2,8 +2,9 @@ name: Verify weekly Gazette digest
 
 on:
   workflow_dispatch:
-  # Run 30 minutes after the primary send. The digest endpoint is idempotent:
-  # an already-completed edition returns safely, while a missed schedule is sent here.
+  # Keep an independent GitHub fallback after the Supabase Cron primary and
+  # watchdog. The digest endpoint is idempotent, so an already-completed
+  # edition returns safely while a missed project schedule can still recover.
   schedule:
     - cron: "45 14 * * 3"
 
@@ -49,8 +50,9 @@ jobs:
         run: |
           {
             echo "### Weekly Gazette digest safeguard"
-            echo "- Primary send: 14:00 UTC Wednesday"
-            echo "- Watchdog check: 14:45 UTC Wednesday"
-            echo "- If the primary run was missed, this check sends the edition; otherwise it exits safely."
+            echo "- Supabase Cron primary: 14:00 UTC Wednesday"
+            echo "- Supabase Cron watchdog: 14:30 UTC Wednesday"
+            echo "- GitHub emergency fallback: 14:45 UTC Wednesday"
+            echo "- If the edition was already sent, each later check exits safely."
             echo "- Administrators can review delivery history in the Readers workspace."
           } >> "$GITHUB_STEP_SUMMARY"

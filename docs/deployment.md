@@ -99,19 +99,19 @@ On August 9, 2026, a read-only production walkthrough successfully rendered the 
 - `theleaguegazette.vercel.app` is valid and assigned to Production.
 - Vercel Cron Jobs are enabled at the project level, but no job is configured; scheduled application work uses GitHub Actions instead.
 
-The weekly digest is scheduled by `.github/workflows/weekly-digest.yml` for
-14:00 UTC every Wednesday, which is 9:00 a.m. Central during daylight time and
-8:00 a.m. Central during standard time. A second
-`.github/workflows/weekly-digest-watchdog.yml` check runs at 14:45 UTC. Both
-call the protected `send-weekly-digest` Edge Function using the repository's
+The weekly digest is scheduled by Supabase Cron for 14:00 UTC every Wednesday,
+which is 9:00 a.m. Central during daylight time and 8:00 a.m. Central during
+standard time. A second Supabase Cron check runs at 14:30 UTC, followed by an
+independent GitHub Actions emergency fallback at 14:45 UTC. The Supabase jobs
+call the protected `send-weekly-digest` Edge Function using a credential stored
+in Supabase Vault; the GitHub fallback continues to use the repository's
 `SUPABASE_URL` and `WEEKLY_DIGEST_CRON_SECRET` secrets. The function prevents
-duplicate delivery for the same season and week, so the watchdog safely exits
-when the primary send succeeded and recovers an edition when the scheduled
-primary run was missed. Before the active season has any completed weekly
-results, it labels the edition as `${season} Preseason` and uses the calendar
-date in its duplicate key so multiple pre-season Wednesday editions can be
-sent safely. Administrators can inspect delivery history in the Readers
-workspace.
+duplicate delivery for the same season and week, so every later check exits
+safely when the edition has already been sent. Before the active season has any
+completed weekly results, it labels the edition as `${season} Preseason` and
+uses the calendar date in its duplicate key so multiple pre-season Wednesday
+editions can be sent safely. Administrators can inspect delivery history in the
+Readers workspace and Supabase Cron run history.
 
 Sleeper automation is configured as a GitHub Actions workflow in
 `.github/workflows/sleeper-sync.yml`. It calls the protected

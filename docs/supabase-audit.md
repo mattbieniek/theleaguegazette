@@ -108,7 +108,7 @@ Eleven Edge Functions are active. All eleven now have local source. The two func
 
 The digest's required secret names are present, including its Resend key, cron secret, sender, and public site URL; values were not inspected or recorded.
 
-The live database has no `cron.job` table and no `pg_cron` extension. Therefore the digest is manually invoked or scheduled outside PostgreSQL. The trigger location still requires verification.
+Supabase Cron is now enabled through `pg_cron` and `pg_net`. The `weekly-gazette-digest` job runs at 14:00 UTC each Wednesday, and `weekly-gazette-digest-watchdog` runs at 14:30 UTC. Both invoke the protected digest function using a Vault-held scheduler credential. The existing GitHub Actions workflow remains available as an independent emergency fallback, while the primary schedule and its run history are now visible in Supabase.
 
 Most deployed Edge Functions have platform JWT verification disabled and perform authorization inside their handlers. `sync-sleeper-player-scores` is the exception with platform JWT verification enabled. Handler-level authorization must remain part of every function review.
 
@@ -120,7 +120,7 @@ The deployed JWT settings for all eleven functions are now recorded explicitly i
 
 `send-weekly-digest` accepts either the configured cron-secret header or a verified administrator bearer token, loads opted-in confirmed users, escapes editorial/user content in HTML, sends through Resend, and records a run. The hardening migration adds a unique season/week edition key, restricts test deliveries to administrator sessions, validates test addresses, checks database operations, records explicit `completed`, `partial`, and `failed` outcomes, and keeps recipient/provider response details out of logs. Failed or partial production editions require an administrator-reviewed retry rather than silently sending a duplicate edition.
 
-No production function was changed or redeployed during this review. Fixes should be implemented and tested locally with a mock email provider or an explicitly authorized test address before deployment.
+The digest function now accepts both the existing GitHub cron credential and the separate Supabase Cron credential. The scheduler migration was applied without invoking the function, so the completed current-week edition was not resent.
 
 ## Remaining reconciliation
 

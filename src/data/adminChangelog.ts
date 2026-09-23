@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "supabase-cron-weekly-digest",
+    date: "2026-09-23",
+    title: "Moved the weekly digest to a more dependable scheduler",
+    summary:
+      "The Wednesday digest is now scheduled inside Supabase, with a built-in backup check and an independent GitHub fallback if the project scheduler ever needs help.",
+    changes: [
+      "Added a Supabase Cron primary send at 9:00 a.m. Central during daylight time, followed by a 30-minute recovery check.",
+      "Stored the scheduler credential in Supabase Vault and kept the existing GitHub credential available for emergency recovery.",
+      "Added visible Supabase Cron run history so administrators can distinguish a scheduled run, a recovery check, and a delivery failure.",
+      "Kept the existing edition protection in place so setting up the new scheduler did not resend the completed 2026 Week 2 digest.",
+    ],
+  },
+  {
     id: "homepage-curation-placement-toggles",
     date: "2026-09-17",
     title: "Made homepage story placement easier to manage",

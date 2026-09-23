@@ -1,11 +1,9 @@
 name: Send weekly Gazette digest
 
 on:
+  # The production schedule now lives in Supabase Cron. Keep this manual
+  # trigger available for an administrator-led recovery or test.
   workflow_dispatch:
-  # GitHub schedules use UTC. 14:00 UTC is Wednesday morning in Chicago:
-  # 9:00 a.m. during daylight time and 8:00 a.m. during standard time.
-  schedule:
-    - cron: "0 14 * * 3"
 
 concurrency:
   group: weekly-gazette-digest
