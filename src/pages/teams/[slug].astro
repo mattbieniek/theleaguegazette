@@ -29,32 +29,22 @@ import { buildTeamDraftHistory } from "../../lib/gazette/teamDrafts";
 import { getTeamTransactionHighlights } from "../../lib/gazette/transactionHighlights";
 import { getFormerTeamNames, teams } from "../../data/teams";
 import { ACTIVE_SLEEPER_LEAGUE_ID } from "../../lib/currentLeague";
+import { setPublicCache } from "../../lib/public-cache";
 
-type Team = (typeof teams)[number];
+export const prerender = false;
+setPublicCache(Astro.response, 60, 600);
 
-interface Props {
-  team: Team;
-  teamTransactions: LeagueTransaction[];
+const team = teams.find((candidate) => candidate.slug === Astro.params.slug);
+
+if (!team) {
+  return Astro.redirect("/404");
 }
 
-export async function getStaticPaths() {
-  const transactionArchive = await getTransactionArchive();
-
-  return teams.map((team) => ({
-    params: {
-      slug: team.slug,
-    },
-    props: {
-      team,
-      teamTransactions: getTeamTransactionHighlights(
-        transactionArchive,
-        team
-      ),
-    },
-  }));
-}
-
-const { team, teamTransactions } = Astro.props as Props;
+const transactionArchive = await getTransactionArchive();
+const teamTransactions: LeagueTransaction[] = getTeamTransactionHighlights(
+  transactionArchive,
+  team
+);
 
 const sleeperLeagueId =
   ACTIVE_SLEEPER_LEAGUE_ID;

@@ -8,6 +8,10 @@ import {
 } from "../../lib/gazette/franchises";
 import { getFormerTeamNames, teams } from "../../data/teams";
 import { ACTIVE_SLEEPER_LEAGUE_ID } from "../../lib/currentLeague";
+import { setPublicCache } from "../../lib/public-cache";
+
+export const prerender = false;
+setPublicCache(Astro.response, 60, 600);
 
 const sleeperLeagueId = ACTIVE_SLEEPER_LEAGUE_ID;
 
