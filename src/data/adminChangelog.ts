@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "editorial-live-scheduled-grouping",
+    date: "2026-10-27",
+    title: "Moved live scheduled stories into Published",
+    summary:
+      "Stories that have already gone live through the scheduler no longer appear in the Scheduled section of the editorial desk.",
+    changes: [
+      "Kept future scheduled stories in Scheduled while moving already-live scheduled stories into Published.",
+      "Updated the Stories page totals, filters, and dashboard counts to use the story's current live status.",
+      "Left the original scheduling information intact so automated publication continues to work normally.",
+    ],
+  },
+  {
     id: "supabase-cron-weekly-digest",
     date: "2026-09-23",
     title: "Moved the weekly digest to a more dependable scheduler",

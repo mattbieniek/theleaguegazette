@@ -393,6 +393,12 @@ const archivedCount =
       );
     }
 
+    function getDisplayedStatus(article: ArticleSummary): ArticleStatus {
+      return article.status === "scheduled" && isPubliclyAvailable(article)
+        ? "published"
+        : article.status;
+    }
+
     function createRecentStory(
       article: ArticleSummary
     ): HTMLElement {
@@ -687,7 +693,7 @@ const archivedCount =
   status: ArticleStatus
 ): number =>
   articles.filter(
-    (article) => article.status === status
+    (article) => getDisplayedStatus(article) === status
   ).length;
 
 if (draftCount) {

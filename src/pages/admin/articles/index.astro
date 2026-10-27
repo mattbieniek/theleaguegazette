@@ -299,6 +299,12 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
       return `Updated ${formatDate(article.updated_at)}`;
     }
 
+    function getDisplayedStatus(article: ArticleSummary): ArticleStatus {
+      return article.status === "scheduled" && article.is_due_for_publishing
+        ? "published"
+        : article.status;
+    }
+
     function getStoragePathFromPublicUrl(imageUrl: string): string | null {
       try {
         const url = new URL(imageUrl);
@@ -612,7 +618,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 
     function updateSummaryCounts(): void {
       const countByStatus = (status: ArticleStatus): number =>
-        articles.filter((article) => article.status === status).length;
+        articles.filter((article) => getDisplayedStatus(article) === status).length;
 
       if (allCount) allCount.textContent = String(articles.length);
       if (draftCount) draftCount.textContent = String(countByStatus("draft"));
@@ -643,7 +649,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 
         const matchesSearch = !query || searchableText.includes(query);
         const matchesStatus =
-          selectedStatus === "all" || article.status === selectedStatus;
+          selectedStatus === "all" || getDisplayedStatus(article) === selectedStatus;
         const articleCategory = normalizeText(article.category) || "Uncategorized";
         const matchesCategory =
           selectedCategory === "all" || articleCategory === selectedCategory;
