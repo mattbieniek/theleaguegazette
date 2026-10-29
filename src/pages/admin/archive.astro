@@ -1,45 +1,472 @@
 ---
 import AdminLayout from "../../layouts/AdminLayout.astro";
+import { getLegacyDrafts, getLegacyMatchups, getLegacyTransactions } from "../../lib/legacy";
+
+const legacyMatchups = getLegacyMatchups();
+const legacyDrafts = getLegacyDrafts();
+const legacyTransactions = getLegacyTransactions();
+const legacyArchiveCoverage = [2022, 2023].map((year) => {
+  const seasonMatchups = legacyMatchups.filter((matchup) => matchup.seasonYear === year);
+  const matchupIds = [...new Set(seasonMatchups.map((matchup) => matchup.id))];
+  const teamNames = new Set(seasonMatchups.flatMap((matchup) => matchup.teams.map((team) => team.teamName)));
+  const weeks = [...new Set(seasonMatchups.map((matchup) => matchup.week))];
+  const draft = legacyDrafts.find((item) => item.seasonYear === year);
+
+  return {
+    id: `legacy-${year}`,
+    year,
+    status: "historical",
+    total_rosters: teamNames.size,
+    updated_at: null,
+    source: "ESPN import",
+    teams: teamNames.size,
+    matchup_ids: matchupIds,
+    weeks,
+    draft_ids: draft ? [`legacy-${year}`] : [],
+    picks: draft?.picks.length ?? 0,
+    transactions: legacyTransactions.filter((transaction) => transaction.seasonYear === year).length,
+  };
+});
+
+const legacyArchiveJson = JSON.stringify(legacyArchiveCoverage).replace(/</g, "\\u003c");
 ---
 
 <AdminLayout title="Archive | The League Gazette">
   <main id="archive-desk" class="admin-shell archive-desk" hidden>
     <header class="archive-header">
-      <div><p class="eyebrow">League operations</p><h1>Archive</h1><p>Review historical coverage across seasons, matchups, drafts, and the transaction ledger.</p></div>
-      <a href="/history" target="_blank" rel="noreferrer">View public archive ↗</a>
+      <div class="archive-header__copy">
+        <p class="eyebrow">League operations · historical record</p>
+        <h1>Archive</h1>
+        <p class="archive-header__description">
+          One view of every season, from the original ESPN imports to the latest Sleeper sync.
+        </p>
+      </div>
+      <a class="archive-header__link" href="/history" target="_blank" rel="noreferrer">
+        View public archive <span aria-hidden="true">↗</span>
+      </a>
     </header>
 
     <section id="archive-summary" class="archive-summary" aria-label="Archive summary"></section>
+
     <section class="archive-destinations" aria-label="Public archive destinations">
-      <a href="/history" target="_blank" rel="noreferrer"><span>Season archive</span><strong id="history-count">—</strong><small>seasons recorded ↗</small></a>
-      <a href="/records" target="_blank" rel="noreferrer"><span>Record book</span><strong id="matchup-count">—</strong><small>completed matchups ↗</small></a>
-      <a href="/draft" target="_blank" rel="noreferrer"><span>Draft archive</span><strong id="draft-count">—</strong><small>draft editions ↗</small></a>
-      <a href="/transactions" target="_blank" rel="noreferrer"><span>Transaction ledger</span><strong id="transaction-count">—</strong><small>completed moves ↗</small></a>
+      <a href="/history" target="_blank" rel="noreferrer">
+        <span class="archive-destination__label">Season archive</span>
+        <strong id="history-count">—</strong>
+        <small>seasons recorded <span aria-hidden="true">↗</span></small>
+      </a>
+      <a href="/records" target="_blank" rel="noreferrer">
+        <span class="archive-destination__label">Record book</span>
+        <strong id="matchup-count">—</strong>
+        <small>completed matchups <span aria-hidden="true">↗</span></small>
+      </a>
+      <a href="/draft" target="_blank" rel="noreferrer">
+        <span class="archive-destination__label">Draft archive</span>
+        <strong id="draft-count">—</strong>
+        <small>draft editions <span aria-hidden="true">↗</span></small>
+      </a>
+      <a href="/transactions" target="_blank" rel="noreferrer">
+        <span class="archive-destination__label">Transaction ledger</span>
+        <strong id="transaction-count">—</strong>
+        <small>completed moves <span aria-hidden="true">↗</span></small>
+      </a>
     </section>
 
-    <div class="archive-toolbar">
-      <div><h2>Season coverage</h2><p>Counts reflect material currently available to the public archive.</p></div>
-      <button id="refresh-archive" type="button">Refresh archive sources</button>
-    </div>
-    <p id="archive-message" class="archive-message" role="status" aria-live="polite"></p>
-    <section id="season-grid" class="season-grid" aria-label="Archive coverage by season"></section>
-    <section id="archive-empty" class="archive-empty" hidden><h2>No archived seasons found</h2><p>Sync Sleeper league data to begin building the historical record.</p></section>
+    <section class="archive-coverage" aria-labelledby="coverage-title">
+      <div class="archive-toolbar">
+        <div>
+          <p class="eyebrow">Coverage report</p>
+          <h2 id="coverage-title">Season coverage</h2>
+          <p>Counts reflect material currently available to the public archive.</p>
+        </div>
+        <button id="refresh-archive" type="button">
+          <span aria-hidden="true">↻</span> Refresh current sources
+        </button>
+      </div>
+
+      <div class="archive-source-note">
+        <span class="archive-source-note__mark archive-source-note__mark--sleeper" aria-hidden="true"></span>
+        <span><strong>Sleeper sync</strong> updates the active league data.</span>
+        <span class="archive-source-note__mark archive-source-note__mark--import" aria-hidden="true"></span>
+        <span><strong>ESPN import</strong> preserves the 2022 and 2023 seasons.</span>
+      </div>
+
+      <p id="archive-message" class="archive-message" role="status" aria-live="polite"></p>
+      <section id="season-grid" class="season-grid" aria-label="Archive coverage by season"></section>
+      <section id="archive-empty" class="archive-empty" hidden>
+        <p class="eyebrow">Nothing here yet</p>
+        <h2>No archived seasons found</h2>
+        <p>Sync league data to begin building the historical record.</p>
+      </section>
+    </section>
   </main>
+
+  <script id="legacy-archive-data" type="application/json" is:inline set:html={legacyArchiveJson}></script>
 
   <script>
     import { supabaseBrowser } from "../../lib/supabase-browser";
-    type SeasonRow={id:string;year:number;status:string;total_rosters:number|null;updated_at:string};
-    type Coverage={season:SeasonRow;teams:number;matchups:Set<string>;weeks:Set<number>;drafts:Set<string>;picks:number;transactions:number};
-    const page=document.querySelector<HTMLElement>("#archive-desk");const summary=document.querySelector<HTMLElement>("#archive-summary");const seasonGrid=document.querySelector<HTMLElement>("#season-grid");const empty=document.querySelector<HTMLElement>("#archive-empty");const message=document.querySelector<HTMLElement>("#archive-message");const refreshButton=document.querySelector<HTMLButtonElement>("#refresh-archive");let leagueId="";
-    function setMessage(text:string,error=false){if(message){message.textContent=text;message.dataset.error=String(error)}}
-    function stat(label:string,value:string){const item=document.createElement("div");const small=document.createElement("span");small.textContent=label;const strong=document.createElement("strong");strong.textContent=value;item.append(small,strong);return item}
-    function freshness(date:string){const days=Math.floor((Date.now()-new Date(date).getTime())/86400000);if(!Number.isFinite(days))return "Unknown";if(days===0)return "Today";if(days===1)return "Yesterday";return `${days} days ago`}
-    async function initialize(){const{data:{user}}=await supabaseBrowser.auth.getUser();if(!user){window.location.replace("/admin/login");return}const{data:admin}=await supabaseBrowser.from("admin_users").select("user_id").eq("user_id",user.id).maybeSingle();if(!admin){window.location.replace("/admin/articles");return}setMessage("Loading archive coverage…");const[{data:seasons,error:seasonError},{data:teams},{data:results},{data:drafts},{data:transactions},{data:statusData}]=await Promise.all([supabaseBrowser.from("seasons").select("id,year,status,total_rosters,updated_at").order("year",{ascending:false}),supabaseBrowser.from("fantasy_teams").select("season_id"),supabaseBrowser.from("team_weekly_results").select("season_id,season_year,week,matchup_id,result"),supabaseBrowser.from("drafts").select("id,season_id,season_year,draft_picks(id)"),supabaseBrowser.from("league_transactions").select("id,season_id,season_year,status"),supabaseBrowser.rpc("admin_sleeper_status")]);if(page)page.hidden=false;if(seasonError){setMessage(seasonError.message,true);return}leagueId=String((statusData as any)?.league?.sleeper_league_id??"");const coverage=(seasons??[]).map((season):Coverage=>({season:season as SeasonRow,teams:(teams??[]).filter(team=>team.season_id===season.id).length,matchups:new Set<string>(),weeks:new Set<number>(),drafts:new Set<string>(),picks:0,transactions:0}));const byId=new Map(coverage.map(item=>[item.season.id,item]));const byYear=new Map(coverage.map(item=>[item.season.year,item]));for(const result of results??[]){if(!result.matchup_id||!["W","L","T"].includes(String(result.result)))continue;const item=(result.season_id?byId.get(result.season_id):undefined)??byYear.get(Number(result.season_year));if(item){item.matchups.add(String(result.matchup_id));item.weeks.add(Number(result.week))}}for(const draft of drafts??[]){const item=(draft.season_id?byId.get(draft.season_id):undefined)??byYear.get(Number(draft.season_year));if(item){item.drafts.add(String(draft.id));item.picks+=draft.draft_picks?.length??0}}for(const transaction of transactions??[]){if(transaction.status!=="complete")continue;const item=(transaction.season_id?byId.get(transaction.season_id):undefined)??byYear.get(Number(transaction.season_year));if(item)item.transactions++}render(coverage);setMessage("")}
-    function render(coverage:Coverage[]){const totalMatchups=coverage.reduce((sum,item)=>sum+item.matchups.size,0);const totalDrafts=coverage.reduce((sum,item)=>sum+item.drafts.size,0);const totalTransactions=coverage.reduce((sum,item)=>sum+item.transactions,0);const earliest=coverage.at(-1)?.season.year;summary?.replaceChildren(stat("Recorded seasons",String(coverage.length)),stat("First recorded",earliest?String(earliest):"—"),stat("Completed matchups",String(totalMatchups)),stat("Last updated",coverage[0]?freshness(coverage[0].season.updated_at):"Unknown"));for(const [id,value] of [["history-count",coverage.length],["matchup-count",totalMatchups],["draft-count",totalDrafts],["transaction-count",totalTransactions]] as const){const element=document.getElementById(id);if(element)element.textContent=String(value)}if(!seasonGrid||!empty)return;seasonGrid.replaceChildren();for(const item of coverage){const expected=item.season.total_rosters??10;const issues:string[]=[];if(item.teams<expected)issues.push(`${item.teams}/${expected} teams`);if(item.matchups.size===0)issues.push("No completed matchups");if(item.drafts.size===0)issues.push("No stored draft");if(item.transactions===0)issues.push("No transactions");const card=document.createElement("article");card.className="season-review";card.dataset.health=issues.length?"attention":"ready";const heading=document.createElement("div");const label=document.createElement("p");label.textContent=`${item.season.status} season`;const title=document.createElement("h2");title.textContent=String(item.season.year);heading.append(label,title);const badge=document.createElement("span");badge.textContent=issues.length?`${issues.length} gap${issues.length===1?"":"s"}`:"Complete";const top=document.createElement("div");top.className="season-review__top";top.append(heading,badge);const stats=document.createElement("div");stats.className="season-review__stats";stats.append(stat("Teams",String(item.teams)),stat("Weeks",String(item.weeks.size)),stat("Matchups",String(item.matchups.size)),stat("Draft picks",String(item.picks)),stat("Transactions",String(item.transactions)));const footer=document.createElement("div");footer.className="season-review__footer";const note=document.createElement("p");note.textContent=issues.length?issues.join(" · "):"Core historical datasets are represented.";const link=document.createElement("a");link.href=`/history/${item.season.year}`;link.target="_blank";link.rel="noreferrer";link.textContent="View season ↗";footer.append(note,link);card.append(top,stats,footer);seasonGrid.append(card)}empty.hidden=coverage.length>0;seasonGrid.hidden=coverage.length===0}
-    refreshButton?.addEventListener("click",async()=>{if(!leagueId){setMessage("The current Sleeper league is unavailable.",true);return}refreshButton.disabled=true;refreshButton.textContent="Refreshing…";setMessage("Refreshing draft and transaction archives…");for(const functionName of ["sync-sleeper-drafts","sync-sleeper-transactions"]){const{data,error}=await supabaseBrowser.functions.invoke(functionName,{body:{sleeper_league_id:leagueId}});if(error||data?.success===false){refreshButton.disabled=false;refreshButton.textContent="Refresh archive sources";setMessage(`Refresh failed: ${data?.error?.message??data?.error??error?.message}`,true);return}}window.location.reload()});void initialize();
+
+    type SeasonRow = {
+      id: string;
+      year: number;
+      status: string;
+      total_rosters: number | null;
+      updated_at: string | null;
+    };
+
+    type Coverage = {
+      season: SeasonRow;
+      source: string;
+      teams: number;
+      matchupIds: Set<string>;
+      weeks: Set<number>;
+      draftIds: Set<string>;
+      picks: number;
+      transactions: number;
+    };
+
+    type LegacyCoverage = {
+      id: string;
+      year: number;
+      status: string;
+      total_rosters: number;
+      updated_at: null;
+      source: string;
+      teams: number;
+      matchup_ids: string[];
+      weeks: number[];
+      draft_ids: string[];
+      picks: number;
+      transactions: number;
+    };
+
+    const page = document.querySelector<HTMLElement>("#archive-desk");
+    const summary = document.querySelector<HTMLElement>("#archive-summary");
+    const seasonGrid = document.querySelector<HTMLElement>("#season-grid");
+    const empty = document.querySelector<HTMLElement>("#archive-empty");
+    const message = document.querySelector<HTMLElement>("#archive-message");
+    const refreshButton = document.querySelector<HTMLButtonElement>("#refresh-archive");
+    const legacyDataElement = document.querySelector<HTMLScriptElement>("#legacy-archive-data");
+    const legacyData = JSON.parse(legacyDataElement?.textContent ?? "[]") as LegacyCoverage[];
+    let leagueId = "";
+
+    function setMessage(text: string, error = false): void {
+      if (message) {
+        message.textContent = text;
+        message.dataset.error = String(error);
+      }
+    }
+
+    function stat(label: string, value: string): HTMLElement {
+      const item = document.createElement("div");
+      const small = document.createElement("span");
+      small.textContent = label;
+      const strong = document.createElement("strong");
+      strong.textContent = value;
+      item.append(small, strong);
+      return item;
+    }
+
+    function freshness(date: string | null): string {
+      if (!date) return "Imported archive";
+      const days = Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
+      if (!Number.isFinite(days)) return "Unknown";
+      if (days === 0) return "Today";
+      if (days === 1) return "Yesterday";
+      return `${days} days ago`;
+    }
+
+    function legacyCoverage(item: LegacyCoverage): Coverage {
+      return {
+        season: {
+          id: item.id,
+          year: item.year,
+          status: item.status,
+          total_rosters: item.total_rosters,
+          updated_at: item.updated_at,
+        },
+        source: item.source,
+        teams: item.teams,
+        matchupIds: new Set(item.matchup_ids),
+        weeks: new Set(item.weeks),
+        draftIds: new Set(item.draft_ids),
+        picks: item.picks,
+        transactions: item.transactions,
+      };
+    }
+
+    async function initialize(): Promise<void> {
+      const { data: { user } } = await supabaseBrowser.auth.getUser();
+      if (!user) {
+        window.location.replace("/admin/login");
+        return;
+      }
+
+      const { data: admin } = await supabaseBrowser
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!admin) {
+        window.location.replace("/admin/articles");
+        return;
+      }
+
+      setMessage("Loading archive coverage…");
+      const [
+        { data: seasons, error: seasonError },
+        { data: teams },
+        { data: results },
+        { data: drafts },
+        { data: transactions },
+        { data: statusData },
+      ] = await Promise.all([
+        supabaseBrowser.from("seasons").select("id,year,status,total_rosters,updated_at").order("year", { ascending: false }),
+        supabaseBrowser.from("fantasy_teams").select("season_id"),
+        supabaseBrowser.from("team_weekly_results").select("season_id,season_year,week,matchup_id,result"),
+        supabaseBrowser.from("drafts").select("id,season_id,season_year,draft_picks(id)"),
+        supabaseBrowser.from("league_transactions").select("id,season_id,season_year,status"),
+        supabaseBrowser.rpc("admin_sleeper_status"),
+      ]);
+
+      if (page) page.hidden = false;
+      if (seasonError) {
+        setMessage(seasonError.message, true);
+        return;
+      }
+
+      leagueId = String((statusData as { league?: { sleeper_league_id?: string } } | null)?.league?.sleeper_league_id ?? "");
+      const coverage = (seasons ?? []).map((season): Coverage => ({
+        season: season as SeasonRow,
+        source: "Sleeper sync",
+        teams: (teams ?? []).filter((team) => team.season_id === season.id).length,
+        matchupIds: new Set<string>(),
+        weeks: new Set<number>(),
+        draftIds: new Set<string>(),
+        picks: 0,
+        transactions: 0,
+      }));
+
+      const byId = new Map(coverage.map((item) => [item.season.id, item]));
+      const byYear = new Map(coverage.map((item) => [item.season.year, item]));
+
+      for (const result of results ?? []) {
+        if (!result.matchup_id || !["W", "L", "T"].includes(String(result.result))) continue;
+        const item = (result.season_id ? byId.get(result.season_id) : undefined) ?? byYear.get(Number(result.season_year));
+        if (item) {
+          item.matchupIds.add(String(result.matchup_id));
+          item.weeks.add(Number(result.week));
+        }
+      }
+
+      for (const draft of drafts ?? []) {
+        const item = (draft.season_id ? byId.get(draft.season_id) : undefined) ?? byYear.get(Number(draft.season_year));
+        if (item) {
+          item.draftIds.add(String(draft.id));
+          item.picks += draft.draft_picks?.length ?? 0;
+        }
+      }
+
+      for (const transaction of transactions ?? []) {
+        if (transaction.status !== "complete") continue;
+        const item = (transaction.season_id ? byId.get(transaction.season_id) : undefined) ?? byYear.get(Number(transaction.season_year));
+        if (item) item.transactions++;
+      }
+
+      for (const legacyItem of legacyData) {
+        if (!byYear.has(legacyItem.year)) coverage.push(legacyCoverage(legacyItem));
+      }
+
+      coverage.sort((first, second) => second.season.year - first.season.year);
+      render(coverage);
+      setMessage("");
+    }
+
+    function render(coverage: Coverage[]): void {
+      const totalMatchups = coverage.reduce((sum, item) => sum + item.matchupIds.size, 0);
+      const totalDrafts = coverage.reduce((sum, item) => sum + item.draftIds.size, 0);
+      const totalTransactions = coverage.reduce((sum, item) => sum + item.transactions, 0);
+      const currentSource = coverage.find((item) => item.source === "Sleeper sync");
+
+      summary?.replaceChildren(
+        stat("Recorded seasons", String(coverage.length)),
+        stat("First recorded", coverage.at(-1) ? String(coverage.at(-1)?.season.year) : "—"),
+        stat("Completed matchups", String(totalMatchups)),
+        stat("Current source", currentSource ? freshness(currentSource.season.updated_at) : "—"),
+      );
+
+      for (const [id, value] of [
+        ["history-count", coverage.length],
+        ["matchup-count", totalMatchups],
+        ["draft-count", totalDrafts],
+        ["transaction-count", totalTransactions],
+      ] as const) {
+        const element = document.getElementById(id);
+        if (element) element.textContent = String(value);
+      }
+
+      if (!seasonGrid || !empty) return;
+      seasonGrid.replaceChildren();
+
+      for (const item of coverage) {
+        const expected = item.season.total_rosters ?? 10;
+        const issues: string[] = [];
+        if (item.teams < expected) issues.push(`${item.teams}/${expected} teams`);
+        if (item.matchupIds.size === 0) issues.push("No completed matchups");
+        if (item.draftIds.size === 0) issues.push("No stored draft");
+        if (item.transactions === 0) issues.push("No transactions");
+
+        const card = document.createElement("article");
+        card.className = "season-review";
+        card.dataset.health = issues.length ? "attention" : "ready";
+        card.dataset.source = item.source === "ESPN import" ? "import" : "sleeper";
+
+        const heading = document.createElement("div");
+        const label = document.createElement("p");
+        label.className = "season-review__source";
+        label.textContent = item.source;
+        const title = document.createElement("h2");
+        title.textContent = String(item.season.year);
+        heading.append(label, title);
+
+        const badge = document.createElement("span");
+        badge.className = "season-review__health";
+        badge.textContent = issues.length ? `${issues.length} gap${issues.length === 1 ? "" : "s"}` : "Complete";
+
+        const top = document.createElement("div");
+        top.className = "season-review__top";
+        top.append(heading, badge);
+
+        const stats = document.createElement("div");
+        stats.className = "season-review__stats";
+        stats.append(
+          stat("Teams", String(item.teams)),
+          stat("Weeks", String(item.weeks.size)),
+          stat("Matchups", String(item.matchupIds.size)),
+          stat("Draft picks", String(item.picks)),
+          stat("Transactions", String(item.transactions)),
+        );
+
+        const footer = document.createElement("div");
+        footer.className = "season-review__footer";
+        const note = document.createElement("p");
+        note.textContent = issues.length ? issues.join(" · ") : "Core historical datasets are represented.";
+        const link = document.createElement("a");
+        link.href = `/history/${item.season.year}`;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        link.textContent = "View season ↗";
+        footer.append(note, link);
+
+        card.append(top, stats, footer);
+        seasonGrid.append(card);
+      }
+
+      empty.hidden = coverage.length > 0;
+      seasonGrid.hidden = coverage.length === 0;
+    }
+
+    refreshButton?.addEventListener("click", async () => {
+      if (!leagueId) {
+        setMessage("The current Sleeper league is unavailable.", true);
+        return;
+      }
+
+      refreshButton.disabled = true;
+      refreshButton.textContent = "Refreshing…";
+      setMessage("Refreshing current draft and transaction archives…");
+
+      for (const functionName of ["sync-sleeper-drafts", "sync-sleeper-transactions"]) {
+        const { data, error } = await supabaseBrowser.functions.invoke(functionName, {
+          body: { sleeper_league_id: leagueId },
+        });
+        if (error || data?.success === false) {
+          refreshButton.disabled = false;
+          refreshButton.textContent = "↻ Refresh current sources";
+          setMessage(`Refresh failed: ${data?.error?.message ?? data?.error ?? error?.message}`, true);
+          return;
+        }
+      }
+
+      window.location.reload();
+    });
+
+    void initialize();
   </script>
 </AdminLayout>
 
 <style>
-  .archive-desk{display:grid;gap:1.5rem}.archive-desk[hidden],.archive-empty[hidden],.season-grid[hidden]{display:none}.archive-header{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding-bottom:1.5rem;border-bottom:3px double var(--color-rule-dark)}.archive-header h1{margin:.25rem 0;font-size:clamp(3rem,7vw,6rem)}.archive-header p:last-child{max-width:48rem;color:var(--color-ink-soft)}.archive-header>a,.season-review__footer a{color:var(--color-green);font-weight:750}.archive-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;border:1px solid var(--color-rule);background:var(--color-rule)}.archive-summary>div{display:grid;gap:.35rem;padding:1rem;background:var(--color-surface)}.archive-summary span,.season-review__stats span{color:var(--color-ink-soft);font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.archive-destinations{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}.archive-destinations a{display:grid;gap:.35rem;padding:1.25rem;border:1px solid var(--color-rule);border-top:4px solid var(--color-green);background:var(--color-surface);color:inherit;text-decoration:none}.archive-destinations span{font-weight:750}.archive-destinations strong{font-family:var(--font-display);font-size:2.25rem}.archive-destinations small{color:var(--color-ink-soft)}.archive-toolbar{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding-top:.5rem}.archive-toolbar h2,.archive-toolbar p{margin:0}.archive-toolbar p{margin-top:.3rem;color:var(--color-ink-soft)}.archive-toolbar button{padding:.75rem 1rem;border:0;border-radius:.45rem;background:var(--color-green);color:#fff;font-weight:750}.archive-toolbar button:disabled{opacity:.55}.archive-message{min-height:1.25rem;margin:0;color:var(--color-green)}.archive-message[data-error="true"]{color:#a32320}.season-grid{display:grid;gap:1rem}.season-review{border:1px solid var(--color-rule);border-left:5px solid var(--color-green);background:var(--color-surface);box-shadow:var(--shadow-card)}.season-review[data-health="attention"]{border-left-color:#b37b22}.season-review__top,.season-review__footer{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.25rem}.season-review__top p,.season-review__top h2,.season-review__footer p{margin:0}.season-review__top p{color:var(--color-ink-soft);font-size:.7rem;font-weight:800;text-transform:uppercase}.season-review__top h2{font-size:2rem}.season-review__top>span{padding:.3rem .55rem;border-radius:999px;background:#e4f0e8;color:var(--color-green);font-size:.68rem;font-weight:850;text-transform:uppercase}.season-review[data-health="attention"] .season-review__top>span{background:#fff1cf;color:#7b5717}.season-review__stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-block:1px solid var(--color-rule)}.season-review__stats>div{display:grid;gap:.35rem;padding:.85rem 1.25rem;border-right:1px solid var(--color-rule)}.season-review__stats>div:last-child{border-right:0}.season-review__footer p{color:var(--color-ink-soft);font-size:.78rem}.archive-empty{padding:3rem;border:1px dashed var(--color-rule-dark);text-align:center}@media(max-width:900px){.archive-destinations,.archive-summary,.season-review__stats{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.archive-header,.archive-toolbar,.season-review__top,.season-review__footer{align-items:flex-start;flex-direction:column}.archive-destinations,.archive-summary,.season-review__stats{grid-template-columns:1fr}.archive-toolbar button{width:100%}}
+  .archive-desk { display: grid; gap: clamp(1.5rem, 3vw, 2.75rem); }
+  .archive-desk[hidden], .archive-empty[hidden], .season-grid[hidden] { display: none; }
+  .archive-header { display: flex; align-items: end; justify-content: space-between; gap: var(--space-6); padding-bottom: var(--space-7); border-bottom: 3px double var(--color-rule-dark); }
+  .archive-header__copy { max-width: 48rem; }
+  .archive-header h1 { margin: .25rem 0 var(--space-4); font-size: clamp(4rem, 10vw, 8.5rem); letter-spacing: -.07em; line-height: .8; }
+  .archive-header__description { max-width: 42rem; margin: 0; color: var(--color-ink-soft); font-size: clamp(1.05rem, 1.8vw, 1.3rem); }
+  .archive-header__link { display: inline-flex; align-items: center; gap: .35rem; padding: .7rem 1rem; border: 1px solid var(--color-rule-dark); border-radius: 999px; color: var(--color-green); font-family: var(--font-data); font-size: .68rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; text-decoration: none; white-space: nowrap; }
+  .archive-header__link:hover { background: var(--color-green); color: var(--color-paper); }
+  .archive-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 1px solid var(--color-rule); border-radius: var(--radius-lg); background: var(--color-rule); box-shadow: var(--shadow-card); }
+  .archive-summary > div { display: grid; gap: .45rem; min-height: 7rem; align-content: center; padding: 1.25rem; background: var(--color-surface); }
+  .archive-summary span, .season-review__stats span { color: var(--color-ink-soft); font-family: var(--font-data); font-size: .63rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .archive-summary strong { font-family: var(--font-display); font-size: clamp(1.75rem, 3vw, 2.6rem); letter-spacing: -.04em; }
+  .archive-destinations { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+  .archive-destinations a { display: grid; gap: .45rem; padding: 1.35rem; border: 1px solid var(--color-rule); border-top: 4px solid var(--color-green); border-radius: var(--radius-md); background: var(--color-surface); color: inherit; text-decoration: none; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+  .archive-destinations a:hover { transform: translateY(-3px); border-color: var(--color-green); box-shadow: var(--shadow-card); }
+  .archive-destination__label { font-weight: 800; }
+  .archive-destinations strong { font-family: var(--font-display); font-size: 2.4rem; line-height: 1; }
+  .archive-destinations small { color: var(--color-ink-soft); font-family: var(--font-data); font-size: .62rem; letter-spacing: .05em; text-transform: uppercase; }
+  .archive-coverage { display: grid; gap: 1.25rem; }
+  .archive-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 1rem; padding-top: .5rem; }
+  .archive-toolbar h2, .archive-toolbar p { margin: 0; }
+  .archive-toolbar h2 { font-size: clamp(2rem, 4vw, 3.5rem); letter-spacing: -.045em; }
+  .archive-toolbar > div > p:last-child { margin-top: .45rem; color: var(--color-ink-soft); }
+  .archive-toolbar button { display: inline-flex; align-items: center; gap: .5rem; padding: .8rem 1.05rem; border: 0; border-radius: 999px; background: var(--color-green); color: var(--color-paper); font-family: var(--font-data); font-size: .68rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
+  .archive-toolbar button:hover { background: var(--color-green-dark, #123c31); }
+  .archive-toolbar button:disabled { cursor: wait; opacity: .55; }
+  .archive-source-note { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .7rem; padding: .85rem 1rem; border: 1px solid var(--color-rule); border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-surface) 75%, var(--color-paper)); color: var(--color-ink-soft); font-size: .8rem; }
+  .archive-source-note strong { color: var(--color-ink); }
+  .archive-source-note__mark { width: .65rem; height: .65rem; border-radius: 50%; }
+  .archive-source-note__mark--sleeper { background: var(--color-green); }
+  .archive-source-note__mark--import { margin-left: .6rem; background: #b37b22; }
+  .archive-message { min-height: 1.25rem; margin: 0; color: var(--color-green); font-family: var(--font-data); font-size: .68rem; letter-spacing: .04em; text-transform: uppercase; }
+  .archive-message[data-error="true"] { color: #a32320; }
+  .season-grid { display: grid; gap: 1rem; }
+  .season-review { overflow: hidden; border: 1px solid var(--color-rule); border-left: 5px solid var(--color-green); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-card); }
+  .season-review[data-source="import"] { border-left-color: #b37b22; }
+  .season-review[data-health="attention"] { border-left-color: #a32320; }
+  .season-review[data-source="import"][data-health="attention"] { border-left-color: #b37b22; }
+  .season-review__top, .season-review__footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.35rem 1.5rem; }
+  .season-review__top p, .season-review__top h2, .season-review__footer p { margin: 0; }
+  .season-review__source { color: var(--color-ink-soft); font-family: var(--font-data); font-size: .63rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .season-review[data-source="import"] .season-review__source { color: #8a6219; }
+  .season-review__top h2 { margin-top: .3rem; font-size: clamp(2.4rem, 5vw, 4.5rem); letter-spacing: -.06em; line-height: .85; }
+  .season-review__health { padding: .4rem .7rem; border-radius: 999px; background: #e4f0e8; color: var(--color-green); font-family: var(--font-data); font-size: .63rem; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; }
+  .season-review[data-source="import"] .season-review__health { background: #fff1cf; color: #7b5717; }
+  .season-review[data-health="attention"] .season-review__health { background: #fbe5e3; color: #a32320; }
+  .season-review__stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block: 1px solid var(--color-rule); }
+  .season-review__stats > div { display: grid; gap: .4rem; padding: 1rem 1.5rem; border-right: 1px solid var(--color-rule); }
+  .season-review__stats > div:last-child { border-right: 0; }
+  .season-review__stats strong { font-family: var(--font-display); font-size: 1.55rem; }
+  .season-review__footer p { color: var(--color-ink-soft); font-size: .8rem; }
+  .season-review__footer a { color: var(--color-green); font-family: var(--font-data); font-size: .68rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+  .archive-empty { padding: 3rem; border: 1px dashed var(--color-rule-dark); border-radius: var(--radius-lg); text-align: center; }
+  .archive-empty h2 { margin: .3rem 0 .5rem; }
+  .archive-empty p:last-child { margin: 0; color: var(--color-ink-soft); }
+  @media (max-width: 900px) {
+    .archive-header { align-items: start; flex-direction: column; }
+    .archive-header__link { align-self: start; }
+    .archive-destinations, .archive-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .season-review__stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .season-review__stats > div:nth-child(3) { border-right: 0; }
+    .season-review__stats > div:nth-child(-n + 3) { border-bottom: 1px solid var(--color-rule); }
+  }
+  @media (max-width: 650px) {
+    .archive-destinations, .archive-summary, .season-review__stats { grid-template-columns: 1fr; }
+    .archive-toolbar, .season-review__top, .season-review__footer { align-items: flex-start; flex-direction: column; }
+    .archive-toolbar button { width: 100%; justify-content: center; }
+    .archive-source-note { align-items: flex-start; flex-direction: column; }
+    .archive-source-note__mark--import { margin-left: 0; margin-top: .45rem; }
+    .season-review__stats > div { border-right: 0; border-bottom: 1px solid var(--color-rule); }
+    .season-review__stats > div:last-child { border-bottom: 0; }
+    .season-review__footer a { white-space: normal; }
+  }
 </style>

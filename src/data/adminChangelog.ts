@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const adminChangelog: ChangelogEntry[] = [
   {
+    id: "archive-historical-imports-and-refresh",
+    date: "2026-10-29",
+    title: "Filled out and refreshed the Archive desk",
+    summary:
+      "The backend Archive now includes the imported 2022 and 2023 seasons alongside current Sleeper data, with a clearer view of what is available each year.",
+    changes: [
+      "Added the preserved 2022 and 2023 ESPN seasons with their teams, weeks, matchups, draft picks, and transactions.",
+      "Kept the imported seasons read-only and separate from the active Sleeper refresh path.",
+      "Restyled the Archive desk with source labels, coverage summaries, season health badges, and responsive cards.",
+    ],
+  },
+  {
     id: "editorial-live-scheduled-grouping",
     date: "2026-10-27",
     title: "Moved live scheduled stories into Published",
